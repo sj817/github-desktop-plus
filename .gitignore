@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.electrobun/
+*.app
+*.dmg
+*.exe
+*.msi
+.DS_Store
+Thumbs.db
+
+# Temp / generated files
+output.js
+*.tmp
+

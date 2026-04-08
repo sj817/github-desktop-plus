@@ -1,0 +1,27 @@
+{
+  "name": "github-desktop-plus",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "External enhancement tool for GitHub Desktop — built with Electrobun + Vue 3",
+  "scripts": {
+    "start": "vite build && bun run build:hooks && electrobun dev",
+    "dev": "electrobun dev --watch",
+    "dev:hmr": "concurrently \"bun run hmr\" \"bun run dev\"",
+    "hmr": "vite --port 5173",
+    "build:hooks": "bun build src/hooks/index.ts --outdir=build/hooks --target=node --format=cjs --external electron && bun build src/hooks/preload/index.ts --outfile=build/hooks/preload/index.js --target=node --format=cjs --external electron",
+    "build:canary": "vite build && bun run build:hooks && electrobun build --env=canary",
+    "build:release": "vite build && bun run build:hooks && electrobun build --env=release"
+  },
+  "dependencies": {
+    "electrobun": "1.16.0"
+  },
+  "devDependencies": {
+    "@types/bun": "1.3.11",
+    "@vitejs/plugin-vue": "^6.0.5",
+    "concurrently": "^9.2.1",
+    "typescript": "^6.0.2",
+    "vite": "^8.0.7",
+    "vue": "^3.5.32",
+    "vue-tsc": "^3.2.6"
+  }
+}
