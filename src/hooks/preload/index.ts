@@ -20,6 +20,32 @@
 
   const entries = Object.entries(translations);
 
+  function buildTranslationPattern(pattern: string): { regex: RegExp; names: string[] } | null {
+    const token = /(\{\{(\w+)\}\}|\{(\w+)\})/g;
+    const names: string[] = [];
+    let cursor = 0;
+    let regexStr = "";
+
+    for (const match of pattern.matchAll(token)) {
+      const raw = match[0];
+      const name = match[2] ?? match[3];
+      const index = match.index ?? -1;
+      if (!raw || !name || index < 0) continue;
+
+      regexStr += pattern
+        .slice(cursor, index)
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      regexStr += "(.+)";
+      names.push(name);
+      cursor = index + raw.length;
+    }
+
+    if (names.length === 0) return null;
+
+    regexStr += pattern.slice(cursor).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return { regex: new RegExp(`^${regexStr}$`), names };
+  }
+
   function translateText(text: string): string {
     const trimmed = text.trim();
     if (!trimmed) return text;
@@ -28,22 +54,18 @@
     const exact = translations[trimmed];
     if (exact !== undefined) return text.replace(trimmed, exact);
 
-    // Pattern match (entries with {{var}} placeholders)
+    // Pattern match (entries with {{var}} or {var} placeholders)
     for (const [pattern, replacement] of entries) {
-      if (!pattern.includes("{{")) continue;
+      const compiled = buildTranslationPattern(pattern);
+      if (compiled === null) continue;
 
-      // Convert pattern to regex: "Hello {{name}}" -> /^Hello (.+)$/
-      const regexStr = pattern
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-        .replace(/\\{\\{\\w+\\}\\}/g, "(.+)");
-      const regex = new RegExp(`^${regexStr}$`);
-      const match = trimmed.match(regex);
+      const match = trimmed.match(compiled.regex);
 
       if (match) {
         let result = replacement;
-        const varNames = [...pattern.matchAll(/\{\{(\w+)\}\}/g)].map((m) => m[1]);
-        varNames.forEach((name, i) => {
+        compiled.names.forEach((name, i) => {
           result = result.replace(`{{${name}}}`, match[i + 1]);
+          result = result.replace(`{${name}}`, match[i + 1]);
         });
         return text.replace(trimmed, result);
       }

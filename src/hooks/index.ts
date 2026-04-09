@@ -107,9 +107,77 @@ function loadMenuTranslations(dir: string, locale: string): Record<string, strin
   }
 }
 
+function buildTranslationPattern(pattern: string): {
+  readonly regex: RegExp
+  readonly names: ReadonlyArray<string>
+} | null {
+  const token = /(\{\{(\w+)\}\}|\{(\w+)\})/g
+  const names = new Array<string>()
+  let cursor = 0
+  let regexSource = ''
+
+  for (const match of pattern.matchAll(token)) {
+    const raw = match[0]
+    const name = match[1] ?? match[2]
+    const index = match.index ?? -1
+    if (!raw || !name || index < 0) {
+      continue
+    }
+
+    regexSource += pattern
+      .slice(cursor, index)
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    regexSource += '(.+)'
+    names.push(name)
+    cursor = index + raw.length
+  }
+
+  if (names.length === 0) {
+    return null
+  }
+
+  regexSource += pattern.slice(cursor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return {
+    regex: new RegExp(`^${regexSource}$`),
+    names,
+  }
+}
+
+function translateLabel(
+  label: string,
+  translations: Record<string, string>
+): string | null {
+  const exact = translations[label]
+  if (exact !== undefined) {
+    return exact
+  }
+
+  for (const [pattern, replacement] of Object.entries(translations)) {
+    const compiled = buildTranslationPattern(pattern)
+    if (compiled === null) {
+      continue
+    }
+
+    const match = label.match(compiled.regex)
+    if (match === null) {
+      continue
+    }
+
+    let translated = replacement
+    compiled.names.forEach((name, index) => {
+      const value = match[index + 1] ?? ''
+      translated = translated.replace(`{{${name}}}`, value)
+      translated = translated.replace(`{${name}}`, value)
+    })
+    return translated
+  }
+
+  return null
+}
+
 function translateMenuItem(item: MenuItem, translations: Record<string, string>): void {
   if (item.label) {
-    const translated = translations[item.label]
+    const translated = translateLabel(item.label, translations)
     if (translated) {
       gdpLog(`Menu: "${item.label}" → "${translated}"`, 'info', 'menu')
       item.label = translated
