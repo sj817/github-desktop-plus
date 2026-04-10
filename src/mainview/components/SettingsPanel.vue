@@ -66,6 +66,13 @@ const locales = ["zh-CN", "en"];
         </div>
       </label>
       <label class="toggle-row">
+        <input type="checkbox" v-model="local.blockManualUpdateCheck" @change="markDirty" />
+        <div class="toggle-content">
+          <span class="toggle-label">拦截手动更新按钮</span>
+          <span class="toggle-hint">拦截 About 对话框中的"检查更新"按钮，弹出 GDP 提示</span>
+        </div>
+      </label>
+      <label class="toggle-row">
         <input type="checkbox" v-model="local.blockTelemetry" @change="markDirty" />
         <div class="toggle-content">
           <span class="toggle-label">禁用遥测上报</span>

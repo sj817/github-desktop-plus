@@ -13,3 +13,5 @@ Thumbs.db
 output.js
 *.tmp
 
+/rust/target/debug
+/rust/target

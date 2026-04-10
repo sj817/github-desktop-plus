@@ -6,19 +6,34 @@
  */
 
 (function () {
+  type GDPTextNode = Text & {
+    __gdpSourceText?: string;
+    __gdpTranslatedText?: string;
+  };
+
+  type GDPAttrState = {
+    source: string;
+    translated: string;
+  };
+
+  type GDPTranslatedElement = Element & {
+    __gdpAttrState?: Record<string, GDPAttrState>;
+  };
+
+  function getTranslations(): Record<string, string> {
+    return ((window as unknown as Record<string, unknown>).__GDP_TRANSLATIONS__ as Record<string, string> | undefined) ?? {};
+  }
+
   // Prefer translations embedded by the injector (avoids __dirname uncertainty
   // in the renderer context entirely).
-  const translations: Record<string, string> =
-    (window as unknown as Record<string, unknown>).__GDP_TRANSLATIONS__ as Record<string, string> ?? {};
+  const initialTranslations = getTranslations();
 
-  if (Object.keys(translations).length === 0) {
+  if (Object.keys(initialTranslations).length === 0) {
     console.warn("[GDP i18n] No translations available");
     return;
   }
 
-  console.log(`[GDP i18n] Active with ${Object.keys(translations).length} entries`);
-
-  const entries = Object.entries(translations);
+  console.log(`[GDP i18n] Active with ${Object.keys(initialTranslations).length} entries`);
 
   function buildTranslationPattern(pattern: string): { regex: RegExp; names: string[] } | null {
     const token = /(\{\{(\w+)\}\}|\{(\w+)\})/g;
@@ -47,6 +62,8 @@
   }
 
   function translateText(text: string): string {
+    const translations = getTranslations();
+    const entries = Object.entries(translations);
     const trimmed = text.trim();
     if (!trimmed) return text;
 
@@ -76,10 +93,41 @@
 
   function translateNode(node: Node) {
     if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-      const translated = translateText(node.textContent);
-      if (translated !== node.textContent) {
-        node.textContent = translated;
+      const textNode = node as GDPTextNode;
+      const current = textNode.textContent;
+      const source =
+        textNode.__gdpSourceText !== undefined &&
+        current === textNode.__gdpTranslatedText
+          ? textNode.__gdpSourceText
+          : current;
+
+      const translated = translateText(source);
+      textNode.__gdpSourceText = source;
+      textNode.__gdpTranslatedText = translated;
+
+      if (translated !== current) {
+        textNode.textContent = translated;
       }
+    }
+  }
+
+  function translateAttribute(el: Element, attr: string) {
+    const current = el.getAttribute(attr);
+    if (!current) return;
+
+    const translatedElement = el as GDPTranslatedElement;
+    const prev = translatedElement.__gdpAttrState?.[attr];
+    const source =
+      prev !== undefined && current === prev.translated
+        ? prev.source
+        : current;
+
+    const translated = translateText(source);
+    translatedElement.__gdpAttrState ??= {};
+    translatedElement.__gdpAttrState[attr] = { source, translated };
+
+    if (translated !== current) {
+      el.setAttribute(attr, translated);
     }
   }
 
@@ -92,23 +140,18 @@
 
     if (root instanceof Element) {
       for (const attr of ["title", "placeholder", "aria-label"]) {
-        const val = root.getAttribute(attr);
-        if (val) {
-          const translated = translateText(val);
-          if (translated !== val) root.setAttribute(attr, translated);
-        }
+        translateAttribute(root, attr);
       }
       root.querySelectorAll("[title],[placeholder],[aria-label]").forEach((el) => {
         for (const attr of ["title", "placeholder", "aria-label"]) {
-          const val = el.getAttribute(attr);
-          if (val) {
-            const translated = translateText(val);
-            if (translated !== val) el.setAttribute(attr, translated);
-          }
+          translateAttribute(el, attr);
         }
       });
     }
   }
+
+  // Expose translateTree globally for hot-reload support
+  (window as unknown as Record<string, unknown>).__gdpTranslateTree = translateTree;
 
   // Initial translation
   if (document.body) {

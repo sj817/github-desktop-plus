@@ -15,16 +15,34 @@
 ## 技术栈
 
 | 层级 | 技术 |
-|------|------|
+| ---- | ---- |
 | 桌面框架 | [Electrobun](https://github.com/nicehash/electrobun) (Bun + 原生 WebView) |
 | 前端 | Vue 3 + Vite + TypeScript |
 | 主进程 | Bun (Electrobun runtime) |
 | Hook 注入 | Node.js CJS (运行在 Electron 内部) |
 | 进程间通信 | Electrobun RPC (类型安全) |
 
+## Rust 重构路线
+
+当前 Bun/Electrobun 方案保留为原型实现；新的主线重构已经在 `rust/` 目录启动，目标如下：
+
+- **运行时核心迁移到 Rust**，Node.js 仅保留为可选构建辅助
+- **常驻内存目标 < 10MB**，优先压缩运行时和依赖树
+- **启动速度优先**，避免多进程常驻和重型 JS runtime
+- **跨平台**：Windows / macOS / Linux
+
+新的 Rust-first 方案采用以下拆分：
+
+- `gdp-core`：纯 Rust 核心逻辑库
+- `gdp-cli`：命令行入口，直接进程内调用 core
+- `gdp-web`：超轻量 loopback HTTP 适配层，向静态 Web UI 提供 JSON API
+- `rust/ui/`：无框架静态前端
+
+详细设计见：[`docs/phase5-rust-architecture.md`](docs/phase5-rust-architecture.md)
+
 ## 工作原理
 
-```
+```text
 ┌─────────────────────────┐      ┌──────────────────────────────┐
 │  GitHub Desktop Plus    │      │  GitHub Desktop (Electron)   │
 │  (Electrobun 客户端)    │      │                              │
@@ -59,7 +77,7 @@ bun run build:release
 
 ## 项目结构
 
-```
+```text
 src/
 ├── bun/              # Electrobun 主进程 (Bun runtime)
 │   └── index.ts      # 窗口创建、RPC 处理、进程管理
@@ -91,6 +109,7 @@ locales/
 - [阶段 2：可行性分析](docs/phase2-feasibility.md)
 - [阶段 3：架构设计](docs/phase3-architecture.md)
 - [阶段 4：实现说明](docs/phase4-implementation.md)
+- [阶段 5：Rust 底层重构设计](docs/phase5-rust-architecture.md)
 
 ## License
 

@@ -17,10 +17,12 @@
 
 interface HookConfig {
   blockUpdates: boolean
+  blockManualUpdateCheck: boolean
   blockTelemetry: boolean
   logLevel: string
   enableI18n: boolean
   locale: string
+  dataDir: string
 }
 
 interface LogEntry {
@@ -31,11 +33,26 @@ interface LogEntry {
 }
 
 function parseConfig(): HookConfig {
+  const defaults: HookConfig = {
+    blockUpdates: true,
+    blockManualUpdateCheck: true,
+    blockTelemetry: true,
+    logLevel: '',
+    enableI18n: true,
+    locale: 'zh-CN',
+    dataDir: '',
+  }
+
   try {
     const raw = process.env.GDP_CONFIG
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<HookConfig> | null
+      if (parsed && typeof parsed === 'object') {
+        return { ...defaults, ...parsed }
+      }
+    }
   } catch { /* ignore */ }
-  return { blockUpdates: true, blockTelemetry: true, logLevel: '', enableI18n: true, locale: 'zh-CN' }
+  return defaults
 }
 
 const _fs: typeof import('fs') = require('fs')
@@ -87,24 +104,50 @@ function blockUpdates(autoUpdater: Record<string, unknown>): void {
 //    Menus are created in main process via Electron Menu API, not in DOM.
 // ---------------------------------------------------------------------------
 interface MenuItem {
+  id?: string
   label?: string
   submenu?: MenuItem[]
   role?: string
   type?: string
+  enabled?: boolean
+  click?: () => void
 }
 
-function loadMenuTranslations(dir: string, locale: string): Record<string, string> {
-  const menuFile = _path.join(dir, '..', 'locales', locale, 'menu.json')
+interface TrackedWebContents {
+  executeJavaScript(code: string): Promise<unknown>
+  isDestroyed(): boolean
+}
+
+function loadMenuTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
+  // Layer 1: built-in translations (shipped with GDP)
+  const builtinFile = _path.join(dir, '..', 'locales', locale, 'menu.json')
+  let translations: Record<string, string> = {}
   try {
-    const data = JSON.parse(_fs.readFileSync(menuFile, 'utf-8'))
-    // Remove _meta key
+    const data = JSON.parse(_fs.readFileSync(builtinFile, 'utf-8'))
     delete data._meta
-    gdpLog(`Loaded ${Object.keys(data).length} menu translations from ${menuFile}`, 'info', 'menu')
-    return data
+    translations = data
+    gdpLog(`Loaded ${Object.keys(data).length} built-in menu translations from ${builtinFile}`, 'info', 'menu')
   } catch {
-    gdpLog(`Menu locale file not found: ${menuFile}`, 'warn', 'menu')
-    return {}
+    gdpLog(`Built-in menu locale file not found: ${builtinFile}`, 'warn', 'menu')
   }
+
+  // Layer 2: user-custom translations (override built-in)
+  if (dataDir) {
+    const userFile = _path.join(dataDir, 'locales', locale, 'menu.json')
+    try {
+      if (_fs.existsSync(userFile)) {
+        const userData = JSON.parse(_fs.readFileSync(userFile, 'utf-8'))
+        delete userData._meta
+        const overrideCount = Object.keys(userData).length
+        Object.assign(translations, userData)
+        gdpLog(`Applied ${overrideCount} user menu overrides from ${userFile}`, 'info', 'menu')
+      }
+    } catch (e) {
+      gdpLog(`Failed to load user menu overrides: ${e}`, 'warn', 'menu')
+    }
+  }
+
+  return translations
 }
 
 function buildTranslationPattern(pattern: string): {
@@ -118,7 +161,7 @@ function buildTranslationPattern(pattern: string): {
 
   for (const match of pattern.matchAll(token)) {
     const raw = match[0]
-    const name = match[1] ?? match[2]
+    const name = match[2] ?? match[3]
     const index = match.index ?? -1
     if (!raw || !name || index < 0) {
       continue
@@ -190,41 +233,46 @@ function translateMenuItem(item: MenuItem, translations: Record<string, string>)
   }
 }
 
-function setupMenuI18n(
-  Menu: { buildFromTemplate(template: MenuItem[]): unknown },
-  translations: Record<string, string>
-): void {
-  if (Object.keys(translations).length === 0) return
-
-  const originalBuild = Menu.buildFromTemplate.bind(Menu)
-  Menu.buildFromTemplate = function (template: MenuItem[]): unknown {
-    for (const item of template) {
-      translateMenuItem(item, translations)
-    }
-    return originalBuild(template)
-  }
-  gdpLog('Menu.buildFromTemplate patched for i18n', 'info', 'menu')
-}
+// setupMenuI18n removed — replaced by setupGDPMenu which handles both i18n and GDP menu injection
 
 // ---------------------------------------------------------------------------
 // 3. Renderer i18n — use app.on('browser-window-created') + executeJavaScript
 // ---------------------------------------------------------------------------
-function loadUiTranslations(dir: string, locale: string): Record<string, string> {
+function loadUiTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
+  // Layer 1: built-in translations
+  let translations: Record<string, string> = {}
   const uiFile = _path.join(dir, '..', 'locales', locale, 'ui.json')
   try {
     const data = JSON.parse(_fs.readFileSync(uiFile, 'utf-8'))
     delete data._meta
-    return data
+    translations = data
   } catch {
     // Fallback to flat locale file
     const flatFile = _path.join(dir, '..', 'locales', `${locale}.json`)
     try {
-      return JSON.parse(_fs.readFileSync(flatFile, 'utf-8'))
+      translations = JSON.parse(_fs.readFileSync(flatFile, 'utf-8'))
     } catch {
-      gdpLog(`UI locale files not found for ${locale}`, 'warn', 'i18n')
-      return {}
+      gdpLog(`Built-in UI locale files not found for ${locale}`, 'warn', 'i18n')
     }
   }
+
+  // Layer 2: user-custom translations (override built-in)
+  if (dataDir) {
+    const userFile = _path.join(dataDir, 'locales', locale, 'ui.json')
+    try {
+      if (_fs.existsSync(userFile)) {
+        const userData = JSON.parse(_fs.readFileSync(userFile, 'utf-8'))
+        delete userData._meta
+        const overrideCount = Object.keys(userData).length
+        Object.assign(translations, userData)
+        gdpLog(`Applied ${overrideCount} user UI overrides from ${userFile}`, 'info', 'i18n')
+      }
+    } catch (e) {
+      gdpLog(`Failed to load user UI overrides: ${e}`, 'warn', 'i18n')
+    }
+  }
+
+  return translations
 }
 
 function setupRendererI18n(
@@ -232,11 +280,11 @@ function setupRendererI18n(
   uiTranslations: Record<string, string>,
   dir: string,
   config: HookConfig
-): void {
+): TrackedWebContents[] {
   const preloadPath = _path.join(dir, 'preload', 'index.js')
   if (!_fs.existsSync(preloadPath)) {
     gdpLog(`Preload not found: ${preloadPath}`, 'error', 'i18n')
-    return
+    return []
   }
 
   const translationCount = Object.keys(uiTranslations).length
@@ -247,7 +295,7 @@ function setupRendererI18n(
     preloadCode = _fs.readFileSync(preloadPath, 'utf-8')
   } catch {
     gdpLog(`Cannot read preload: ${preloadPath}`, 'error', 'i18n')
-    return
+    return []
   }
 
   // Build injection script — navbar injection is included as a separate module
@@ -260,22 +308,45 @@ function setupRendererI18n(
     }
   } catch { /* optional */ }
 
+  // Update interceptor — intercepts "Check for Updates" button in About dialog
+  const updateInterceptorPath = _path.join(dir, 'preload', 'update-interceptor.js')
+  let updateInterceptorCode = ''
+  try {
+    if (_fs.existsSync(updateInterceptorPath)) {
+      updateInterceptorCode = _fs.readFileSync(updateInterceptorPath, 'utf-8')
+      gdpLog('Update interceptor script loaded', 'info', 'update')
+    }
+  } catch { /* optional */ }
+
   const injectScript = `(function(){` +
     `window.__GDP_TRANSLATIONS__=${JSON.stringify(uiTranslations)};` +
     `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
     `window.__GDP_LOG_FILE__=${JSON.stringify(LOG_JSON_FILE)};` +
     `${preloadCode}` +
     (navbarCode ? `\n${navbarCode}` : '') +
+    (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
     `})();`
+
+  // Track active webContents for hot-reload push
+  const activeWebContents: TrackedWebContents[] = []
 
   app.on('browser-window-created', (...args: unknown[]) => {
     const win = args[1] as {
       webContents: {
         on(event: string, cb: () => void): void
+        once(event: string, cb: () => void): void
         executeJavaScript(code: string): Promise<unknown>
+        isDestroyed(): boolean
       }
     }
-    gdpLog('browser-window-created — attaching i18n + navbar injection', 'info', 'i18n')
+    gdpLog('browser-window-created — attaching i18n + navbar + update-interceptor injection', 'info', 'i18n')
+
+    activeWebContents.push(win.webContents)
+    win.webContents.once('destroyed', () => {
+      const idx = activeWebContents.indexOf(win.webContents)
+      if (idx >= 0) activeWebContents.splice(idx, 1)
+    })
+
     win.webContents.on('did-finish-load', () => {
       gdpLog('did-finish-load — injecting scripts', 'info', 'i18n')
       win.webContents.executeJavaScript(injectScript).catch((e: unknown) => {
@@ -284,6 +355,9 @@ function setupRendererI18n(
     })
   })
   gdpLog('Renderer i18n injection registered', 'info', 'i18n')
+
+  // Return activeWebContents so hot-reload watcher can push translation updates
+  return activeWebContents
 }
 
 // ---------------------------------------------------------------------------
@@ -331,6 +405,181 @@ function setupTelemetryBlocker(
 }
 
 // ---------------------------------------------------------------------------
+// 5. GDP Menu — inject a "GDP" top-level menu into the menu bar
+//    Independent of i18n toggle — always injected when hooks are active.
+// ---------------------------------------------------------------------------
+const GDP_WEBUI_URL = 'http://127.0.0.1:7788'
+
+function buildGDPMenuItems(
+  shell: { openExternal(url: string): Promise<void> },
+  config: HookConfig
+): MenuItem[] {
+  const check = (v: boolean) => v ? '✓' : '✗'
+  return [
+    {
+      id: 'gdp.open-webui',
+      label: '打开控制面板 (WebUI)',
+      click: () => { shell.openExternal(GDP_WEBUI_URL).catch(() => {}) },
+    },
+    { id: 'gdp.separator.1', type: 'separator' },
+    {
+      id: 'gdp.status.updates',
+      label: `更新拦截: ${check(config.blockUpdates)} ${config.blockUpdates ? '已启用' : '已禁用'}`,
+      enabled: false,
+    },
+    {
+      id: 'gdp.status.manual-updates',
+      label: `手动更新拦截: ${check(config.blockManualUpdateCheck)} ${config.blockManualUpdateCheck ? '已启用' : '已禁用'}`,
+      enabled: false,
+    },
+    {
+      id: 'gdp.status.telemetry',
+      label: `遥测拦截: ${check(config.blockTelemetry)} ${config.blockTelemetry ? '已启用' : '已禁用'}`,
+      enabled: false,
+    },
+    {
+      id: 'gdp.status.i18n',
+      label: `中文界面: ${check(config.enableI18n)} ${config.enableI18n ? '已启用' : '已禁用'}`,
+      enabled: false,
+    },
+    { id: 'gdp.separator.2', type: 'separator' },
+    {
+      id: 'gdp.about',
+      label: '关于 GitHub Desktop Plus',
+      click: () => { shell.openExternal('https://github.com/nicexipi/github-desktop-plus').catch(() => {}) },
+    },
+  ]
+}
+
+function setupGDPMenu(
+  Menu: { buildFromTemplate(template: MenuItem[]): unknown },
+  shell: { openExternal(url: string): Promise<void> },
+  config: HookConfig,
+  menuTranslations: Record<string, string> | null
+): void {
+  const originalBuild = Menu.buildFromTemplate.bind(Menu)
+  let isBuildingMenu = false
+
+  Menu.buildFromTemplate = function (template: MenuItem[]): unknown {
+    if (isBuildingMenu) {
+      return originalBuild(template)
+    }
+
+    isBuildingMenu = true
+
+    // Translate menu labels if i18n is enabled
+    try {
+      if (menuTranslations && Object.keys(menuTranslations).length > 0) {
+        for (const item of template) {
+          translateMenuItem(item, menuTranslations)
+        }
+      }
+
+      const nextTemplate = template.slice()
+      const hasGDPMenu = nextTemplate.some(item => item.label === 'GDP')
+
+      if (!hasGDPMenu) {
+        const gdpMenu: MenuItem = {
+          id: 'gdp',
+          label: 'GDP',
+          submenu: buildGDPMenuItems(shell, config),
+        }
+
+        // Insert before Help when present, otherwise append to end.
+        const helpIdx = nextTemplate.findIndex(
+          (item) => item.label === '&Help' || item.label === '帮助(&H)' || item.role === 'help'
+        )
+
+        if (helpIdx >= 0) {
+          nextTemplate.splice(helpIdx, 0, gdpMenu)
+        } else {
+          nextTemplate.push(gdpMenu)
+        }
+      }
+
+      return originalBuild(nextTemplate)
+    } finally {
+      isBuildingMenu = false
+    }
+  }
+  gdpLog('Menu.buildFromTemplate patched (i18n + GDP menu)', 'info', 'menu')
+}
+
+// ---------------------------------------------------------------------------
+// 6. Dev-mode Hot-Reload — watch locale source files for changes
+//    and push updated translations to active renderers.
+// ---------------------------------------------------------------------------
+function setupLocaleHotReload(
+  dir: string,
+  config: HookConfig,
+  activeWebContents: TrackedWebContents[]
+): void {
+  // Watch both built-in and user-custom locale directories
+  const watchDirs: string[] = []
+  const builtinDir = _path.join(dir, '..', 'locales', config.locale)
+  if (_fs.existsSync(builtinDir)) watchDirs.push(builtinDir)
+  if (config.dataDir) {
+    const userDir = _path.join(config.dataDir, 'locales', config.locale)
+    if (_fs.existsSync(userDir)) watchDirs.push(userDir)
+  }
+
+  if (watchDirs.length === 0) {
+    gdpLog('No locale directories to watch for hot-reload', 'warn', 'i18n')
+    return
+  }
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  const onFileChange = (_eventType: string, filename: string | null) => {
+    if (!filename || !filename.endsWith('.json')) return
+    // Debounce — coalesce rapid changes
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      gdpLog(`Locale file changed: ${filename} — hot-reloading translations`, 'info', 'i18n')
+
+      // Reload UI translations
+      const newUiTranslations = loadUiTranslations(dir, config.locale, config.dataDir)
+      const updateScript = `(function(){` +
+        `var newT=${JSON.stringify(newUiTranslations)};` +
+        `var oldT=window.__GDP_TRANSLATIONS__||{};` +
+        `var changed=false;` +
+        `for(var k in newT){if(oldT[k]!==newT[k]){changed=true;break;}}` +
+        `if(!changed){for(var k in oldT){if(!(k in newT)){changed=true;break;}}}` +
+        `if(changed){` +
+        `window.__GDP_TRANSLATIONS__=newT;` +
+        `console.log("[GDP i18n] Hot-reload: "+Object.keys(newT).length+" entries updated");` +
+        // Re-translate the entire document body
+        `if(window.__gdpTranslateTree&&document.body){window.__gdpTranslateTree(document.body);}` +
+        `}else{console.log("[GDP i18n] Hot-reload: no changes detected");}` +
+        `})();`
+
+      // Push to all active renderers
+      const alive = activeWebContents.filter(wc => !wc.isDestroyed())
+      for (const wc of alive) {
+        wc.executeJavaScript(updateScript).catch((e: unknown) => {
+          gdpLog(`Hot-reload push failed: ${e}`, 'error', 'i18n')
+        })
+      }
+
+      // Also reload menu translations for next menu rebuild
+      if (filename.includes('menu')) {
+        const newMenuTranslations = loadMenuTranslations(dir, config.locale, config.dataDir)
+        gdpLog(`Menu translations reloaded (${Object.keys(newMenuTranslations).length} entries)`, 'info', 'menu')
+      }
+    }, 300)
+  }
+
+  for (const watchDir of watchDirs) {
+    try {
+      _fs.watch(watchDir, { persistent: false }, onFileChange)
+      gdpLog(`Watching locale directory for changes: ${watchDir}`, 'info', 'i18n')
+    } catch (e) {
+      gdpLog(`Failed to watch ${watchDir}: ${e}`, 'warn', 'i18n')
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
 function main(): void {
@@ -357,24 +606,36 @@ function main(): void {
     blockUpdates(electron.autoUpdater as Record<string, unknown>)
   }
 
-  // 2. Menu i18n (main process — intercept Menu.buildFromTemplate)
-  if (config.enableI18n && electron.Menu) {
-    const menuTranslations = loadMenuTranslations(dir, config.locale)
-    setupMenuI18n(
+  // 2. Menu patching — always inject GDP menu, optionally translate labels
+  const menuTranslations = config.enableI18n
+    ? loadMenuTranslations(dir, config.locale, config.dataDir)
+    : null
+
+  if (electron.Menu && electron.shell) {
+    setupGDPMenu(
       electron.Menu as { buildFromTemplate(template: MenuItem[]): unknown },
+      electron.shell as { openExternal(url: string): Promise<void> },
+      config,
       menuTranslations
     )
   }
 
-  // 3. Renderer i18n + navbar injection
-  if (config.enableI18n && electron.app) {
-    const uiTranslations = loadUiTranslations(dir, config.locale)
-    setupRendererI18n(
+  // 3. Renderer i18n + navbar + update-interceptor injection
+  let activeWebContents: Array<{
+    executeJavaScript(code: string): Promise<unknown>
+    isDestroyed(): boolean
+  }> = []
+
+  if (electron.app) {
+    const uiTranslations = config.enableI18n
+      ? loadUiTranslations(dir, config.locale, config.dataDir)
+      : {}
+    activeWebContents = setupRendererI18n(
       electron.app as { on(event: string, cb: (...args: unknown[]) => void): void },
       uiTranslations,
       dir,
       config
-    )
+    ) ?? []
   }
 
   // 4. Telemetry blocking
@@ -391,6 +652,15 @@ function main(): void {
           cb: (details: { url: string }, callback: (resp: { cancel: boolean }) => void) => void
         ): void
       } } }
+    )
+  }
+
+  // 5. Dev-mode hot-reload for locale files
+  if (config.enableI18n && activeWebContents) {
+    setupLocaleHotReload(
+      dir,
+      config,
+      activeWebContents
     )
   }
 

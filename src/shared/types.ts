@@ -6,6 +6,8 @@ export interface GDPConfig {
   desktopPath: string;
   /** Block auto-update checks */
   blockUpdates: boolean;
+  /** Block manual update check button in About dialog */
+  blockManualUpdateCheck: boolean;
   /** Block telemetry/stats reporting */
   blockTelemetry: boolean;
   /** Override log level (debug/info/warn/error), empty = no override */
@@ -23,6 +25,7 @@ export interface GDPConfig {
 export const defaultConfig: GDPConfig = {
   desktopPath: "",
   blockUpdates: true,
+  blockManualUpdateCheck: true,
   blockTelemetry: true,
   logLevel: "",
   enableI18n: true,

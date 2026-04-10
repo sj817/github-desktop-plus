@@ -155,10 +155,12 @@ function launchDesktop(): { ok: boolean; error?: string } {
   // Pass config to hooks via environment variable
   const hookConfig = JSON.stringify({
     blockUpdates: config.blockUpdates,
+    blockManualUpdateCheck: config.blockManualUpdateCheck,
     blockTelemetry: config.blockTelemetry,
     logLevel: config.logLevel,
     enableI18n: config.enableI18n,
     locale: config.locale,
+    dataDir: CONFIG_DIR,
   });
 
   const env: Record<string, string> = {

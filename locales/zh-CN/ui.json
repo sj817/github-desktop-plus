@@ -7,7 +7,7 @@
   "History": "历史",
   "Summary": "摘要",
   "Description": "描述",
-  "Commit to {{branch}}": "提交到 {{branch}}",
+  "Commit to {branch}": "提交到 {branch}",
   "No local changes": "没有本地更改",
   "Open in External Editor": "在外部编辑器中打开",
   "Show in Explorer": "在资源管理器中显示",

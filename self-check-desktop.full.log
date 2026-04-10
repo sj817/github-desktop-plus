@@ -1,0 +1,27 @@
+$ bun run scripts/self-check-desktop.ts
+[self-check] Starting gdp:dev for live validation...
+[stderr] warning: gdp@0.1.0: Embedded build/hooks/index.js 鈫?hook_bundle.js
+[stderr] warning: gdp@0.1.0: Embedded build/hooks/preload/index.js 鈫?preload_index.js
+[stderr] warning: gdp@0.1.0: locales/zh-CN.json not found 鈥?embedding stub for locale_zh_CN.json
+[stderr] warning: gdp@0.1.0: Embedded locales/zh-CN/menu.json 鈫?locale_zh_CN_menu.json
+[stderr] warning: gdp@0.1.0: Embedded locales/zh-CN/ui.json 鈫?locale_zh_CN_ui.json
+[stderr] [gd:err] Debugger listening on ws://127.0.0.1:56556/b1428549-5640-467f-888f-4bbdd55e8da0
+[stdout] [GDP] Hooks injected successfully
+[stdout] [gd:out] 2026-04-09T23:39:51.803Z [INFO][menu] Menu.buildFromTemplate patched (i18n + GDP menu)
+[stdout] [gd:out] 2026-04-09T23:39:51.813Z [INFO][i18n] Watching locale directory for changes: D:\Github\github-desktop-plus\rust\target\debug\gdp-data\locales\zh-CN
+[stdout] [gd:out] 2026-04-09T23:39:51.816Z [INFO][i18n] Watching locale directory for changes: C:\Users\Administrator\AppData\Roaming\github-desktop-plus\locales\zh-CN
+[stdout] [gd:out] 2026-04-09T23:39:51.817Z [INFO][system] ====== Hook setup complete ======
+[self-check] Connecting to inspector: ws://127.0.0.1:56556/b1428549-5640-467f-888f-4bbdd55e8da0
+[stderr] [gd:err] [desktop-notifications] [error] Failed to initialize with RO_INIT_MULTITHREADED: -2147417850
+[stdout] [info] Menu.buildFromTemplate patched (i18n + GDP menu)
+[stdout] [info] Watching locale directory for changes: D:\Github\github-desktop-plus\rust\target\debug\gdp-data\locales\zh-CN
+[stdout] [info] Watching locale directory for changes: C:\Users\Administrator\AppData\Roaming\github-desktop-plus\locales\zh-CN
+[stdout] [info] ====== Hook setup complete ======
+[self-check] Stopping GDP dev session...
+[stdout] [GDP] Done.
+[self-check] FAILED
+Error: Timed out waiting for renderer hook globals. Last window snapshot: id=1 title="GitHub Desktop" url="file:///C:/Users/Administrator/AppData/Local/GitHubDesktop/app-3.5.7/resources/app/index.html" href=undefined ready=undefined config=undefined translateTree=undefined
+    at findInjectedWindowId (D:\Github\github-desktop-plus\scripts\self-check-desktop.ts:353:13)
+    at async main (D:\Github\github-desktop-plus\scripts\self-check-desktop.ts:463:34)
+    at processTicksAndRejections (native:7:39)
+error: script "self-check:desktop" exited with code 1
