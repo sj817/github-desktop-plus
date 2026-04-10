@@ -1,6 +1,0 @@
-[alias]
-run-cli = "run -p gdp-cli --"
-run-web = "run -p gdp-web"
-
-[build]
-target-dir = "target"

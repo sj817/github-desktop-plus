@@ -2,41 +2,43 @@
 
 外部增强工具，在不修改 GitHub Desktop 源码的前提下扩展其功能。
 
-基于 **Electrobun + Vue 3 + TypeScript** 构建的桌面客户端。
+基于 **Rust + 0-path Inspector 注入 + 无框架 WebUI** 构建。
 
 ## 功能
 
 - **禁用自动更新** — 阻止 autoUpdater 检查和安装更新
+- **拦截手动更新按钮** — 接管 About 对话框中的“检查更新”入口
 - **屏蔽遥测上报** — 拦截统计数据和异常上报到 central.github.com
 - **日志过滤** — 控制日志级别，减少无用输出
-- **中文界面 (i18n)** — 通过 DOM 文本替换实现 UI 中文化
-- **图形化控制面板** — Electrobun 原生窗口 + Vue 3 界面
+- **中文界面 (i18n)** — 通过菜单翻译和 DOM 文本替换实现 UI 中文化
+- **本地控制面板** — 由 GDP 内置的 `http://127.0.0.1:7788` WebUI 提供
 
 ## 技术栈
 
 | 层级 | 技术 |
 | ---- | ---- |
-| 桌面框架 | [Electrobun](https://github.com/nicehash/electrobun) (Bun + 原生 WebView) |
-| 前端 | Vue 3 + Vite + TypeScript |
-| 主进程 | Bun (Electrobun runtime) |
-| Hook 注入 | Node.js CJS (运行在 Electron 内部) |
-| 进程间通信 | Electrobun RPC (类型安全) |
+| 运行时核心 | Rust (`gdp`) |
+| Hook 注入 | V8 Inspector (`--inspect-brk`) |
+| Hook 源码 | TypeScript |
+| Hook 构建 | Node.js + esbuild |
+| 控制面板 | Static HTML + CSS + JavaScript |
+| 包管理 | pnpm |
 
-## Rust 重构路线
+## 当前结构
 
-当前 Bun/Electrobun 方案保留为原型实现；新的主线重构已经在 `rust/` 目录启动，目标如下：
+当前源码已经统一收敛到 `src/` 下，运行时目标如下：
 
 - **运行时核心迁移到 Rust**，Node.js 仅保留为可选构建辅助
 - **常驻内存目标 < 10MB**，优先压缩运行时和依赖树
 - **启动速度优先**，避免多进程常驻和重型 JS runtime
 - **跨平台**：Windows / macOS / Linux
 
-新的 Rust-first 方案采用以下拆分：
+当前主线拆分如下：
 
 - `gdp-core`：纯 Rust 核心逻辑库
-- `gdp-cli`：命令行入口，直接进程内调用 core
-- `gdp-web`：超轻量 loopback HTTP 适配层，向静态 Web UI 提供 JSON API
-- `rust/ui/`：无框架静态前端
+- `gdp`：CLI 入口 + 0-path 注入 + 内置本地 Web 控制面板
+- `src/hooks/`：Electron hook / preload 的 TypeScript 源码
+- `src/ui/`：无框架静态前端
 
 详细设计见：[`docs/phase5-rust-architecture.md`](docs/phase5-rust-architecture.md)
 
@@ -45,62 +47,51 @@
 ```text
 ┌─────────────────────────┐      ┌──────────────────────────────┐
 │  GitHub Desktop Plus    │      │  GitHub Desktop (Electron)   │
-│  (Electrobun 客户端)    │      │                              │
+│  (Rust gdp binary)      │      │                              │
 │                         │      │  ┌──────────────────────┐    │
-│  ┌───────┐  ┌────────┐ │spawn │  │ Hook Scripts (CJS)   │    │
-│  │ Bun   │──│ Vue 3  │ │─────→│  │ • update-blocker     │    │
-│  │ Main  │  │ WebView│ │      │  │ • telemetry-blocker  │    │
-│  └───────┘  └────────┘ │      │  │ • log-filter         │    │
-│       ↕ RPC            │      │  │ • preload-injector   │    │
-└─────────────────────────┘      │  └──────────────────────┘    │
-                                 └──────────────────────────────┘
+│  ┌───────────────┐      │ CDP  │  │ Hook Scripts (CJS)   │    │
+│  │ Inspector     │─────→│─────→│  │ • update blocker     │    │
+│  │ injector      │      │      │  │ • telemetry blocker  │    │
+│  ├───────────────┤      │      │  │ • menu i18n          │    │
+│  │ WebUI server  │      │      │  │ • renderer preload   │    │
+│  └───────────────┘      │      │  └──────────────────────┘    │
+└─────────────────────────┘      └──────────────────────────────┘
 ```
 
-GDP 客户端通过 `NODE_OPTIONS=--require hook.js` 环境变量启动 GitHub Desktop，
-hook 脚本在 Electron 主进程加载前执行，monkey-patch `autoUpdater`、网络请求和 `BrowserWindow`。
+GDP 使用 `--inspect-brk=0` 启动 GitHub Desktop，连接 V8 Inspector 后在 `main.js` 执行前注入 hook，
+从而实现 **0-path** 更新拦截、遥测屏蔽、菜单注入和渲染进程 i18n。
 
 ## 快速开始
 
 ```bash
-# 安装依赖 (需要 Bun)
-bun install
+# 安装依赖
+pnpm install
 
-# 构建 hook 脚本
-bun run build:hooks
+# 开发模式（启动 GDP + GitHub Desktop）
+pnpm run gdp:dev
 
-# 开发模式 (HMR)
-bun run dev:hmr
+# 构建发布版二进制
+pnpm run build
 
-# 生产构建
-bun run build:release
+# 运行桌面自检
+pnpm run self-check:desktop
 ```
 
 ## 项目结构
 
 ```text
 src/
-├── bun/              # Electrobun 主进程 (Bun runtime)
-│   └── index.ts      # 窗口创建、RPC 处理、进程管理
-├── mainview/         # Vue 3 前端
-│   ├── App.vue       # 主界面
-│   ├── main.ts       # Vue 入口
-│   ├── electroview.ts # Electrobun 浏览器端 RPC
-│   └── components/
-│       ├── SettingsPanel.vue  # 设置面板
-│       └── StatusBar.vue      # 状态栏
-├── hooks/            # Electron 注入脚本 (Node.js CJS)
-│   ├── index.ts      # Hook 入口
-│   ├── update-blocker.ts
-│   ├── telemetry-blocker.ts
-│   ├── log-filter.ts
-│   ├── preload-injector.ts
+├── core/             # Rust 核心库：配置、探测、运行时元数据
+├── gdp/              # Rust CLI：注入、启动、停止、WebUI 服务
+├── hooks/            # Electron 注入脚本与 preload 源码 (TypeScript)
 │   └── preload/
-│       └── index.ts  # i18n DOM 替换引擎
-└── shared/           # 共享类型定义
-    ├── types.ts      # RPC schema、配置类型
-    └── platform.ts   # 平台检测
+└── ui/               # 无框架 Web 控制面板
+scripts/
+└── build-hooks.mjs   # 使用 esbuild 生成 hook bundle
 locales/
-└── zh-CN.json        # 中文翻译
+└── zh-CN/
+    ├── menu.json
+    └── ui.json
 ```
 
 ## 文档

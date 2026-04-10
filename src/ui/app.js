@@ -79,7 +79,7 @@ const boot = async () => {
     applyConfig(config)
   } catch (err) {
     console.error("boot failed:", err)
-    setText(el.tree, "Failed to load runtime data — is gdp-web running?")
+    setText(el.tree, "Failed to load runtime data — is gdp running in dev/serve mode?")
   }
 }
 

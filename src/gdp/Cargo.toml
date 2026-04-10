@@ -10,7 +10,7 @@ name = "gdp"
 path = "src/main.rs"
 
 [dependencies]
-gdp-core        = { path = "../gdp-core" }
+gdp-core        = { path = "../core" }
 bytes.workspace          = true
 clap.workspace           = true
 http-body-util.workspace = true

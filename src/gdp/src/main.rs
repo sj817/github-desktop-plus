@@ -1,5 +1,5 @@
-﻿// GDP — single binary: CLI + embedded web server + interactive launcher
-// Build-time embedded assets produced by build.rs and ui/ directory.
+﻿// GDP — single binary: CLI + embedded web server + interactive launcher.
+// Build-time embedded assets are generated from src/hooks and src/ui.
 
 mod injector;
 mod serve;
@@ -14,19 +14,18 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 // ── Build-time embedded resources ────────────────────────────────────────────
-// Hook & locale assets produced by build.rs from the repo's build/ and locales/ dirs.
+// Hook assets are generated into generated/hooks before Cargo builds the binary.
 pub const HOOK_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook_bundle.js"));
 pub const PRELOAD_INDEX_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_index.js"));
 pub const PRELOAD_NAVBAR_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_navbar.js"));
 pub const PRELOAD_UPDATE_INTERCEPTOR_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_update_interceptor.js"));
-pub const LOCALE_ZH_CN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN.json"));
 pub const LOCALE_ZH_CN_MENU: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_menu.json"));
 pub const LOCALE_ZH_CN_UI: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui.json"));
 
 // ── Static UI assets (for `gdp serve`) ───────────────────────────────────────
-const INDEX_HTML: &str = include_str!("../../../ui/index.html");
-const APP_JS: &str = include_str!("../../../ui/app.js");
-const STYLES_CSS: &str = include_str!("../../../ui/styles.css");
+const INDEX_HTML: &str = include_str!("../../ui/index.html");
+const APP_JS: &str = include_str!("../../ui/app.js");
+const STYLES_CSS: &str = include_str!("../../ui/styles.css");
 
 // ── CLI structure ─────────────────────────────────────────────────────────────
 
@@ -193,8 +192,7 @@ fn interactive_select_desktop() -> PathBuf {
     candidates.into_iter().nth(idx).unwrap()
 }
 
-/// Write the hook JS bundle to a temp path and return it.
-/// The file lives alongside the running executable as `gdp-hooks.js`.
+/// Write embedded hook resources to disk and return the extracted hooks directory.
 fn extract_hook_to_disk() -> PathBuf {
     let exe_dir = std::env::current_exe()
         .ok()
@@ -208,7 +206,6 @@ fn extract_hook_to_disk() -> PathBuf {
     //       preload/
     //         index.js        (renderer i18n preload)
     //     locales/
-    //       zh-CN.json
     //       zh-CN/
     //         menu.json
     //         ui.json
@@ -231,7 +228,6 @@ fn extract_hook_to_disk() -> PathBuf {
     );
 
     // Locale files — only write on first run; preserve user edits made via WebUI
-    write_if_missing(&locales_dir.join("zh-CN.json"), LOCALE_ZH_CN);
     write_if_missing(&locale_sub.join("menu.json"), LOCALE_ZH_CN_MENU);
     write_if_missing(&locale_sub.join("ui.json"), LOCALE_ZH_CN_UI);
 

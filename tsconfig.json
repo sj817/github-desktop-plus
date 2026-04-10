@@ -1,10 +1,8 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "useDefineForClassFields": true,
     "module": "ESNext",
     "resolveJsonModule": true,
-    "allowJs": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
@@ -12,8 +10,9 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "bundler"
+    "moduleResolution": "bundler",
+    "types": ["node"]
   },
-  "include": ["src", "env.d.ts"],
-  "exclude": ["node_modules", "dist", "build"]
+  "include": ["src/hooks/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "generated", "target", "dist", "build"]
 }

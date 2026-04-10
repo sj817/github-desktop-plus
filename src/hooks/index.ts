@@ -1,6 +1,6 @@
 /**
  * Hook entry point injected into GitHub Desktop's Electron main process
- * via patched main.js.
+ * via V8 Inspector before GitHub Desktop's main.js runs.
  *
  * Strategy (based on Electron 40 module diagnostics):
  *   - electron module properties (autoUpdater, BrowserWindow, etc.) are
@@ -12,7 +12,7 @@
  *
  * So we use Electron's own event APIs instead of trying to replace module exports.
  *
- * Directory: GDP_HOOK_DIR env var set by bun/index.ts (Bun hardcodes __dirname).
+ * Directory: GDP_HOOK_DIR env var set by the Rust launcher.
  */
 
 interface HookConfig {
@@ -247,13 +247,7 @@ function loadUiTranslations(dir: string, locale: string, dataDir: string): Recor
     delete data._meta
     translations = data
   } catch {
-    // Fallback to flat locale file
-    const flatFile = _path.join(dir, '..', 'locales', `${locale}.json`)
-    try {
-      translations = JSON.parse(_fs.readFileSync(flatFile, 'utf-8'))
-    } catch {
-      gdpLog(`Built-in UI locale files not found for ${locale}`, 'warn', 'i18n')
-    }
+    gdpLog(`Built-in UI locale file not found: ${uiFile}`, 'warn', 'i18n')
   }
 
   // Layer 2: user-custom translations (override built-in)
@@ -476,7 +470,7 @@ function setupGDPMenu(
       }
 
       const nextTemplate = template.slice()
-      const hasGDPMenu = nextTemplate.some(item => item.label === 'GDP')
+      const hasGDPMenu = nextTemplate.some(item => item.id === 'gdp')
 
       if (!hasGDPMenu) {
         const gdpMenu: MenuItem = {

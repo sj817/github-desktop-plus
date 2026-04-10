@@ -1,0 +1,5 @@
+[alias]
+run-gdp = "run -p gdp --"
+
+[build]
+target-dir = "target"

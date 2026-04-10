@@ -18,25 +18,24 @@ fn main() {
     let out_dir_str = std::env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir_str);
 
-    // Repo root is ../../ from crate manifest dir (rust/crates/gdp-cli → repo root)
+    // Repo root is ../../ from crate manifest dir (src/gdp → repo root)
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap();
-    let repo_root = Path::new(&manifest_dir).join("../../../");
+    let repo_root = Path::new(&manifest_dir).join("../..");
 
     // Hook bundle (main process injector)
-    embed_file(out_dir, &repo_root, "build/hooks/index.js", "hook_bundle.js");
+    embed_file(out_dir, &repo_root, "generated/hooks/index.js", "hook_bundle.js");
 
     // Preload script (renderer i18n)
-    embed_file(out_dir, &repo_root, "build/hooks/preload/index.js", "preload_index.js");
-    embed_file(out_dir, &repo_root, "build/hooks/preload/navbar.js", "preload_navbar.js");
+    embed_file(out_dir, &repo_root, "generated/hooks/preload/index.js", "preload_index.js");
+    embed_file(out_dir, &repo_root, "generated/hooks/preload/navbar.js", "preload_navbar.js");
     embed_file(
         out_dir,
         &repo_root,
-        "build/hooks/preload/update-interceptor.js",
+        "generated/hooks/preload/update-interceptor.js",
         "preload_update_interceptor.js",
     );
 
     // Locale files
-    embed_file(out_dir, &repo_root, "locales/zh-CN.json", "locale_zh_CN.json");
     embed_file(out_dir, &repo_root, "locales/zh-CN/menu.json", "locale_zh_CN_menu.json");
     embed_file(out_dir, &repo_root, "locales/zh-CN/ui.json", "locale_zh_CN_ui.json");
 

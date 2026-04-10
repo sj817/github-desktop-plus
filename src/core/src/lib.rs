@@ -1,6 +1,5 @@
 pub mod config;
 pub mod detector;
-pub mod launcher;
 pub mod platform;
 
 use serde::Serialize;
@@ -34,18 +33,18 @@ const NOTES: &[&str] = &[
 const MODULES: &[ModuleInfo] = &[
     ModuleInfo {
         name: "gdp-core",
-        responsibility: "Platform detection, config model, GitHub Desktop finder and launch logic.",
+        responsibility: "Platform detection, config model and runtime metadata.",
     },
     ModuleInfo {
-        name: "gdp-cli",
-        responsibility: "One-shot CLI entrypoint -- status, detect, launch, config subcommands.",
+        name: "gdp",
+        responsibility: "CLI entrypoint, inspector injection, process management and embedded WebUI server.",
     },
     ModuleInfo {
-        name: "gdp-web",
-        responsibility: "Loopback HTTP adapter: JSON APIs for status/config/detect + static UI.",
+        name: "src/hooks",
+        responsibility: "TypeScript hook and preload sources compiled into injected JavaScript bundles.",
     },
     ModuleInfo {
-        name: "rust/ui",
+        name: "src/ui",
         responsibility: "Static, framework-free dashboard -- reads /api/* and renders to DOM.",
     },
 ];
@@ -53,32 +52,27 @@ const MODULES: &[ModuleInfo] = &[
 const PROJECT_TREE: &str = "github-desktop-plus/\n\
     +-- docs/\n\
     |   +-- phase5-rust-architecture.md\n\
-    +-- rust/\n\
-    |   +-- Cargo.toml\n\
-    |   +-- .cargo/config.toml\n\
-    |   +-- crates/\n\
-    |   |   +-- gdp-core/   # platform, config, detector, launcher\n\
-    |   |   +-- gdp-cli/    # clap CLI: status/tree/demo/detect/launch/config\n\
-    |   |   +-- gdp-web/    # hyper HTTP/1: /api/status|modules|tree|config|detect\n\
-    |   +-- ui/\n\
-    |       +-- index.html  # no-framework dashboard\n\
-    |       +-- app.js\n\
-    |       +-- styles.css\n\
-    +-- src/                # existing Bun/Electrobun prototype (legacy)\n\
+    +-- .cargo/config.toml\n\
+    +-- Cargo.toml\n\
+    +-- src/\n\
+    |   +-- core/           # platform, config, detector, runtime metadata\n\
+    |   +-- gdp/            # CLI, inspector injection, embedded WebUI server\n\
+    |   +-- hooks/          # Electron hook/preload TypeScript sources\n\
+    |   +-- ui/             # no-framework dashboard\n\
     +-- locales/\n\
+    +-- scripts/\n\
     +-- package.json        # Node.js build tooling only";
 
 const DEMO_PSEUDOCODE: &str = "// gdp-core\n\
     pub fn runtime_plan() -> RuntimePlan { ... }\n\
     \n\
-    // gdp-cli (cargo run -p gdp-cli -- launch)\n\
-    let result = gdp_core::launcher::launch(&config, &hook_dir)?;\n\
+    // gdp (cargo run -p gdp -- launch)\n\
+    let plan = gdp_core::runtime_plan();\n\
     \n\
-    // gdp-web (cargo run -p gdp-web)\n\
-    #[tokio::main(flavor = \"current_thread\")]\n\
-    async fn main() { serve(\"127.0.0.1:7788\").await; }\n\
+    // embedded WebUI\n\
+    cargo run -p gdp -- serve\n\
     \n\
-    // rust/ui\n\
+    // src/ui\n\
     const s = await fetch('/api/status').then(r => r.json())";
 
 pub fn runtime_plan() -> RuntimePlan {

@@ -141,7 +141,9 @@ function spawnCommand(
   return spawn(command, args, {
     cwd,
     env: process.env,
+    shell: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: true,
   });
 }
 
@@ -430,8 +432,6 @@ async function stopGDPDev(child: ChildProcessWithoutNullStreams) {
   log("Stopping GDP dev session...");
   const cargoResult = await runCommand("cargo", [
     "run",
-    "--manifest-path",
-    "rust/Cargo.toml",
     "-p",
     "gdp",
     "--",

@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "crates/gdp-core",
-  "crates/gdp-cli",
+  "src/core",
+  "src/gdp",
 ]
 resolver = "2"
 

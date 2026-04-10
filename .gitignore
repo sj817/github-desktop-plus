@@ -1,7 +1,8 @@
 node_modules/
+generated/
+target/
 dist/
 build/
-.electrobun/
 *.app
 *.dmg
 *.exe
@@ -12,6 +13,4 @@ Thumbs.db
 # Temp / generated files
 output.js
 *.tmp
-
-/rust/target/debug
-/rust/target
+*.log
