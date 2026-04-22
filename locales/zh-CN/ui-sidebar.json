@@ -1,0 +1,32 @@
+{
+  "_meta": {
+    "description": "侧边栏 / 仓库列表 / 历史比较相关翻译",
+    "target": "renderer",
+    "section": "sidebar"
+  },
+  "Recent": "最近",
+  "Other": "其他",
+  "Repository sidebar": "仓库侧边栏",
+  "Full Name:": "完整名称：",
+  "Path:": "路径：",
+  "Branch filter": "分支筛选",
+  "No repository selected": "未选择仓库",
+  "There are uncommitted changes in this repository.": "此仓库中存在未提交的更改。",
+  "No history": "没有历史记录",
+  "No Branches to Compare": "没有可比较的分支",
+  "No branches to compare": "没有可比较的分支",
+  "Select Branch to Compare…": "选择要比较的分支…",
+  "Select branch to compare…": "选择要比较的分支…",
+  "Behind ({{count}})": "落后（{{count}}）",
+  "Ahead ({{count}})": "领先（{{count}}）",
+  "The compared branch ({{branch}}) is up to date with your branch": "比较分支（{{branch}}）与当前分支已同步",
+  "Your branch is up to date with the compared branch ({{branch}})": "当前分支与比较分支（{{branch}}）已同步",
+  "Sorry, I can't find that repository": "抱歉，我找不到该仓库",
+  "ProTip! Press": "提示：按",
+  "to quickly add a local repository, and": "可快速添加本地仓库，且",
+  "to clone from anywhere within the app": "可在应用内任意位置克隆仓库",
+  "There are uncommitted changes in this repository": "此仓库中存在未提交的更改",
+  "View on GitHub": "在 GitHub 上查看",
+  "Changes": "更改",
+  "History": "历史"
+}

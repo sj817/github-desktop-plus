@@ -1,0 +1,37 @@
+{
+  "_meta": {
+    "description": "分支列表、拉取请求相关 UI 字符串",
+    "target": "renderer",
+    "section": "branches"
+  },
+  "Last Modified:": "最后修改：",
+  "Choose a branch to merge into": "选择要合并到的分支",
+  "Sorry, I can't find that branch": "抱歉，找不到该分支",
+  "Do you want to create a new branch instead?": "是否要改为创建新分支？",
+  "Sorry, I can't find that pull request!": "抱歉，找不到该拉取请求！",
+  "Hang tight": "请稍候",
+  "You're all set!": "一切就绪！",
+  "No open pull requests in": "此处没有打开的拉取请求",
+  "Loading pull requests as fast as I can!": "正在尽快加载拉取请求！",
+  "Your branch must be published before opening a pull request.": "在打开拉取请求之前，必须先发布您的分支。",
+  "Would you like to publish": "是否要发布",
+
+  "Push local changes?": "推送本地更改？",
+  "Push Local Changes?": "推送本地更改？",
+  "Push commits": "推送提交",
+  "Push Commits": "推送提交",
+  "Publish branch?": "发布分支？",
+  "Publish Branch?": "发布分支？",
+  "Publish branch": "发布分支",
+  "Publish Branch": "发布分支",
+  "Create without pushing": "不推送直接创建",
+  "Create Without Pushing": "不推送直接创建",
+  "You have": "您有",
+  "that haven't been pushed to the remote yet.": "尚未推送到远程。",
+  "{{n}} local commits": "{{n}} 个本地提交",
+  "{{n}} local commit": "{{n}} 个本地提交",
+  "Would you like to push your changes to": "是否要将更改推送到",
+  "before creating your pull request?": "再创建拉取请求？",
+  "Would you like to publish": "是否要发布",
+  "now and open a pull request?": "并打开拉取请求？"
+}

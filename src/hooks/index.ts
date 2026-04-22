@@ -118,6 +118,40 @@ interface TrackedWebContents {
   isDestroyed(): boolean
 }
 
+function loadTranslationFiles(
+  localeDir: string,
+  excludedFileNames: ReadonlySet<string>
+): Record<string, string> {
+  if (!_fs.existsSync(localeDir)) {
+    return {}
+  }
+
+  const translations: Record<string, string> = {}
+  const files = _fs
+    .readdirSync(localeDir, { withFileTypes: true })
+    .filter(
+      entry =>
+        entry.isFile() &&
+        entry.name.endsWith('.json') &&
+        !excludedFileNames.has(entry.name)
+    )
+    .map(entry => entry.name)
+    .sort((a, b) => a.localeCompare(b))
+
+  for (const fileName of files) {
+    const filePath = _path.join(localeDir, fileName)
+    const data = JSON.parse(_fs.readFileSync(filePath, 'utf-8')) as Record<
+      string,
+      string
+    >
+
+    delete data._meta
+    Object.assign(translations, data)
+  }
+
+  return translations
+}
+
 function loadMenuTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
   // Layer 1: built-in translations (shipped with GDP)
   const builtinFile = _path.join(dir, '..', 'locales', locale, 'menu.json')
@@ -239,27 +273,31 @@ function translateMenuItem(item: MenuItem, translations: Record<string, string>)
 // 3. Renderer i18n — use app.on('browser-window-created') + executeJavaScript
 // ---------------------------------------------------------------------------
 function loadUiTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
+  const excludedFileNames = new Set(['menu.json'])
+
   // Layer 1: built-in translations
   let translations: Record<string, string> = {}
-  const uiFile = _path.join(dir, '..', 'locales', locale, 'ui.json')
+  const builtinDir = _path.join(dir, '..', 'locales', locale)
   try {
-    const data = JSON.parse(_fs.readFileSync(uiFile, 'utf-8'))
-    delete data._meta
-    translations = data
+    translations = loadTranslationFiles(builtinDir, excludedFileNames)
+    gdpLog(
+      `Loaded ${Object.keys(translations).length} built-in UI translations from ${builtinDir}`,
+      'info',
+      'i18n'
+    )
   } catch {
-    gdpLog(`Built-in UI locale file not found: ${uiFile}`, 'warn', 'i18n')
+    gdpLog(`Built-in UI locale directory not found or invalid: ${builtinDir}`, 'warn', 'i18n')
   }
 
   // Layer 2: user-custom translations (override built-in)
   if (dataDir) {
-    const userFile = _path.join(dataDir, 'locales', locale, 'ui.json')
+    const userDir = _path.join(dataDir, 'locales', locale)
     try {
-      if (_fs.existsSync(userFile)) {
-        const userData = JSON.parse(_fs.readFileSync(userFile, 'utf-8'))
-        delete userData._meta
+      if (_fs.existsSync(userDir)) {
+        const userData = loadTranslationFiles(userDir, excludedFileNames)
         const overrideCount = Object.keys(userData).length
         Object.assign(translations, userData)
-        gdpLog(`Applied ${overrideCount} user UI overrides from ${userFile}`, 'info', 'i18n')
+        gdpLog(`Applied ${overrideCount} user UI overrides from ${userDir}`, 'info', 'i18n')
       }
     } catch (e) {
       gdpLog(`Failed to load user UI overrides: ${e}`, 'warn', 'i18n')

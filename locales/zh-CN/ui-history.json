@@ -1,0 +1,31 @@
+{
+  "_meta": {
+    "description": "历史记录列表与提交详情 UI 字符串",
+    "target": "renderer",
+    "section": "history"
+  },
+  "Date:": "日期：",
+  "Press": "按",
+  "Merge into": "合并到",
+  "No files in commit": "此提交没有文件",
+  "Unable to display diff when multiple non-consecutive selected.": "选中多个不连续提交时无法显示差异。",
+  "You can:": "您可以：",
+  "Drag the commits to the branch menu to cherry-pick them.": "将提交拖到分支菜单以拣选它们。",
+  "Drag the commits to squash or reorder them.": "拖动提交以压缩或重新排序它们。",
+  "Right click on multiple commits to see options.": "右键单击多个提交以查看选项。",
+  "No commit selected": "未选择提交",
+  "Selected commit file list": "选定提交的文件列表",
+  "Unreachable": "不可达",
+  "Reachable": "可达",
+  "Learn more about unreachable commits.": "了解更多关于不可达提交的信息。",
+  "This will update": "这将更新",
+  "This will merge": "这将合并",
+  "Unable to start rebase. Check you have chosen a valid branch.": "无法开始变基。请确认您已选择有效的分支。",
+  "Unable to merge unrelated histories in this repository": "无法合并此仓库中不相关的历史记录",
+  "There will be": "将存在",
+  "Checking for ability to merge automatically...": "正在检查是否可以自动合并...",
+  "Checking for ability to rebase automatically…": "正在检查是否可以自动变基…",
+  "This will fast-forward": "这将快进",
+  "All resolutions have been undone.": "所有解决方案已撤销。",
+  "All conflicted files have been resolved.": "所有冲突文件已解决。"
+}

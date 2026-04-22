@@ -21,6 +21,22 @@ pub const PRELOAD_NAVBAR_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/p
 pub const PRELOAD_UPDATE_INTERCEPTOR_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_update_interceptor.js"));
 pub const LOCALE_ZH_CN_MENU: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_menu.json"));
 pub const LOCALE_ZH_CN_UI: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui.json"));
+pub const LOCALE_ZH_CN_UI_ABOUT: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_about.json"));
+pub const LOCALE_ZH_CN_UI_DIFF: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_diff.json"));
+pub const LOCALE_ZH_CN_UI_NAVBAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_navbar.json"));
+pub const LOCALE_ZH_CN_UI_REPOSITORY_SETTINGS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_repository_settings.json"));
+pub const LOCALE_ZH_CN_UI_SETTINGS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_settings.json"));
+pub const LOCALE_ZH_CN_UI_SIDEBAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_sidebar.json"));
+pub const LOCALE_ZH_CN_UI_TOOLBAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_toolbar.json"));
+pub const LOCALE_ZH_CN_UI_BRANCHES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_branches.json"));
+pub const LOCALE_ZH_CN_UI_CHANGES: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_changes.json"));
+pub const LOCALE_ZH_CN_UI_CHECK_RUNS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_check_runs.json"));
+pub const LOCALE_ZH_CN_UI_CLONE_ADD: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_clone_add.json"));
+pub const LOCALE_ZH_CN_UI_DIALOGS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_dialogs.json"));
+pub const LOCALE_ZH_CN_UI_HISTORY: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_history.json"));
+pub const LOCALE_ZH_CN_UI_LIB: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_lib.json"));
+pub const LOCALE_ZH_CN_UI_WELCOME_TUTORIAL: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_welcome_tutorial.json"));
+pub const LOCALE_ZH_CN_UI_CONTEXT_MENUS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_CN_ui_context_menus.json"));
 
 // ── Static UI assets (for `gdp serve`) ───────────────────────────────────────
 const INDEX_HTML: &str = include_str!("../../ui/index.html");
@@ -209,6 +225,13 @@ fn extract_hook_to_disk() -> PathBuf {
     //       zh-CN/
     //         menu.json
     //         ui.json
+    //         ui-about.json
+    //         ui-diff.json
+    //         ui-navbar.json
+    //         ui-repository-settings.json
+    //         ui-settings.json
+    //         ui-sidebar.json
+    //         ui-toolbar.json
     let data_dir = exe_dir.join("gdp-data");
     let hooks_dir = data_dir.join("hooks");
     let preload_dir = hooks_dir.join("preload");
@@ -227,9 +250,28 @@ fn extract_hook_to_disk() -> PathBuf {
         PRELOAD_UPDATE_INTERCEPTOR_JS,
     );
 
-    // Locale files — only write on first run; preserve user edits made via WebUI
-    write_if_missing(&locale_sub.join("menu.json"), LOCALE_ZH_CN_MENU);
-    write_if_missing(&locale_sub.join("ui.json"), LOCALE_ZH_CN_UI);
+    // Locale files — always update to latest shipped translations
+    write_if_changed(&locale_sub.join("menu.json"), LOCALE_ZH_CN_MENU);
+    write_if_changed(&locale_sub.join("ui.json"), LOCALE_ZH_CN_UI);
+    write_if_changed(&locale_sub.join("ui-about.json"), LOCALE_ZH_CN_UI_ABOUT);
+    write_if_changed(&locale_sub.join("ui-diff.json"), LOCALE_ZH_CN_UI_DIFF);
+    write_if_changed(&locale_sub.join("ui-navbar.json"), LOCALE_ZH_CN_UI_NAVBAR);
+    write_if_changed(
+        &locale_sub.join("ui-repository-settings.json"),
+        LOCALE_ZH_CN_UI_REPOSITORY_SETTINGS,
+    );
+    write_if_changed(&locale_sub.join("ui-settings.json"), LOCALE_ZH_CN_UI_SETTINGS);
+    write_if_changed(&locale_sub.join("ui-sidebar.json"), LOCALE_ZH_CN_UI_SIDEBAR);
+    write_if_changed(&locale_sub.join("ui-toolbar.json"), LOCALE_ZH_CN_UI_TOOLBAR);
+    write_if_changed(&locale_sub.join("ui-branches.json"), LOCALE_ZH_CN_UI_BRANCHES);
+    write_if_changed(&locale_sub.join("ui-changes.json"), LOCALE_ZH_CN_UI_CHANGES);
+    write_if_changed(&locale_sub.join("ui-check-runs.json"), LOCALE_ZH_CN_UI_CHECK_RUNS);
+    write_if_changed(&locale_sub.join("ui-clone-add.json"), LOCALE_ZH_CN_UI_CLONE_ADD);
+    write_if_changed(&locale_sub.join("ui-context-menus.json"), LOCALE_ZH_CN_UI_CONTEXT_MENUS);
+    write_if_changed(&locale_sub.join("ui-dialogs.json"), LOCALE_ZH_CN_UI_DIALOGS);
+    write_if_changed(&locale_sub.join("ui-history.json"), LOCALE_ZH_CN_UI_HISTORY);
+    write_if_changed(&locale_sub.join("ui-lib.json"), LOCALE_ZH_CN_UI_LIB);
+    write_if_changed(&locale_sub.join("ui-welcome-tutorial.json"), LOCALE_ZH_CN_UI_WELCOME_TUTORIAL);
 
     // Ensure hooks are loaded as CommonJS (prevents "type":"module" from parent package.json)
     write_if_changed(
@@ -245,15 +287,6 @@ fn write_if_changed(dest: &std::path::Path, content: &[u8]) {
         .map(|existing| existing != content)
         .unwrap_or(true);
     if needs_write {
-        std::fs::write(dest, content).unwrap_or_else(|e| {
-            panic!("write {}: {e}", dest.display())
-        });
-    }
-}
-
-/// Write only if the file does not yet exist — preserves user edits on subsequent runs.
-fn write_if_missing(dest: &std::path::Path, content: &[u8]) {
-    if !dest.exists() {
         std::fs::write(dest, content).unwrap_or_else(|e| {
             panic!("write {}: {e}", dest.display())
         });

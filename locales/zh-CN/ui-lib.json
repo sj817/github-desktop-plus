@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "description": "lib 共享组件、验证表单、冲突视图等 UI 字符串",
+    "target": "renderer",
+    "section": "lib"
+  },
+  "Sign in using your browser": "使用浏览器登录",
+  "This branch is tracking": "此分支正在跟踪",
+  "Example commit": "示例提交",
+  "Your Name": "您的姓名",
+  "Configure manually": "手动配置",
+  "All conflicts resolved": "所有冲突已解决",
+  "Open in command line,": "在命令行中打开，",
+  "Resolve": "解决",
+  "Enterprise or AE address": "Enterprise 或 AE 地址",
+  "Learn more.": "了解更多。",
+  "Toggle password visibility": "切换密码可见性",
+  "Clear": "清除",
+  "Copy": "复制",
+  "Search for user": "搜索用户",
+  "Copy to": "复制到",
+  "Sign in using your browser": "使用浏览器登录",
+  "Enterprise address": "Enterprise 地址",
+  "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发了以下库：",
+  "Initialize Git LFS": "初始化 Git LFS"
+}

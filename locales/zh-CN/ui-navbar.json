@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "description": "导航栏 / 顶部仓库选择区翻译",
+    "target": "renderer",
+    "section": "navbar"
+  },
+  "Current Repository": "当前仓库",
+  "Current repository": "当前仓库",
+  "Select a Repository": "选择仓库",
+  "Select a repository": "选择仓库",
+  "No Repositories": "没有仓库",
+  "No repositories": "没有仓库"
+}

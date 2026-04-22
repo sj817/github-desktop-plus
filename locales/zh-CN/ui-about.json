@@ -1,0 +1,15 @@
+{
+  "_meta": {
+    "description": "关于 GitHub Desktop 页面补充翻译",
+    "target": "renderer",
+    "section": "about"
+  },
+  "Check out the": "查看",
+  "Quit and Install Update": "退出并安装更新",
+  "Supported operating systems": "支持的操作系统",
+  "Looking for the latest features?": "想要最新功能？",
+  "Beta Channel": "Beta 渠道",
+  "Terms and Conditions": "条款和条件",
+  "License and Open Source Notices": "许可证和开源声明",
+  "Responsible use of Copilot in GitHub Desktop": "在 GitHub Desktop 中负责任地使用 Copilot"
+}

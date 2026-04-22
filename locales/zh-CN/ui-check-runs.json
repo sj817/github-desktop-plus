@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "description": "CI 检查运行面板 UI 字符串",
+    "target": "renderer",
+    "section": "check-runs"
+  },
+  "Re-run": "重新运行",
+  "There are no steps to display for this check.": "此检查没有可显示的步骤。",
+  "View check details": "查看检查详情",
+  "Stand By": "请稍候",
+  "Check runs incoming!": "检查运行即将开始！",
+  "Check run steps incoming!": "检查运行步骤即将加载！",
+  "Checks Summary": "检查摘要",
+  "Some checks haven't completed yet": "某些检查尚未完成",
+  "All checks have failed": "所有检查均已失败",
+  "All checks have passed": "所有检查均已通过",
+  "Some checks were not successful": "某些检查未成功",
+  "Please wait": "请稍候",
+  "Determining which checks can be re-run.": "正在确定哪些检查可以重新运行。"
+}

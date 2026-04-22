@@ -28,102 +28,142 @@
 
   interceptorState.active = true
 
-  const ACCENT = '#58a6ff'
-  const BG_OVERLAY = 'rgba(0, 0, 0, 0.6)'
-  const BG_MODAL = '#0d1117'
-  const BORDER = '#30363d'
-  const TEXT = '#c9d1d9'
-  const TEXT_DIM = '#8b949e'
-  const WARN_COLOR = '#d29922'
   const WEBUI_URL = 'http://127.0.0.1:7788'
 
   let modalShown = false
+
+  /** Read a CSS variable from the body element (falls back to a sensible default). */
+  function cssVar(name: string, fallback: string): string {
+    const val = getComputedStyle(document.body).getPropertyValue(name).trim()
+    return val || fallback
+  }
+
+  /** Return a colors object that reflects the current GitHub Desktop theme. */
+  function getThemeColors() {
+    const isDark = document.body.classList.contains('theme-dark')
+    return {
+      bg:      cssVar('--background-color',    isDark ? '#1c2128' : '#ffffff'),
+      text:    cssVar('--text-color',           isDark ? '#cdd9e5' : '#24292f'),
+      textDim: cssVar('--text-secondary-color', isDark ? '#768390' : '#57606a'),
+      border:  cssVar('--box-border-color',     isDark ? '#444c56' : '#d0d7de'),
+      accent:  cssVar('--button-background',    '#2da44e'),
+      btnText: cssVar('--button-text-color',    '#ffffff'),
+      warn:    cssVar('--dialog-warning-color', isDark ? '#c69026' : '#9a6700'),
+      overlay: cssVar('--overlay-background-color', 'rgba(0,0,0,0.4)'),
+    }
+  }
 
   function showGDPModal() {
     if (modalShown) return
     modalShown = true
 
-    const overlay = document.createElement('div')
-    overlay.id = 'gdp-update-modal-overlay'
-    Object.assign(overlay.style, {
-      position: 'fixed',
-      top: '0',
-      left: '0',
-      width: '100%',
-      height: '100%',
-      background: BG_OVERLAY,
-      zIndex: '100000',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+    const c = getThemeColors()
+    const FF = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+
+    // Use a <dialog> element so it lands in the browser top-layer and appears
+    // above any existing showModal() dialogs (e.g. the About dialog).
+    const dlg = document.createElement('dialog')
+    dlg.id = 'gdp-update-modal-dialog'
+    Object.assign(dlg.style, {
+      border: 'none',
+      padding: '0',
+      margin: 'auto',
+      background: 'transparent',
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      overflow: 'visible',
     })
+
+    // Style the ::backdrop via a <style> tag so it covers the viewport.
+    const styleEl = document.createElement('style')
+    styleEl.textContent = `
+      #gdp-update-modal-dialog::backdrop {
+        background: ${c.overlay};
+      }
+    `
+    document.head.appendChild(styleEl)
 
     const modal = document.createElement('div')
     Object.assign(modal.style, {
-      background: BG_MODAL,
-      border: `1px solid ${BORDER}`,
-      borderRadius: '12px',
+      background: c.bg,
+      border: `1px solid ${c.border}`,
+      borderRadius: '8px',
       padding: '24px',
       maxWidth: '420px',
-      width: '90%',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+      width: '90vw',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      fontFamily: FF,
     })
 
     modal.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="${WARN_COLOR}"/>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="${c.warn}"/>
         </svg>
-        <span style="font-size:16px;font-weight:600;color:${TEXT}">更新功能已被拦截</span>
+        <span style="font-size:14px;font-weight:600;color:${c.text}">更新功能已被拦截</span>
       </div>
-      <div style="font-size:13px;color:${TEXT_DIM};line-height:1.6;margin-bottom:16px">
+      <p style="font-size:12px;color:${c.textDim};line-height:1.6;margin:0 0 16px">
         GitHub Desktop Plus 已拦截更新检查功能。<br><br>
-        如需修改更新设置，请打开 GDP 控制面板进行配置：
-      </div>
+        如需修改更新设置，请打开 GDP 控制面板进行配置。
+      </p>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="gdp-modal-cancel" style="
-          padding:8px 16px;
-          border:1px solid ${BORDER};
+          padding:7px 16px;
+          border:1px solid ${c.border};
           background:transparent;
-          color:${TEXT};
+          color:${c.text};
           border-radius:6px;
           cursor:pointer;
-          font-size:13px;
+          font-size:12px;
+          font-family:${FF};
         ">关闭</button>
         <button id="gdp-modal-open-webui" style="
-          padding:8px 16px;
-          border:1px solid ${ACCENT};
-          background:${ACCENT}22;
-          color:${ACCENT};
+          padding:7px 16px;
+          border:1px solid ${c.accent};
+          background:${c.accent};
+          color:${c.btnText};
           border-radius:6px;
           cursor:pointer;
-          font-size:13px;
+          font-size:12px;
           font-weight:500;
+          font-family:${FF};
         ">打开控制面板</button>
       </div>
     `
 
-    overlay.appendChild(modal)
-    document.body.appendChild(overlay)
+    dlg.appendChild(modal)
+    document.body.appendChild(dlg)
+    dlg.showModal()
 
-    // Close modal
     const closeModal = () => {
-      overlay.remove()
+      dlg.close()
+      dlg.remove()
+      styleEl.remove()
       modalShown = false
     }
 
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeModal()
+    // Clicking the ::backdrop (outside the modal div) closes the dialog
+    dlg.addEventListener('click', (e) => {
+      if (e.target === dlg) closeModal()
     })
 
-    document.getElementById('gdp-modal-cancel')?.addEventListener('click', closeModal)
+    modal.querySelector<HTMLButtonElement>('#gdp-modal-cancel')?.addEventListener('click', closeModal)
 
-    document.getElementById('gdp-modal-open-webui')?.addEventListener('click', () => {
-      // Use window.open as a fallback since we're in the renderer
+    modal.querySelector<HTMLButtonElement>('#gdp-modal-open-webui')?.addEventListener('click', () => {
       window.open(WEBUI_URL, '_blank')
       closeModal()
     })
+
+    // Re-apply colours if the theme changes while the dialog is open
+    const themeObserver = new MutationObserver(() => {
+      const nc = getThemeColors()
+      modal.style.background = nc.bg
+      modal.style.border = `1px solid ${nc.border}`
+      styleEl.textContent = `#gdp-update-modal-dialog::backdrop { background: ${nc.overlay}; }`
+    })
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+
+    dlg.addEventListener('close', () => themeObserver.disconnect(), { once: true })
   }
 
   // Intercept update-related buttons inside the About dialog

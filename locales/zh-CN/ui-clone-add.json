@@ -1,0 +1,16 @@
+{
+  "_meta": {
+    "description": "克隆仓库、添加仓库相关 UI 字符串",
+    "target": "renderer",
+    "section": "clone-add"
+  },
+  "If you trust the owner of the directory you can": "如果您信任该目录的所有者，您可以",
+  "This directory does not appear to be a Git repository.": "该目录似乎不是 Git 仓库。",
+  "The directory": "目录",
+  "Learn about submodules.": "了解关于子模块的详情。",
+  "This directory contains a": "该目录包含一个",
+  "The repository will be created at": "仓库将创建于",
+  "repository name": "仓库名称",
+  "Archived": "已归档",
+  "Refresh this list": "刷新此列表"
+}

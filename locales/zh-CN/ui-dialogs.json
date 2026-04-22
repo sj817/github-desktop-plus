@@ -1,0 +1,141 @@
+{
+  "_meta": {
+    "description": "各类确认对话框、SSH、密钥扫描等 UI 字符串",
+    "target": "renderer",
+    "section": "dialogs"
+  },
+
+  "Do not show this message again": "不再显示此消息",
+  "This action cannot be undone.": "此操作无法撤销。",
+
+  "Are you sure you want to discard all changes to:": "确定要放弃以下所有更改吗：",
+  "Are you sure you want to discard the selected changes to:": "确定要放弃以下选定更改吗：",
+  "Common reasons are:": "常见原因有：",
+
+  "Delete branch": "删除分支",
+  "Yes, delete this branch on the remote": "是，同时删除远程分支",
+  "This branch may have an open pull request associated with it.": "此分支可能关联了一个未关闭的拉取请求。",
+  "Delete remote branch": "删除远程分支",
+
+  "Are you sure you want to force push?": "确定要强制推送吗？",
+  "I'm sure": "确定",
+
+  "Overwrite": "覆盖",
+  "You have changes on this branch. What would you like to do with them?": "此分支上有未提交的更改，您希望如何处理？",
+
+  "Are you sure you want to discard these stashed changes?": "确定要放弃这些暂存的更改吗？",
+  "Restore": "恢复",
+  "Stash file list": "暂存文件列表",
+
+  "Do you want to continue anyway?": "是否仍然继续？",
+
+  "Are you sure you want to commit these conflicted files?": "确定要提交这些存在冲突的文件吗？",
+
+  "You can stash your changes now and recover them afterwards.": "您可以暂存您的更改，之后再恢复。",
+  "Error": "错误",
+
+  "Are you sure you want to continue connecting?": "确定要继续连接吗？",
+  "SSH Host": "SSH 主机",
+  "SSH Key Passphrase": "SSH 密钥密码短语",
+  "Remember passphrase": "记住密码短语",
+  "SSH User Password": "SSH 用户密码",
+  "Remember password": "记住密码",
+
+  "Allow me to expose this secret": "允许我暴露此密钥",
+  "Secret Scanning": "密钥扫描",
+  "Exposing this secret can allow someone to:": "暴露此密钥可能让他人能够：",
+  "Act on behalf of the secret's owner": "代表密钥所有者进行操作",
+  "Bypass": "绕过",
+  "Secrets": "密钥",
+
+  "This may indicate attackers are trying to steal your data.": "这可能表明攻击者正试图窃取您的数据。",
+  "In some cases, this may be expected. For example:": "在某些情况下，这可能是预期情况，例如：",
+  "If this is a GitHub Enterprise trial.": "如果这是 GitHub Enterprise 试用版。",
+
+  "The repository": "仓库",
+  "Current:": "当前：",
+  "Expected:": "预期：",
+  "Would you like to update the remote to use the expected URL?": "是否将远程更新为使用预期的 URL？",
+
+  "How are you planning to use this fork?": "您打算如何使用此 fork？",
+  "This repository is a fork. How do you plan to use it?": "此仓库是一个 fork，您打算如何使用它？",
+
+  "Error details": "错误详情",
+  "Do you want to fork this repository?": "是否要 fork 此仓库？",
+
+  "Username": "用户名",
+  "Password": "密码",
+
+  "There are no changes.": "没有更改。",
+  "Could not find a default branch to compare against.": "找不到可用于比较的默认分支。",
+  "Select a base branch above.": "请在上方选择一个基础分支。",
+  "Sorry, I can't find that remote branch.": "抱歉，找不到该远程分支。",
+  "You can only open pull requests against remote branches.": "只能针对远程分支发起拉取请求。",
+  "Lines changed:": "更改行数：",
+  "Showing changes from all commits": "显示所有提交的更改",
+  "Pull request file list": "拉取请求文件列表",
+  "Checking mergeability\u2026": "正在检查可合并性…",
+  "Error checking merge status.": "检查合并状态时出错。",
+  "Able to merge.": "可以合并。",
+  "Can't automatically merge.": "无法自动合并。",
+
+  "Keep this code private": "保持此代码私密",
+  "Organization": "组织",
+
+  "The repository will be removed from GitHub Desktop:": "该仓库将从 GitHub Desktop 中移除：",
+
+  "Learn more about Copilot in GitHub Desktop.": "了解更多关于 GitHub Desktop 中 Copilot 的信息。",
+  "GitHub Copilot": "GitHub Copilot",
+  "I understand": "我已了解",
+  "Copilot Instructions": "Copilot 指令",
+  "Commit message override": "提交消息覆盖",
+  "Override": "覆盖",
+
+  "View all release notes": "查看所有版本说明",
+
+  "Move GitHub Desktop to the Applications folder?": "将 GitHub Desktop 移至应用程序文件夹？",
+  "Move and Restart": "移动并重启",
+  "Not Now": "稍后再说",
+  "Review requested": "已请求审查",
+
+  "Account": "账户",
+  "Files that exceed the limit": "超过大小限制的文件",
+  "Upgrade to increase your limit.": "升级以提高限制。",
+  "Would you like to retry cloning": "是否要重试克隆",
+  "Locate…": "定位…",
+  "Clone Again": "重新克隆",
+  "The Git repository at": "位于以下路径的 Git 仓库",
+
+  "Select the type of notification to display:": "选择要显示的通知类型：",
+  "Done!": "完成！",
+  "No pull requests found": "未找到拉取请求",
+  "No reviews found": "未找到审查",
+  "Reviews:": "审查：",
+  "No comments found": "未找到评论",
+  "Comments:": "评论：",
+  "Review without body": "无正文的审查",
+  "Test Notifications": "测试通知",
+
+  "View all rulesets for this branch.": "查看此分支的所有规则集。",
+
+  "This will not affect the original repository name on GitHub.": "这不会影响 GitHub 上的原始仓库名称。",
+
+  "A tag named": "名为",
+
+  "Select an editor": "选择编辑器",
+
+  "Resize handle": "调整大小句柄",
+  "Application menu": "应用程序菜单",
+
+  "View conflicts": "查看冲突",
+  "Open Your Card": "打开您的贺卡",
+  "Throw It Away": "忽略",
+  "Support details": "支持详情",
+
+  "Checkout": "检出",
+  "Install Git": "安装 Git",
+  "Dismiss": "关闭",
+  "Icon Preview": "图标预览",
+  "Open": "打开",
+  "Back": "返回"
+}

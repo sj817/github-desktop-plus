@@ -71,6 +71,28 @@
     const exact = translations[trimmed];
     if (exact !== undefined) return text.replace(trimmed, exact);
 
+    // Whitespace-normalized match: collapse internal whitespace (handles multiline JSX text nodes)
+    const normalized = trimmed.replace(/\s+/g, ' ');
+    if (normalized !== trimmed) {
+      const normalizedExact = translations[normalized];
+      if (normalizedExact !== undefined) return text.replace(trimmed, normalizedExact);
+
+      // Also try pattern match with normalized text
+      for (const [pattern, replacement] of entries) {
+        const compiled = buildTranslationPattern(pattern);
+        if (compiled === null) continue;
+        const normalizedMatch = normalized.match(compiled.regex);
+        if (normalizedMatch) {
+          let result = replacement;
+          compiled.names.forEach((name, i) => {
+            result = result.replace(`{{${name}}}`, normalizedMatch[i + 1]);
+            result = result.replace(`{${name}}`, normalizedMatch[i + 1]);
+          });
+          return text.replace(trimmed, result);
+        }
+      }
+    }
+
     // Pattern match (entries with {{var}} or {var} placeholders)
     for (const [pattern, replacement] of entries) {
       const compiled = buildTranslationPattern(pattern);
@@ -183,4 +205,46 @@
   });
 
   console.log("[GDP i18n] MutationObserver active");
+
+  // ---------------------------------------------------------------------------
+  // Intercept show-contextual-menu IPC to translate context menu labels.
+  // Context menus are built via new MenuItem({ label }) in the main process,
+  // bypassing Menu.buildFromTemplate. We translate before sending over IPC.
+  // ---------------------------------------------------------------------------
+  function translateMenuItems(items: Array<Record<string, unknown>>): void {
+    for (const item of items) {
+      if (typeof item.label === "string") {
+        const translated = translateText(item.label);
+        if (translated !== item.label) {
+          item.label = translated;
+        }
+      }
+      if (item.submenu && Array.isArray(item.submenu)) {
+        translateMenuItems(item.submenu as Array<Record<string, unknown>>);
+      }
+    }
+  }
+
+  try {
+    // nodeIntegration: true in GitHub Desktop, so require() is available
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const electron = (require as NodeRequire)("electron") as {
+      ipcRenderer?: {
+        invoke(channel: string, ...args: unknown[]): Promise<unknown>;
+      };
+    };
+    const ipc = electron?.ipcRenderer;
+    if (ipc && typeof ipc.invoke === "function") {
+      const originalInvoke = ipc.invoke.bind(ipc);
+      ipc.invoke = async (channel: string, ...args: unknown[]): Promise<unknown> => {
+        if (channel === "show-contextual-menu" && Array.isArray(args[0])) {
+          translateMenuItems(args[0] as Array<Record<string, unknown>>);
+        }
+        return originalInvoke(channel, ...args);
+      };
+      console.log("[GDP i18n] show-contextual-menu IPC interceptor active");
+    }
+  } catch (e) {
+    console.warn("[GDP i18n] Failed to intercept ipcRenderer.invoke:", e);
+  }
 })();
