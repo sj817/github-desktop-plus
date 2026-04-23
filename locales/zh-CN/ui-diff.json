@@ -62,5 +62,12 @@
   "Copy the full SHA": "复制完整 SHA",
   "Split": "分栏对比",
   "Unified": "统一视图",
-  "No newline at end of file": "文件末尾没有换行符"
+  "No newline at end of file": "文件末尾没有换行符",
+
+  "This diff contains bidirectional Unicode text that may be interpreted or compiled differently than what appears below. To review, open the file in an editor that reveals hidden Unicode characters.": "此差异包含双向 Unicode 文本，其显示内容可能与实际解释或编译结果不同。请在支持显示隐藏 Unicode 字符的编辑器中打开文件以进行审查。",
+  "This diff contains a change in line endings from '": "此差异包含行尾字符从 '",
+  "' to '": "' 到 '",
+
+  "modified and untracked": "已修改且未追踪",
+  "untracked": "未追踪"
 }

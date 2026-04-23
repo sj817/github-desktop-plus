@@ -19,8 +19,60 @@
   "Copy": "复制",
   "Search for user": "搜索用户",
   "Copy to": "复制到",
-  "Sign in using your browser": "使用浏览器登录",
+
   "Enterprise address": "Enterprise 地址",
   "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发了以下库：",
-  "Initialize Git LFS": "初始化 Git LFS"
+  "Initialize Git LFS": "初始化 Git LFS",
+  "Updating submodules": "正在更新子模块",
+  "Updating submodules: {{text}}": "正在更新子模块：{{text}}",
+  "Submodules updated": "子模块已更新",
+
+  "1 conflicted file": "1 个冲突文件",
+  "{n} conflicted files": "{n} 个冲突文件",
+  "your tool of choice, or close to resolve manually.": "您首选的工具，或关闭后手动解决。",
+
+  "No conflicts remaining": "无剩余冲突",
+  "Manual conflict": "手动冲突",
+  "File does not exist on {targetBranch}.": "文件不存在于 {targetBranch}。",
+  "1 conflict": "1 个冲突",
+  "{n} conflicts": "{n} 个冲突",
+  "Open in {editorName}": "在 {editorName} 中打开",
+  "No editor configured in Preferences > Advanced": "未在\u201c偏好设置 > 高级\u201d中配置编辑器",
+  "No editor configured in Options > Advanced": "未在\u201c选项 > 高级\u201d中配置编辑器",
+  "File resolution options": "文件解决选项",
+
+  "All resolutions have been undone.": "所有冲突解决已撤销。",
+  "All conflicted files have been resolved.": "所有冲突文件已解决。",
+  "file has": "个文件已",
+  "files have": "个文件已",
+  "been resolved.": "解决冲突。",
+  "Resolve all changes before continuing": "请先解决所有更改冲突再继续",
+
+  "and renaming this branch will not change the branch name on the remote.": "，重命名此分支不会更改远程上的分支名称。",
+
+  "Failed to update Git configuration file. A lock file already exists at": "更新 Git 配置文件失败。锁定文件已存在于",
+  "This can happen if another tool is currently modifying the Git configuration or if a Git process has terminated earlier without cleaning up the lock file. Do you want to": "这可能是因为另一工具正在修改 Git 配置，或 Git 进程之前已异常终止而未清理锁定文件。您是否要",
+  "delete the lock file": "删除锁定文件",
+  "and try again?": "然后重试？",
+
+  "You're already signed in to": "您已登录到",
+  "with the account": "，账号为",
+  ". If you continue, you will first be signed out.": "。如果继续，您将先退出登录。",
+
+  "This email address does not match your GitHub account. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub 账号不匹配。您的提交将被错误归属。",
+  "This email address matches your GitHub account.": "此电子邮件地址与您的 GitHub 账号匹配。",
+  "This email address does not match your GitHub Enterprise account. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub Enterprise 账号不匹配。您的提交将被错误归属。",
+  "This email address matches your GitHub Enterprise account.": "此电子邮件地址与您的 GitHub Enterprise 账号匹配。",
+  "This email address does not match either of your GitHub.com nor GitHub Enterprise accounts. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub.com 或 GitHub Enterprise 账号均不匹配。您的提交将被错误归属。",
+  "This email address matches either of your GitHub.com nor GitHub Enterprise accounts.": "此电子邮件地址与您的 GitHub.com 或 GitHub Enterprise 账号匹配。",
+
+  "Authentication Failed": "身份验证失败",
+  "Authentication failed": "身份验证失败",
+  "We were unable to authenticate with": "无法通过以下地址进行身份验证：",
+  ". Please enter": "。请输入",
+  "the password for the user": "以下用户的密码：",
+  "your username and password": "您的用户名和密码",
+  "to try again.": "以重试。",
+  "Depending on your repository's hosting service, you might need to use a Personal Access Token (PAT) as your password. Learn more about creating a PAT in our": "根据您的仓库托管服务，您可能需要使用个人访问令牌（PAT）作为密码。在我们的",
+  "integration docs": "集成文档"
 }

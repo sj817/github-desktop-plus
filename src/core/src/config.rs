@@ -14,6 +14,8 @@ pub struct Config {
     pub i18n: I18nConfig,
     #[serde(default)]
     pub desktop: DesktopConfig,
+    #[serde(default)]
+    pub ui: UiConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +85,24 @@ pub struct DesktopConfig {
     pub path: Option<PathBuf>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UiConfig {
+    /// How many repositories appear in the "Recent" group of the repo list.
+    /// Mirrors GitHub Desktop's `RecentRepositoriesLength` (default: 3).
+    #[serde(default = "default_recent_repos_limit")]
+    pub recent_repos_limit: u32,
+}
+
+fn default_recent_repos_limit() -> u32 {
+    3
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self { recent_repos_limit: default_recent_repos_limit() }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -91,6 +111,7 @@ impl Default for Config {
             logging: LoggingConfig::default(),
             i18n: I18nConfig::default(),
             desktop: DesktopConfig::default(),
+            ui: UiConfig::default(),
         }
     }
 }

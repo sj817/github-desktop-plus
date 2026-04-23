@@ -16,6 +16,7 @@ const el = {
   telDisabled:         $("cfg-telemetry-disabled"),
   i18nEnabled:         $("cfg-i18n-enabled"),
   disableFilelog:      $("cfg-disable-filelog"),
+  recentReposLimit:    $("cfg-recent-repos-limit"),
   // Locale editor
   localePanel:         $("locale-panel"),
   localeSelect:        $("locale-select"),
@@ -91,6 +92,7 @@ const applyConfig = (config) => {
   if (el.telDisabled)    el.telDisabled.checked    = config.telemetry?.disabled  ?? true
   if (el.i18nEnabled)    el.i18nEnabled.checked    = config.i18n?.enabled        ?? true
   if (el.disableFilelog) el.disableFilelog.checked = config.logging?.disable_file_log ?? false
+  if (el.recentReposLimit) el.recentReposLimit.value = config.ui?.recent_repos_limit ?? 3
 }
 
 el.saveBtn?.addEventListener("click", async () => {
@@ -113,6 +115,10 @@ el.saveBtn?.addEventListener("click", async () => {
     logging: {
       ...currentConfig.logging,
       disable_file_log: el.disableFilelog?.checked ?? currentConfig.logging?.disable_file_log,
+    },
+    ui: {
+      ...currentConfig.ui,
+      recent_repos_limit: parseInt(el.recentReposLimit?.value ?? "3", 10) || 3,
     },
   }
 

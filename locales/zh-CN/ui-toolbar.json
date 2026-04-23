@@ -32,5 +32,12 @@
   "fetch complete": "获取完成",
   "force push complete": "强制推送完成",
   "Reverting…": "正在还原…",
-  "Revert progress button": "还原进度按钮"
+  "Revert progress button": "还原进度按钮",
+
+  "Current branch is {ref}": "当前分支为 {ref}",
+  "Current branch": "当前分支",
+  "Current Branch": "当前分支",
+  "On {sha}": "当前在 {sha}",
+  "Checking out {target}": "正在切换到 {target}",
+  "Rebasing {targetBranch}": "正在变基 {targetBranch}"
 }

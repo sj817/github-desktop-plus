@@ -63,7 +63,7 @@
 
   function translateText(text: string): string {
     const translations = getTranslations();
-    const entries = Object.entries(translations);
+    const entries = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
     const trimmed = text.trim();
     if (!trimmed) return text;
 
@@ -205,6 +205,52 @@
   });
 
   console.log("[GDP i18n] MutationObserver active");
+
+  // ---------------------------------------------------------------------------
+  // Intercept localStorage for "recently-selected-repositories" to enforce
+  // the configurable recent repos limit (window.__GDP_CONFIG__.recentReposLimit).
+  // GitHub Desktop stores recent repo IDs as a JSON array under this key.
+  // ---------------------------------------------------------------------------
+  try {
+    const gdpConfig = (window as unknown as Record<string, unknown>).__GDP_CONFIG__ as
+      | { recentReposLimit?: number }
+      | undefined;
+    const recentLimit = gdpConfig?.recentReposLimit ?? 3;
+    const RECENT_KEY = "recently-selected-repositories";
+
+    const originalSetItem = localStorage.setItem.bind(localStorage);
+    const originalGetItem = localStorage.getItem.bind(localStorage);
+
+    localStorage.setItem = (key: string, value: string) => {
+      if (key === RECENT_KEY) {
+        try {
+          const arr = JSON.parse(value) as unknown;
+          if (Array.isArray(arr)) {
+            const trimmed = arr.slice(0, recentLimit);
+            return originalSetItem(key, JSON.stringify(trimmed));
+          }
+        } catch { /* fall through to default */ }
+      }
+      return originalSetItem(key, value);
+    };
+
+    localStorage.getItem = (key: string): string | null => {
+      const raw = originalGetItem(key);
+      if (key === RECENT_KEY && raw !== null) {
+        try {
+          const arr = JSON.parse(raw) as unknown;
+          if (Array.isArray(arr)) {
+            return JSON.stringify(arr.slice(0, recentLimit));
+          }
+        } catch { /* fall through */ }
+      }
+      return raw;
+    };
+
+    console.log(`[GDP] Recent repos limit set to ${recentLimit}`);
+  } catch (e) {
+    console.warn("[GDP] Failed to intercept localStorage for recent repos:", e);
+  }
 
   // ---------------------------------------------------------------------------
   // Intercept show-contextual-menu IPC to translate context menu labels.

@@ -442,6 +442,53 @@ fn kill_process(pid: u32) -> bool {
 #[cfg(not(any(windows, unix)))]
 fn kill_process(_pid: u32) -> bool { false }
 
+/// Kill all running instances of GitHub Desktop before launching a new one.
+/// This prevents port conflicts when --inspect-brk=0 is used.
+fn kill_github_desktop_if_running() {
+    #[cfg(windows)]
+    {
+        // First check if any GitHub Desktop processes are running
+        let check = std::process::Command::new("tasklist")
+            .args(["/FI", "IMAGENAME eq GitHubDesktop.exe", "/NH", "/FO", "CSV"])
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output();
+
+        let is_running = check
+            .ok()
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+            .map(|s| s.contains("GitHubDesktop.exe"))
+            .unwrap_or(false);
+
+        if is_running {
+            eprintln!("info: GitHub Desktop is already running — terminating before launch …");
+            let killed = std::process::Command::new("taskkill")
+                .args(["/F", "/IM", "GitHubDesktop.exe"])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+
+            if killed {
+                // Give Windows a moment to fully release the port / file handles
+                std::thread::sleep(std::time::Duration::from_millis(800));
+                eprintln!("info: existing GitHub Desktop processes terminated.");
+            } else {
+                eprintln!("warning: could not terminate existing GitHub Desktop processes.");
+            }
+        }
+    }
+
+    #[cfg(unix)]
+    {
+        let _ = std::process::Command::new("pkill")
+            .args(["-f", "GitHubDesktop"])
+            .status();
+        std::thread::sleep(std::time::Duration::from_millis(500));
+    }
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 fn main() {
@@ -524,6 +571,11 @@ fn main() {
             }
 
             // ── Daemon process: spawn GitHub Desktop with --inspect-brk ──
+
+            // Kill any existing GitHub Desktop processes to prevent port conflicts
+            // (--inspect-brk=0 will fail if a prior instance holds the debug port)
+            kill_github_desktop_if_running();
+
             let hook_config = serde_json::json!({
                 "blockUpdates": config.updates.disabled,
                 "blockManualUpdateCheck": config.updates.block_manual_check,
@@ -535,6 +587,7 @@ fn main() {
                     .as_ref()
                     .map(|d| d.display().to_string())
                     .unwrap_or_default(),
+                "recentReposLimit": config.ui.recent_repos_limit,
             });
             let config_json = hook_config.to_string();
 

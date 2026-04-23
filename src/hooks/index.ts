@@ -23,6 +23,8 @@ interface HookConfig {
   enableI18n: boolean
   locale: string
   dataDir: string
+  /** Max number of repos to keep in the "Recent" group (default: 3) */
+  recentReposLimit: number
 }
 
 interface LogEntry {
@@ -41,6 +43,7 @@ function parseConfig(): HookConfig {
     enableI18n: true,
     locale: 'zh-CN',
     dataDir: '',
+    recentReposLimit: 3,
   }
 
   try {
@@ -229,7 +232,7 @@ function translateLabel(
     return exact
   }
 
-  for (const [pattern, replacement] of Object.entries(translations)) {
+  for (const [pattern, replacement] of Object.entries(translations).sort((a, b) => b[0].length - a[0].length)) {
     const compiled = buildTranslationPattern(pattern)
     if (compiled === null) {
       continue

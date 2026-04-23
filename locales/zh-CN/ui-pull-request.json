@@ -1,0 +1,43 @@
+{
+  "_meta": {
+    "description": "拉取请求相关 UI 字符串",
+    "target": "renderer",
+    "section": "pull-request"
+  },
+  "Open a Pull Request": "创建拉取请求",
+  "Open a pull request": "创建拉取请求",
+  "View Pull Request": "查看拉取请求",
+  "View pull request": "查看拉取请求",
+  "Create Pull Request": "创建拉取请求",
+  "Create pull request": "创建拉取请求",
+
+  "Sorry, I can't find that remote branch.": "抱歉，找不到该远程分支。",
+  "You can only open pull requests against remote branches.": "您只能针对远程分支创建拉取请求。",
+  "Lines changed:": "更改行数：",
+  "added lines": "新增行",
+  "removed lines": "删除行",
+
+  "There are no changes.": "没有更改。",
+  "Could not find a default branch to compare against.": "无法找到可比较的默认分支。",
+  "Select a base branch above.": "请在上方选择一个基础分支。",
+  "is up to date with all commits from": "已与以下分支的所有提交保持最新：",
+  "are entirely different commit histories.": "具有完全不同的提交历史。",
+
+  "Checking mergeability\u2026": "正在检查可合并性…",
+  "Don't worry, you can still create the pull request.": "别担心，您仍然可以创建拉取请求。",
+  "Error checking merge status.": "检查合并状态时出错。",
+  "Able to merge.": "可以合并。",
+  "These branches can be automatically merged.": "这些分支可以自动合并。",
+  "Can't automatically merge.": "无法自动合并。",
+
+  "Pull request file list": "拉取请求文件列表",
+
+  "View pull request on GitHub.": "在 GitHub 上查看拉取请求。",
+  "Create pull request on GitHub.": "在 GitHub 上创建拉取请求。",
+  "View pull request on GitHub Enterprise.": "在 GitHub Enterprise 上查看拉取请求。",
+  "Create pull request on GitHub Enterprise.": "在 GitHub Enterprise 上创建拉取请求。",
+
+  "Pull request markdown body": "拉取请求 Markdown 内容",
+  "Draft": "草稿",
+  "Review requested": "已请求审查"
+}

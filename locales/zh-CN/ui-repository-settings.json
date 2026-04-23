@@ -18,6 +18,7 @@
   "Use a local Git config": "使用本地 Git 配置",
   "Editing": "正在编辑",
   "This file specifies intentionally untracked files that Git should ignore. Files already tracked by Git are not affected.": "该文件用于指定有意未跟踪且应被 Git 忽略的文件，已被 Git 跟踪的文件不受影响。",
+  ". This file specifies intentionally untracked files that Git should ignore. Files already tracked by Git are not affected.": "。该文件用于指定有意未跟踪且应被 Git 忽略的文件，已被 Git 跟踪的文件不受影响。",
   "Learn more about gitignore files": "进一步了解 gitignore 文件",
   "Ignored files": "忽略的文件",
   "I'll be using this fork…": "我会这样使用这个 Fork…",
@@ -30,5 +31,11 @@
   "in the browser.": "（在浏览器中）。",
   "New branches will be based on": "新分支将基于",
   "'s default branch.": "的默认分支。",
-  "Autocompletion of user and issues will be based on": "用户与 Issue 的自动补全将基于"
+  "Autocompletion of user and issues will be based on": "用户与 Issue 的自动补全将基于",
+
+  "Ignored Files": "忽略的文件",
+  "Git Config": "Git 配置",
+  "Git config": "Git 配置",
+  "Fork Behavior": "Fork 行为",
+  "Fork behavior": "Fork 行为"
 }

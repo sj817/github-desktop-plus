@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "description": "横幅通知（合并成功、拣选冲突等）翻译",
+    "target": "renderer",
+    "section": "banners"
+  },
+
+  "Successfully merged": "成功合并",
+  "Successfully merged into": "成功合并到",
+  "Successfully rebased": "成功变基",
+  "Successfully squashed": "成功压缩了",
+  "Successfully copied": "成功将",
+  "Cherry-pick undone. Successfully removed the": "拣选已撤销。已成功移除",
+
+  "Resolve conflicts and commit to merge into": "请解决冲突并提交以合并到",
+  "Resolve conflicts to continue cherry-picking onto": "请解决冲突以继续拣选到",
+  "Resolve conflicts to continue rebasing": "请解决冲突以继续变基",
+  "Resolve conflicts to continue": "请解决冲突以继续",
+
+  "is already up to date with": "与",
+  "is already up to date": "已是最新",
+
+  "View conflicts": "查看冲突",
+
+  "Undo": "撤销",
+
+  "This operating system is no longer supported. Software updates have been disabled.": "此操作系统已不再受支持。软件更新已被禁用。",
+  "Support details": "支持详情",
+
+  "The Desktop team would like to thank you for your contributions.": "Desktop 团队希望感谢您的贡献。",
+  "Open Your Card": "打开您的贺卡",
+  "Throw It Away": "不用了",
+
+  "Successfully reordered": "已成功重新排序",
+  "Squash of": "已压缩",
+  "Reorder of": "已重新排序",
+  "undone.": "已撤销。",
+
+  "An optimized version of GitHub Desktop is available for your": "GitHub Desktop 的优化版本适用于您的",
+  "machine and will be installed at the next launch or": "机器，将在下次启动时安装，或",
+  "restart GitHub Desktop": "重启 GitHub Desktop",
+  "Exciting new features have been added": "已添加令人兴奋的新功能",
+  "what's new": "最新动态",
+  "This version of GitHub Desktop is missing": "此版本的 GitHub Desktop 缺少",
+  "important updates": "重要更新",
+  "now to install pending updates.": "立即安装待处理的更新。",
+  "An updated version of GitHub Desktop is available and will be installed at the next launch. See": "GitHub Desktop 的更新版本已可用，将在下次启动时安装。查看"
+}

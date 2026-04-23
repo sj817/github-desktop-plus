@@ -46,6 +46,7 @@
   "Default branch name for new repositories": "新仓库的默认分支名称",
   "Cache Git hook environment variables": "缓存 Git 钩子环境变量",
   "Applications": "应用程序",
+  "External Editor": "外部编辑器",
   "External editor": "外部编辑器",
   "Notifications": "通知",
   "Enable notifications": "启用通知",
@@ -66,5 +67,55 @@
   "Force pushing": "强制推送",
   "Overriding commit message with generated message": "用生成的消息覆盖提交消息",
   "Show commit length warning": "显示提交消息长度警告",
-  "Load Git hook environment variables from shell": "从 Shell 加载 Git 钩子环境变量"
+  "Load Git hook environment variables from shell": "从 Shell 加载 Git 钩子环境变量",
+  "Allows the display of notifications when high-signal events take place in the current repository.": "允许在当前仓库中发生高优先级事件时显示通知。",
+  "You need to": "您需要",
+  "GitHub Desktop has no permission to display notifications. Please, enable them in the": "GitHub Desktop 没有权限显示通知。请在",
+  "Make sure notifications are": "请确保通知",
+
+  "Ask me where I want the changes to go": "询问我想要将更改放在哪里",
+  "Always bring my changes to my new branch": "始终将我的更改带到新分支",
+  "Always stash and leave my changes on the current branch": "始终暂存并将我的更改保留在当前分支",
+
+  "Undo commit": "撤销提交",
+
+  "usage stats": "使用统计",
+
+  "These icons indicate which repositories have local or remote changes, and require the periodic fetching of repositories that are not currently selected.": "这些图标显示哪些仓库有本地或远程更改，并需要定期获取当前未选中的仓库。",
+  "Turning this off will not stop the periodic fetching of your currently selected repository, but may improve overall app performance for users with many repositories.": "关闭此选项不会停止对当前选中仓库的定期获取，但可能会提升拥有大量仓库用户的整体应用性能。",
+
+  "Use Git Credential Manager": "使用 Git Credential Manager",
+  "for private repositories outside of GitHub.com. This feature is experimental and subject to change.": "用于 GitHub.com 以外的私有仓库。此功能处于实验阶段，可能随时变更。",
+
+  "Use system OpenSSH (recommended)": "使用系统 OpenSSH（推荐）",
+
+  "Shell to use when loading environment": "加载环境变量时使用的 Shell",
+  "Cache hook environment variables to improve performance. Disable if your hooks rely on frequently changing environment variables.": "缓存钩子环境变量以提高性能。如果您的钩子依赖于频繁变化的环境变量，请禁用此选项。",
+
+  "for GitHub Desktop in the": "中为 GitHub Desktop 开启",
+
+  "No editors found.": "未找到编辑器。",
+  "No other editors found.": "未找到其他编辑器。",
+  "Install Visual Studio Code?": "安装 Visual Studio Code？",
+  "Configure Custom Editor…": "配置自定义编辑器…",
+  "Configure custom editor…": "配置自定义编辑器…",
+  "Configure Custom Shell…": "配置自定义 Shell…",
+  "Configure custom shell…": "配置自定义 Shell…",
+
+  "These preferences will": "这些偏好设置将会",
+  "edit your global Git config file": "编辑您的全局 Git 配置文件",
+
+  "Tab Size": "制表符宽度",
+  "Tab size": "制表符宽度",
+  "Sign In Using Your Browser": "使用浏览器登录",
+  "Sign in using your browser": "使用浏览器登录",
+  "Your browser will redirect you back to GitHub Desktop once you've signed in. If your browser asks for your permission to launch GitHub Desktop, please allow it.": "登录后，您的浏览器将带您返回 GitHub Desktop。如果浏览器请求您允许启动 GitHub Desktop，请允许。",
+  "Continue With Browser": "用浏览器继续",
+  "Continue with browser": "用浏览器继续",
+  "Enterprise address": "企业版地址",
+
+  "Sign Out": "退出登录",
+  "Sign out": "退出登录",
+
+  "(default)": "（默认）"
 }
