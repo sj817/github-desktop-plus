@@ -439,5 +439,12 @@
 
   "_comment_squash": "--- 压缩 ---",
   "Squash commits": "压缩提交",
-  "Squash {count} commits into one": "将 {count} 次提交压缩为一次"
+  "Squash {count} commits into one": "将 {count} 次提交压缩为一次",
+
+  "Minimize": "最小化",
+  "Maximize": "最大化",
+  "to exit fullscreen": "退出全屏",
+
+  "Trash": "废纸篓",
+  "Recycle Bin": "回收站"
 }

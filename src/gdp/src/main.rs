@@ -124,26 +124,29 @@ fn parse_debugger_ws_url(line: &str) -> Option<String> {
 
 /// Blocking read of a process stderr stream: returns the first inspector WS URL
 /// found in a `Debugger listening on ws://...` line, or `None` on timeout/error.
+/// Also spawns a thread to keep consuming the reader so the pipe doesn't break.
 fn read_inspect_ws_url_sync(
-    reader: impl std::io::Read,
+    reader: impl std::io::Read + Send + 'static,
     timeout: std::time::Duration,
 ) -> Option<String> {
     use std::io::BufRead as _;
-    let deadline = std::time::Instant::now() + timeout;
-    for line in std::io::BufReader::new(reader).lines() {
-        if std::time::Instant::now() > deadline {
-            break;
-        }
-        match line {
-            Ok(text) => {
-                if let Some(url) = parse_debugger_ws_url(&text) {
-                    return Some(url);
-                }
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mut reader = std::io::BufReader::new(reader);
+
+    std::thread::spawn(move || {
+        let mut line = String::new();
+        while let Ok(n) = reader.read_line(&mut line) {
+            if n == 0 {
+                break;
             }
-            Err(_) => break,
+            if let Some(url) = parse_debugger_ws_url(&line) {
+                let _ = tx.send(url);
+            }
+            line.clear();
         }
-    }
-    None
+    });
+
+    rx.recv_timeout(timeout).ok()
 }
 
 fn load_config() -> (Config, Option<PathBuf>) {
@@ -596,6 +599,7 @@ fn main() {
                 .arg("--inspect-brk=0")
                 .env("GDP_CONFIG", &config_json)
                 .env("GDP_HOOK_DIR", hooks_dir.to_str().unwrap_or_default())
+                .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::piped())
                 .spawn();
 
@@ -841,7 +845,7 @@ fn main() {
                     .arg("--inspect-brk=0")
                     .env("GDP_CONFIG", &config_json)
                     .env("GDP_HOOK_DIR", hooks_dir.to_str().unwrap_or_default())
-                    .stdout(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true)
                     .spawn()

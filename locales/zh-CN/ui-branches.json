@@ -5,6 +5,7 @@
     "section": "branches"
   },
   "Last Modified:": "最后修改：",
+  "Suggested actions for this branch": "此分支的建议操作",
   "Choose a branch to merge into": "选择要合并到的分支",
   "Sorry, I can't find that branch": "抱歉，找不到该分支",
   "Do you want to create a new branch instead?": "是否要改为创建新分支？",
@@ -81,6 +82,8 @@
 
   "Cherry-pick to New Branch": "检出到新分支",
   "Cherry-pick to new branch": "检出到新分支",
+  "Create Branch and Cherry-pick": "创建分支并拣选",
+  "Create branch and cherry-pick": "创建分支并拣选",
   "You are not able to cherry-pick from and to the same branch": "您不能从同一分支拣选到该分支",
 
   "and get going on your next project?": "然后开始您的下一个项目？",

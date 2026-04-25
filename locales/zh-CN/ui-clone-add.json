@@ -34,6 +34,10 @@
   "License": "许可证",
   "Will be created as {sanitizedName}": "将创建为 {sanitizedName}",
   "The directory {fullPath} appears to be a Git repository.": "目录 {fullPath} 似乎已经是一个 Git 仓库。",
+  "appears to be a Git repository. Would you like to": "似乎已经是一个 Git 仓库。是否要",
+  "add this repository": "添加此仓库",
+  "appears to be a subfolder of Git repository.": "似乎是一个 Git 仓库的子文件夹。",
+  "file already. Checking this box will result in the existing file being overwritten.": "文件已存在。选中此选项将覆盖现有文件。",
   "This directory contains a README.md file already. Checking this option will replace it.": "该目录已包含 README.md 文件。选中此选项将替换它。",
 
   "Let's get started!": "开始吧！",
@@ -84,5 +88,6 @@
   "This folder contains files. Git can only clone to empty folders.": "该文件夹包含文件。Git 只能克隆到空文件夹。",
   "There is already a file with this name. Git can only clone to a folder.": "已有同名文件存在。Git 只能克隆到文件夹中。",
   "This directory appears to be a bare repository. Bare repositories are not currently supported.": "该目录似乎是一个裸仓库。当前不支持裸仓库。",
-  "This directory does not appear to be a Git repository. Would you like to create a repository here instead?": "该目录似乎不是 Git 仓库。是否要在此处创建一个仓库？"
+  "This directory does not appear to be a Git repository. Would you like to create a repository here instead?": "该目录似乎不是 Git 仓库。是否要在此处创建一个仓库？",
+  "Loading repositories from {endpoint}…": "正在从 {endpoint} 加载仓库…"
 }

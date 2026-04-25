@@ -37,5 +37,9 @@
   "Git Config": "Git 配置",
   "Git config": "Git 配置",
   "Fork Behavior": "Fork 行为",
-  "Fork behavior": "Fork 行为"
+  "Fork behavior": "Fork 行为",
+
+  "Could not read root .gitignore: {e}": "无法读取根目录 .gitignore 文件：{e}",
+  "Failed setting the remote URL: {e}": "设置远程 URL 失败：{e}",
+  "Failed saving the .gitignore file: {e}": "保存 .gitignore 文件失败：{e}"
 }

@@ -117,5 +117,7 @@
   "Sign Out": "退出登录",
   "Sign out": "退出登录",
 
-  "(default)": "（默认）"
+  "(default)": "（默认）",
+
+  "Arguments must include the target path placeholder (%TARGET_PATH%).": "参数必须包含目标路径占位符 (%TARGET_PATH%)。"
 }

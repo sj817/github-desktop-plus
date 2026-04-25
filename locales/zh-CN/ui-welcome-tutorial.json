@@ -70,5 +70,7 @@
 
   "Publishing will \"push\", or upload, your commits to this branch of your repository on GitHub. Publish using the third button in the top bar.": "发布会将您的提交\"推送\"（即上传）到 GitHub 上该仓库的此分支。请使用顶部栏中的第三个按钮进行发布。",
 
-  "A pull request allows you to propose changes to the code. By opening one, you're requesting that someone review and merge them. Since this is a demo repository, this pull request will be private.": "拉取请求允许您提议更改代码。发起后，您请求他人审查并合并这些更改。由于这是一个演示仓库，此拉取请求将保持私有。"
+  "A pull request allows you to propose changes to the code. By opening one, you're requesting that someone review and merge them. Since this is a demo repository, this pull request will be private.": "拉取请求允许您提议更改代码。发起后，您请求他人审查并合并这些更改。由于这是一个演示仓库，此拉取请求将保持私有。",
+
+  "This is used to identify the commits you create. Anyone will be able to see this information if you publish commits.": "此信息用于标识您创建的提交。如果您发布提交，任何人都可以看到此信息。"
 }

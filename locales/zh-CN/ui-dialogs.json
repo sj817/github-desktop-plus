@@ -8,9 +8,20 @@
   "Do not show this message again": "不再显示此消息",
   "This action cannot be undone.": "此操作无法撤销。",
 
+  "Invalidated Account Token": "账户令牌已失效",
+  "Invalidated account token": "账户令牌已失效",
+  "Your account token has been invalidated and you have been signed out from your": "您的账户令牌已失效，您已从以下账户中退出登录：",
+  "account. Do you want to sign in again?": "账户。是否要重新登录？",
+
   "Are you sure you want to discard all changes to:": "确定要放弃以下所有更改吗：",
   "Are you sure you want to discard the selected changes to:": "确定要放弃以下选定更改吗：",
   "Common reasons are:": "常见原因有：",
+  "Restricted access to move the file(s).": "移动文件时访问受限。",
+  "Discarded Changes Will Be Unrecoverable": "已丢弃的更改将无法恢复",
+  "Discarded changes will be unrecoverable": "已丢弃的更改将无法恢复",
+  "Failed to discard changes to": "无法将更改丢弃到",
+  "is configured to delete items immediately.": "已配置为立即删除项目。",
+  "These changes will be unrecoverable from the": "这些更改将无法从",
 
   "Delete branch": "删除分支",
   "Yes, delete this branch on the remote": "是，同时删除远程分支",
@@ -83,6 +94,14 @@
   "Organization": "组织",
 
   "The repository will be removed from GitHub Desktop:": "该仓库将从 GitHub Desktop 中移除：",
+  "Also move this repository to Trash": "同时将此仓库移至废纸篓",
+  "Also move this repository to Recycle Bin": "同时将此仓库移至回收站",
+
+  "Installing Update\u2026": "正在安装更新\u2026",
+  "Installing update\u2026": "正在安装更新\u2026",
+  "Do not close GitHub Desktop while the update is in progress. Closing now may break your installation.": "请勿在更新进行中关闭 GitHub Desktop。现在关闭可能会损坏您的安装。",
+  "Quit Anyway": "仍然退出",
+  "Quit anyway": "仍然退出",
 
   "Learn more about Copilot in GitHub Desktop.": "了解更多关于 GitHub Desktop 中 Copilot 的信息。",
   "GitHub Copilot": "GitHub Copilot",
@@ -168,6 +187,8 @@
   "Are you sure you want to abort this {operation}?": "您确定要中止此 {operation} 吗？",
   "This will take you back to the original branch state and the conflicts you have already resolved will be discarded.": "这将使您返回到原始分支状态，已解决的冲突将被丢弃。",
   "Abort {operation}": "中止 {operation}",
+  "Continue {operation}": "继续 {operation}",
+  "Resolve conflicts before {operationDetail.kind}": "在 {operationDetail.kind} 前解决冲突",
 
   "{operation} Will Require Force Push": "{operation} 需要强制推送",
   "{operation} will require force push": "{operation} 需要强制推送",
@@ -290,9 +311,9 @@
   "Update Existing Filters": "更新现有过滤器",
   "Update existing filters": "更新现有过滤器",
 
-  "We've detected that you're not running GitHub Desktop from the Applications folder of your machine. This could cause problems with the app, including impacting your ability to sign in.": "检测到您未从计算机的"应用程序"文件夹运行 GitHub Desktop，这可能导致应用问题，包括影响您的登录能力。",
-  "Do you want to move GitHub Desktop to the Applications folder now? This will also restart the app.": "是否立即将 GitHub Desktop 移至"应用程序"文件夹？此操作同时会重启应用。",
-  "This will move GitHub Desktop to the Applications folder in your machine and restart the app.": "这将把 GitHub Desktop 移至计算机的"应用程序"文件夹并重启应用。",
+  "We've detected that you're not running GitHub Desktop from the Applications folder of your machine. This could cause problems with the app, including impacting your ability to sign in.": "检测到您未从计算机的\u201c应用程序\u201d文件夹运行 GitHub Desktop，这可能导致应用问题，包括影响您的登录能力。",
+  "Do you want to move GitHub Desktop to the Applications folder now? This will also restart the app.": "是否立即将 GitHub Desktop 移至\u201c应用程序\u201d文件夹？此操作同时会重启应用。",
+  "This will move GitHub Desktop to the Applications folder in your machine and restart the app.": "这将把 GitHub Desktop 移至计算机的\u201c应用程序\u201d文件夹并重启应用。",
 
   "Cloning": "正在克隆",
 
@@ -304,6 +325,8 @@
   "Unknown co-authors": "未知协同作者",
   "Commit Anyway": "仍然提交",
   "Commit anyway": "仍然提交",
+  "Files Too Large": "文件过大",
+  "Files too large": "文件过大",
   "users weren't found and won't be added as co-authors of this commit. Are you sure you want to commit?": "位用户未找到，不会作为此提交的协同作者。是否仍然提交？",
   "These users weren't found and won't be added as co-authors of this commit. Are you sure you want to commit?": "这些用户未找到，不会作为此提交的协同作者。是否仍然提交？",
 
@@ -341,5 +364,20 @@
   "Add certificate": "添加证书",
 
   "Enter passphrase for key '{keyPath}':": "输入密钥 '{keyPath}' 的密码短语：",
-  "Enter password for '{username}':": "输入 '{username}' 的密码："
+  "Enter password for '{username}':": "输入 '{username}' 的密码：",
+
+  "To contribute to the parent project": "为父项目做贡献",
+
+  "You have changes in progress. Undoing the commit might result in some of these changes being lost. Do you want to continue anyway?": "您有正在进行的更改。撤销提交可能会导致这些更改中的某些内容丢失。是否仍然继续？",
+  "You have changes in progress. Undoing the merge commit might result in some of these changes being lost.": "您有正在进行的更改。撤销合并提交可能会导致这些更改中的某些内容丢失。",
+  "Undoing a merge commit will apply the changes from the merge into your working directory, and committing again will create an entirely new commit. This means you will lose the merge commit and, as a result, commits from the merged branch could disappear from this branch.": "撤销合并提交会将合并中的更改应用到您的工作目录，再次提交将创建一个全新的提交。这意味着您将丢失合并提交，因此被合并分支中的提交可能会从此分支中消失。",
+
+  "Create Repository Alias": "创建仓库别名",
+  "Create repository alias": "创建仓库别名",
+  "Change Repository Alias": "更改仓库别名",
+  "Change repository alias": "更改仓库别名",
+  "Choose a new alias for the repository \"": "为仓库 \"",
+
+  "Unable to Open External Editor": "无法打开外部编辑器",
+  "Unable to open external editor": "无法打开外部编辑器"
 }

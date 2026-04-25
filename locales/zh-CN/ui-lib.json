@@ -22,6 +22,7 @@
 
   "Enterprise address": "Enterprise 地址",
   "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发了以下库：",
+  "is an open source project published under the MIT License. You can view the source code and contribute to this project on": "是一个根据 MIT 许可证发布的开源项目。您可以查看源代码并在以下地址为此项目做贡献：",
   "Initialize Git LFS": "初始化 Git LFS",
   "Updating submodules": "正在更新子模块",
   "Updating submodules: {{text}}": "正在更新子模块：{{text}}",
@@ -74,5 +75,13 @@
   "your username and password": "您的用户名和密码",
   "to try again.": "以重试。",
   "Depending on your repository's hosting service, you might need to use a Personal Access Token (PAT) as your password. Learn more about creating a PAT in our": "根据您的仓库托管服务，您可能需要使用个人访问令牌（PAT）作为密码。在我们的",
-  "integration docs": "集成文档"
+  "integration docs": "集成文档",
+
+  "Fix all the things": "修复所有问题",
+  "Example commit": "示例提交",
+  "Use my GitHub account name and email address": "使用我的 GitHub 账户名称和电子邮件地址",
+  "Use my GitHub Enterprise account name and email address": "使用我的 GitHub Enterprise 账户名称和电子邮件地址",
+  "your-email@example.com": "your-email@example.com",
+  "is not a valid name.": "不是有效的名称。",
+  "Input cleared": "输入已清除"
 }
