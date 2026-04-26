@@ -70,3 +70,61 @@ pub enum ConfigAction {
     /// Print the config file path
     Path,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn no_subcommand_parses_to_none() {
+        let cli = Cli::parse_from(["gdp"]);
+        assert!(cli.command.is_none());
+    }
+
+    #[test]
+    fn launch_flags_round_trip() {
+        let cli = Cli::parse_from(["gdp", "launch", "-f", "--no-serve"]);
+        match cli.command {
+            Some(Command::Launch { force, no_serve, desktop_path }) => {
+                assert!(force);
+                assert!(no_serve);
+                assert!(desktop_path.is_none());
+            }
+            _ => panic!("expected Launch"),
+        }
+    }
+
+    #[test]
+    fn config_show_subcommand() {
+        let cli = Cli::parse_from(["gdp", "config", "show", "--json"]);
+        match cli.command {
+            Some(Command::Config { action: ConfigAction::Show { json } }) => assert!(json),
+            _ => panic!("expected config show --json"),
+        }
+    }
+
+    #[test]
+    fn config_path_and_reset_subcommands() {
+        let p = Cli::parse_from(["gdp", "config", "path"]);
+        assert!(matches!(p.command, Some(Command::Config { action: ConfigAction::Path })));
+        let r = Cli::parse_from(["gdp", "config", "reset"]);
+        assert!(matches!(r.command, Some(Command::Config { action: ConfigAction::Reset })));
+    }
+
+    #[test]
+    fn detect_serve_stop_open_dev_parse() {
+        for sub in ["detect", "serve", "stop", "open"] {
+            let cli = Cli::parse_from(["gdp", sub]);
+            assert!(cli.command.is_some(), "{sub} should parse");
+        }
+        let dev = Cli::parse_from(["gdp", "dev"]);
+        assert!(matches!(dev.command, Some(Command::Dev { .. })));
+    }
+
+    #[test]
+    fn unknown_subcommand_is_error() {
+        let res = Cli::try_parse_from(["gdp", "definitely-not-a-command"]);
+        assert!(res.is_err());
+    }
+}

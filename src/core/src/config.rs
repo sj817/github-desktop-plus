@@ -172,3 +172,73 @@ impl Config {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn defaults_are_security_first() {
+        let c = Config::default();
+        assert!(c.updates.disabled);
+        assert!(c.updates.block_manual_check);
+        assert!(c.telemetry.disabled);
+        assert!(c.telemetry.block_exceptions);
+        assert!(c.i18n.enabled);
+        assert_eq!(c.i18n.locale, "zh-CN");
+        assert_eq!(c.logging.level, "warn");
+        assert!(!c.logging.disable_file_log);
+        assert_eq!(c.ui.recent_repos_limit, 3);
+        assert!(c.desktop.path.is_none());
+    }
+
+    #[test]
+    fn load_returns_default_when_missing() {
+        let dir = std::env::temp_dir().join(format!("gdp-cfg-missing-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let c = Config::load(&dir).expect("load empty dir");
+        // Non-existent dir -> default
+        assert!(c.updates.disabled);
+    }
+
+    #[test]
+    fn save_then_load_roundtrip() {
+        let dir = std::env::temp_dir().join(format!("gdp-cfg-rt-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut c = Config::default();
+        c.i18n.locale = "en-US".into();
+        c.ui.recent_repos_limit = 9;
+        c.logging.level = "info".into();
+        c.save(&dir).expect("save");
+        let loaded = Config::load(&dir).expect("load back");
+        assert_eq!(loaded.i18n.locale, "en-US");
+        assert_eq!(loaded.ui.recent_repos_limit, 9);
+        assert_eq!(loaded.logging.level, "info");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn missing_optional_fields_use_defaults() {
+        // Empty JSON object should still produce valid defaults via serde(default).
+        let c: Config = serde_json::from_str("{}").expect("parse {}");
+        assert_eq!(c.ui.recent_repos_limit, 3);
+        assert!(c.updates.block_manual_check);
+    }
+
+    #[test]
+    fn config_error_io_propagation() {
+        let path = std::path::Path::new("/this/path/should/not/exist/whatsoever");
+        // load() returns Ok(default) when file doesn't exist; force an io error via save into a
+        // path component that contains an existing FILE so create_dir_all fails.
+        let tmp = std::env::temp_dir().join(format!("gdp-cfg-err-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let blocker = tmp.join("blocker");
+        std::fs::write(&blocker, b"x").unwrap();
+        let nested = blocker.join("sub");
+        let err = Config::default().save(&nested).unwrap_err();
+        assert!(matches!(err, ConfigError::Io(_)));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let _ = path; // silence unused
+    }
+}

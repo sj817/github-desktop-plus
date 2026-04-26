@@ -305,3 +305,42 @@ pub fn export_locale(data_dir: &Path, locale: &str) -> hyper::Response<Body> {
     );
     resp
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_path_components() {
+        assert!(valid("zh-CN"));
+        assert!(valid("en_US"));
+        assert!(valid("ui-dialogs"));
+        assert!(valid("a1"));
+        assert!(!valid(""));
+        assert!(!valid(".."));
+        assert!(!valid("foo/bar"));
+        assert!(!valid("foo bar"));
+        assert!(!valid("foo.bar"));
+    }
+
+    #[test]
+    fn locale_file_path_rejects_traversal() {
+        let root = std::path::Path::new("/data");
+        assert!(locale_file_path(root, "../etc", "ui").is_none());
+        assert!(locale_file_path(root, "zh-CN", "../etc/passwd").is_none());
+        assert!(locale_file_path(root, "", "ui").is_none());
+        assert!(locale_file_path(root, "zh-CN", "").is_none());
+    }
+
+    #[test]
+    fn locale_file_path_constructs_expected() {
+        let root = std::path::Path::new("/data");
+        let p = locale_file_path(root, "zh-CN", "ui-dialogs").unwrap();
+        assert!(p.ends_with("locales/zh-CN/ui-dialogs.json") || p.ends_with("locales\\zh-CN\\ui-dialogs.json"));
+    }
+
+    #[test]
+    fn protected_locale_constant() {
+        assert_eq!(PROTECTED_LOCALE, "zh-CN");
+    }
+}

@@ -167,3 +167,75 @@ pub fn build_session_cookie(sid: &str) -> String {
         sid, SESSION_TTL_SECS
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    fn make_state() -> AppState {
+        AppState {
+            config_dir: None,
+            data_dir: None,
+            config: Arc::new(Mutex::new(gdp_core::config::Config::default())),
+            auth_token: Arc::new("dummy".to_string()),
+            sessions: Arc::new(Mutex::new(std::collections::HashMap::new())),
+        }
+    }
+
+    #[test]
+    fn token_format_is_43_url_safe_chars() {
+        let t = generate_token();
+        assert_eq!(t.len(), 43, "32 bytes -> 43 base64url chars (no padding)");
+        assert!(t.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+    }
+
+    #[test]
+    fn tokens_are_unique() {
+        let mut seen = std::collections::HashSet::new();
+        for _ in 0..32 {
+            assert!(seen.insert(generate_token()));
+        }
+    }
+
+    #[test]
+    fn parse_session_cookie_finds_value() {
+        assert_eq!(
+            parse_session_cookie("foo=bar; gdp_session=abc123; baz=qux"),
+            Some("abc123".to_string())
+        );
+        assert_eq!(parse_session_cookie("gdp_session=xyz"), Some("xyz".to_string()));
+        assert_eq!(parse_session_cookie("foo=bar"), None);
+        assert_eq!(parse_session_cookie(""), None);
+    }
+
+    #[test]
+    fn create_session_then_validate_then_status() {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+        let _ = (Arc::new(()), Mutex::new(()));
+        let state = make_state();
+        let sid = create_session(&state);
+        let cookie = format!("gdp_session={sid}");
+        assert!(validate_and_touch_session(&state, Some(&cookie)));
+        let (authed, remaining) = status_for(&state, Some(&cookie));
+        assert!(authed);
+        assert!(remaining > 0 && remaining <= SESSION_TTL_SECS);
+
+        // Invalid cookie
+        assert!(!validate_and_touch_session(&state, Some("gdp_session=nope")));
+        assert!(!validate_and_touch_session(&state, None));
+        let (authed2, _) = status_for(&state, None);
+        assert!(!authed2);
+    }
+
+    #[test]
+    fn write_token_file_creates_file() {
+        let dir = std::env::temp_dir().join(format!("gdp-token-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = write_token_file(&dir, "tok123").expect("write");
+        let content = std::fs::read_to_string(&path).expect("read");
+        assert_eq!(content, "tok123");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

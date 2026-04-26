@@ -66,3 +66,48 @@ pub fn parse_query(uri: &hyper::Uri) -> std::collections::HashMap<String, String
         })
         .collect()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn json_ok_serializes_payload() {
+        let resp = json_ok(&serde_json::json!({"hello":"world"}));
+        assert_eq!(resp.status(), StatusCode::OK);
+        let ct = resp.headers().get(CONTENT_TYPE).unwrap().to_str().unwrap();
+        assert!(ct.contains("application/json"));
+    }
+
+    #[test]
+    fn json_err_carries_status_and_msg() {
+        let resp = json_err(StatusCode::UNAUTHORIZED, "no_session");
+        assert_eq!(resp.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn add_cors_sets_expected_headers() {
+        let mut resp = make_response(StatusCode::OK, "text/plain", b"ok".to_vec());
+        add_cors(&mut resp);
+        let h = resp.headers();
+        assert_eq!(h.get("Access-Control-Allow-Origin").unwrap(), "*");
+        assert!(h.get("Access-Control-Allow-Methods").unwrap().to_str().unwrap().contains("POST"));
+        assert_eq!(h.get("Access-Control-Allow-Credentials").unwrap(), "true");
+    }
+
+    #[test]
+    fn parse_query_extracts_pairs() {
+        let uri: hyper::Uri = "http://x/y?a=1&b=hello&empty=&=ignored".parse().unwrap();
+        let map = parse_query(&uri);
+        assert_eq!(map.get("a").map(String::as_str), Some("1"));
+        assert_eq!(map.get("b").map(String::as_str), Some("hello"));
+        assert_eq!(map.get("empty").map(String::as_str), Some(""));
+        assert!(!map.contains_key(""));
+    }
+
+    #[test]
+    fn parse_query_no_query_is_empty() {
+        let uri: hyper::Uri = "http://x/y".parse().unwrap();
+        assert!(parse_query(&uri).is_empty());
+    }
+}
