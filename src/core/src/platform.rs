@@ -12,8 +12,7 @@ fn home_dir() -> Option<PathBuf> {
 pub fn config_dir() -> Option<PathBuf> {
     #[cfg(windows)]
     {
-        std::env::var_os("APPDATA")
-            .map(|p| PathBuf::from(p).join("github-desktop-plus"))
+        std::env::var_os("APPDATA").map(|p| PathBuf::from(p).join("github-desktop-plus"))
     }
     #[cfg(target_os = "macos")]
     {
@@ -67,9 +66,8 @@ pub fn github_desktop_candidates() -> Vec<PathBuf> {
             "/Applications/GitHub Desktop.app/Contents/MacOS/GitHub Desktop",
         ));
         if let Some(home) = home_dir() {
-            candidates.push(
-                home.join("Applications/GitHub Desktop.app/Contents/MacOS/GitHub Desktop"),
-            );
+            candidates
+                .push(home.join("Applications/GitHub Desktop.app/Contents/MacOS/GitHub Desktop"));
         }
     }
 
@@ -79,9 +77,8 @@ pub fn github_desktop_candidates() -> Vec<PathBuf> {
         candidates.push(PathBuf::from("/opt/github-desktop/github-desktop"));
         // Flatpak
         if let Some(home) = home_dir() {
-            candidates.push(
-                home.join(".local/share/flatpak/exports/bin/io.github.shiftey.Desktop"),
-            );
+            candidates
+                .push(home.join(".local/share/flatpak/exports/bin/io.github.shiftey.Desktop"));
         }
     }
 

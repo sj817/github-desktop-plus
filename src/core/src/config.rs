@@ -31,7 +31,10 @@ fn default_true() -> bool {
 
 impl Default for UpdatesConfig {
     fn default() -> Self {
-        Self { disabled: true, block_manual_check: true }
+        Self {
+            disabled: true,
+            block_manual_check: true,
+        }
     }
 }
 
@@ -99,7 +102,9 @@ fn default_recent_repos_limit() -> u32 {
 
 impl Default for UiConfig {
     fn default() -> Self {
-        Self { recent_repos_limit: default_recent_repos_limit() }
+        Self {
+            recent_repos_limit: default_recent_repos_limit(),
+        }
     }
 }
 

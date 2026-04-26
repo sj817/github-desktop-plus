@@ -4,6 +4,26 @@ pub mod platform;
 
 use serde::Serialize;
 
+/// Tiny logging helper used across the crates.
+///
+/// Usage: `gdp_log!("info", "starting up: {}", path.display());`
+/// Levels are free-form strings; output goes to stderr unless `level == "info"`,
+/// which is suppressed unless `GDP_VERBOSE=1` is set in the environment.
+#[macro_export]
+macro_rules! gdp_log {
+    ($level:expr, $($arg:tt)*) => {{
+        let __lvl: &str = $level;
+        let __msg = format!($($arg)*);
+        if __lvl == "info" || __lvl == "debug" {
+            if std::env::var_os("GDP_VERBOSE").is_some() {
+                eprintln!("[gdp:{}] {}", __lvl, __msg);
+            }
+        } else {
+            eprintln!("[gdp:{}] {}", __lvl, __msg);
+        }
+    }};
+}
+
 // --- Architecture metadata (read-only, static) ---
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -44,8 +64,8 @@ const MODULES: &[ModuleInfo] = &[
         responsibility: "TypeScript hook and preload sources compiled into injected JavaScript bundles.",
     },
     ModuleInfo {
-        name: "src/ui",
-        responsibility: "Static, framework-free dashboard -- reads /api/* and renders to DOM.",
+        name: "webui",
+        responsibility: "React frontend (built into webui/dist/) embedded into the binary at compile time.",
     },
 ];
 
@@ -58,7 +78,7 @@ const PROJECT_TREE: &str = "github-desktop-plus/\n\
     |   +-- core/           # platform, config, detector, runtime metadata\n\
     |   +-- gdp/            # CLI, inspector injection, embedded WebUI server\n\
     |   +-- hooks/          # Electron hook/preload TypeScript sources\n\
-    |   +-- ui/             # no-framework dashboard\n\
+    +-- webui/              # React frontend (built into webui/dist/)\n\
     +-- locales/\n\
     +-- scripts/\n\
     +-- package.json        # Node.js build tooling only";
