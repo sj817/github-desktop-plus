@@ -1,0 +1,142 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * GDP Design Tokens — Morandi Mist Ocean Blue
+ * Adapted from keysida AI_DESIGN_SYSTEM.md.  Glassmorphism, restrained color,
+ * generous whitespace.  Never use pure #000/#fff for foreground/background.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Spatial */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 56px;
+
+  /* Type */
+  --fs-display: clamp(36px, 4.4vw, 56px);
+  --fs-h1: clamp(28px, 3vw, 36px);
+  --fs-h2: clamp(20px, 2vw, 24px);
+  --fs-body: 15px;
+  --fs-small: 13px;
+  --fs-micro: 11px;
+
+  /* Motion */
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-slow: 420ms;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-glide: cubic-bezier(.4,0,.2,1);
+}
+
+/* ── Light ─────────────────────────────────────────────────────────────── */
+:root,
+.light {
+  --bg-base: #f4f6f9;
+  --bg-elevated: rgba(255,255,255,.82);
+  --bg-canvas-glow:
+    radial-gradient(1200px 600px at 10% -10%, rgba(140,177,217,.18), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(255,182,193,.10), transparent 60%),
+    linear-gradient(180deg, #eef2f7 0%, #f4f6f9 60%);
+
+  --text-primary: #1f2a37;
+  --text-secondary: #4a5d73;
+  --text-tertiary: #7a8a9d;
+
+  --brand-primary: #5c7c99;
+  --brand-soft: rgba(92,124,153,.18);
+  --brand-mute: rgba(92,124,153,.06);
+  --brand-glow: rgba(92,124,153,.22);
+
+  --glass-bg: rgba(255,255,255,.62);
+  --glass-border: rgba(255,255,255,.65);
+  --glass-shadow:
+    inset 0 1px 1px rgba(255,255,255,.5),
+    0 4px 12px rgba(15,23,42,.04);
+}
+
+/* ── Dark ──────────────────────────────────────────────────────────────── */
+.dark {
+  --bg-base: #0c1220;
+  --bg-elevated: rgba(20,28,44,.72);
+  --bg-canvas-glow:
+    radial-gradient(1200px 600px at 10% -10%, rgba(140,177,217,.16), transparent 60%),
+    radial-gradient(900px 500px at 110% 10%, rgba(120,90,180,.10), transparent 60%),
+    linear-gradient(180deg, #0a1020 0%, #0c1220 60%);
+
+  --text-primary: #e7ecf2;
+  --text-secondary: #a8b6c8;
+  --text-tertiary: #6b7a90;
+
+  --brand-primary: #8cb1d9;
+  --brand-soft: rgba(140,177,217,.22);
+  --brand-mute: rgba(140,177,217,.06);
+  --brand-glow: rgba(140,177,217,.28);
+
+  --glass-bg: rgba(20,28,44,.55);
+  --glass-border: rgba(255,255,255,.06);
+  --glass-shadow:
+    inset 0 1px 1px rgba(255,255,255,.04),
+    0 12px 32px rgba(0,0,0,.35);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────── */
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  font-family: 'Inter','Noto Sans SC','Microsoft YaHei UI','PingFang SC',system-ui,sans-serif;
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+  background: var(--bg-base);
+  background-image: var(--bg-canvas-glow);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--brand-soft); color: var(--text-primary); }
+
+/* Scrollbar — minimal, glass-toned */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--brand-soft);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover { background: var(--brand-primary); background-clip: padding-box; border: 2px solid transparent; }
+
+/* Reusable glass surface */
+.glass {
+  background: linear-gradient(145deg, var(--glass-bg) 0%, rgba(255,255,255,.05) 100%);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 20px;
+}
+.glass-hover {
+  transition: transform var(--dur-base) var(--ease-spring),
+              box-shadow var(--dur-base) var(--ease-glide),
+              border-color var(--dur-base) var(--ease-glide);
+}
+.glass-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px var(--brand-glow), inset 0 1px 1px rgba(255,255,255,.5);
+  border-color: var(--brand-soft);
+}
+
+/* Title gradient (never pure-black titles) */
+.title-grad {
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--brand-primary) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Section paddings */
+.container { max-width: 1280px; margin: 0 auto; padding: 0 var(--space-6); }
