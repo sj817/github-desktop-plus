@@ -165,6 +165,7 @@ interface MenuItem {
   role?: string
   type?: string
   enabled?: boolean
+  accelerator?: string
   click?: () => void
 }
 
@@ -506,6 +507,7 @@ function buildGDPMenuItems(
     {
       id: 'gdp.open-webui',
       label: '打开控制面板 (WebUI)',
+      accelerator: 'CmdOrCtrl+Alt+G',
       click: () => { shell.openExternal(GDP_WEBUI_URL).catch(() => {}) },
     },
     { id: 'gdp.separator.1', type: 'separator' },
@@ -590,6 +592,45 @@ function setupGDPMenu(
     }
   }
   gdpLog('Menu.buildFromTemplate patched (i18n + GDP menu)', 'info', 'menu')
+}
+
+// ---------------------------------------------------------------------------
+// 5b. Global Shortcut — register Ctrl/Cmd+Alt+G to open the WebUI from
+//     anywhere, even when GitHub Desktop is not the focused window.
+// ---------------------------------------------------------------------------
+function setupGDPShortcut(
+  app: { isReady(): boolean; whenReady(): Promise<void> },
+  globalShortcut: {
+    register(accelerator: string, cb: () => void): boolean
+    isRegistered(accelerator: string): boolean
+  },
+  shell: { openExternal(url: string): Promise<void> }
+): void {
+  const ACCELERATOR = 'CommandOrControl+Alt+G'
+  const register = () => {
+    try {
+      if (globalShortcut.isRegistered(ACCELERATOR)) {
+        gdpLog(`Global shortcut already registered: ${ACCELERATOR}`, 'info', 'system')
+        return
+      }
+      const ok = globalShortcut.register(ACCELERATOR, () => {
+        gdpLog(`Global shortcut triggered — opening WebUI`, 'info', 'system')
+        shell.openExternal(GDP_WEBUI_URL).catch(() => {})
+      })
+      if (ok) {
+        gdpLog(`Global shortcut registered: ${ACCELERATOR} → ${GDP_WEBUI_URL}`, 'info', 'system')
+      } else {
+        gdpLog(`Global shortcut registration failed: ${ACCELERATOR}`, 'warn', 'system')
+      }
+    } catch (e) {
+      gdpLog(`Global shortcut error: ${e}`, 'error', 'system')
+    }
+  }
+  if (app.isReady()) {
+    register()
+  } else {
+    app.whenReady().then(register).catch(() => {})
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -722,6 +763,18 @@ function main(): void {
       electron.shell as { openExternal(url: string): Promise<void> },
       config,
       menuTranslations
+    )
+  }
+
+  // 2b. Global keyboard shortcut for opening the WebUI control panel
+  if (electron.app && electron.globalShortcut && electron.shell) {
+    setupGDPShortcut(
+      electron.app as { isReady(): boolean; whenReady(): Promise<void> },
+      electron.globalShortcut as {
+        register(accelerator: string, cb: () => void): boolean
+        isRegistered(accelerator: string): boolean
+      },
+      electron.shell as { openExternal(url: string): Promise<void> }
     )
   }
 
