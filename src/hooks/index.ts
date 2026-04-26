@@ -65,6 +65,31 @@ const _os: typeof import('os') = require('os')
 const LOG_FILE = _path.join(_os.tmpdir(), 'gdp-hooks.log')
 const LOG_JSON_FILE = _path.join(_os.tmpdir(), 'gdp-hooks-stream.jsonl')
 
+// ── Locale reload watcher (poll <dataDir>/.gdp-locale-reload) ──────────────
+// The Rust serve.rs writes to this marker file after any locale CRUD.
+// We re-read translation files when its mtime changes.
+let _reloadCallbacks: Array<() => void> = []
+function _registerReload(cb: () => void): void {
+  _reloadCallbacks.push(cb)
+}
+function _watchLocaleReload(dataDir: string): void {
+  if (!dataDir) return
+  const marker = _path.join(dataDir, '.gdp-locale-reload')
+  try {
+    _fs.watchFile(marker, { interval: 1500 }, () => {
+      for (const cb of _reloadCallbacks) {
+        try { cb() } catch { /* ignore */ }
+      }
+    })
+  } catch { /* best-effort */ }
+}
+
+// Sliding 1-second dedup window for repeated log lines.
+const _logLevelOrder: Record<string, number> = { debug: 0, info: 1, warn: 2, warning: 2, error: 3, block: 3 }
+let _lastLogKey: string | null = null
+let _lastLogTs: number = 0
+let _lastLogCount: number = 0
+
 /** Structured log — written as JSONL for streaming to frontend */
 function gdpLog(msg: string, level: LogEntry['level'] = 'info', category: LogEntry['category'] = 'system'): void {
   const entry: LogEntry = {
@@ -73,13 +98,40 @@ function gdpLog(msg: string, level: LogEntry['level'] = 'info', category: LogEnt
     category,
     message: msg,
   }
+  const key = `${level}|${category}|${msg}`
+  const now = Date.now()
+  if (_lastLogKey === key && now - _lastLogTs < 1000) {
+    _lastLogCount += 1
+    // JSONL stream gets every event so the WebUI can show full history.
+    try { _fs.appendFileSync(LOG_JSON_FILE, JSON.stringify(entry) + '\n') } catch { /* best-effort */ }
+    return
+  }
+  // Flush prior dedup tail, if any.
+  if (_lastLogKey && _lastLogCount > 0) {
+    const tail = ` (repeated ${_lastLogCount}x in 1s)`
+    console.log(tail)
+    try { _fs.appendFileSync(LOG_FILE, tail + '\n') } catch { /* best-effort */ }
+  }
+  _lastLogKey = key
+  _lastLogTs = now
+  _lastLogCount = 0
+
   const line = `${entry.ts} [${entry.level.toUpperCase()}][${entry.category}] ${msg}`
-  console.log(line)
+  // console.log filter: drop entries below `warn` unless the configured
+  // logLevel allows them. The JSONL stream always retains every entry.
+  const cfgLvl = (_currentLogLevel || 'warn').toLowerCase()
+  const minOrder = _logLevelOrder[cfgLvl] ?? 2
+  if ((_logLevelOrder[level] ?? 1) >= minOrder) {
+    console.log(line)
+  }
   try {
     _fs.appendFileSync(LOG_FILE, line + '\n')
     _fs.appendFileSync(LOG_JSON_FILE, JSON.stringify(entry) + '\n')
   } catch { /* best-effort */ }
 }
+
+// Resolved on first hook config parse so gdpLog can read it.
+let _currentLogLevel: string = ''
 
 // ---------------------------------------------------------------------------
 // 1. Update Blocker — monkey-patch autoUpdater methods (they are writable)
@@ -618,8 +670,23 @@ function setupLocaleHotReload(
 // Main
 // ---------------------------------------------------------------------------
 function main(): void {
+  // Suppress EPIPE errors on stdout/stderr.
+  // GitHub Desktop's stderr is piped to the Rust launcher process.
+  // If the read end of that pipe is closed (e.g. daemon exits early or the
+  // background reader thread terminates), Node.js raises an EPIPE error on
+  // the next write.  Without an 'error' handler the error becomes an uncaught
+  // exception and GitHub Desktop shows the "encountered an error" dialog.
+  const _silenceEpipe = (err: NodeJS.ErrnoException) => {
+    if (err.code !== 'EPIPE') throw err
+  }
+  try { process.stdout.on('error', _silenceEpipe) } catch { /* ignore */ }
+  try { process.stderr.on('error', _silenceEpipe) } catch { /* ignore */ }
+
   const config = parseConfig()
   const dir = process.env.GDP_HOOK_DIR || __dirname
+
+  // Make logging.level visible to gdpLog's console-filter.
+  _currentLogLevel = config.logLevel || 'warn'
 
   // Clear previous log stream
   try { _fs.writeFileSync(LOG_JSON_FILE, '') } catch { /* ignore */ }
@@ -627,6 +694,9 @@ function main(): void {
   gdpLog('====== GitHub Desktop Plus hooks loading ======')
   gdpLog(`Config: ${JSON.stringify(config)}`)
   gdpLog(`hookDir: ${dir}`)
+
+  // Subscribe to Rust-side locale CRUD reload events.
+  if (config.dataDir) _watchLocaleReload(config.dataDir)
 
   let electron: Record<string, unknown>
   try {

@@ -232,7 +232,9 @@ where
                 }
             }
             Ok(Message::Close(_)) => {
-                return Err(InjectError::WebSocket("connection closed unexpectedly".into()));
+                return Err(InjectError::WebSocket(
+                    "connection closed unexpectedly".into(),
+                ));
             }
             Err(tungstenite::Error::Io(ref e))
                 if e.kind() == std::io::ErrorKind::WouldBlock

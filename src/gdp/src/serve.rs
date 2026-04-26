@@ -1,115 +1,34 @@
-// Embedded web server for `gdp serve`.
-// Serves config read/write API + static UI on http://127.0.0.1:7788.
+//! Embedded HTTP server: routes /api/*, serves the React WebUI bundle, and
+//! enforces token-cookie authentication on all `/api/*` endpoints except a few
+//! safe-listed ones.
+
+use std::convert::Infallible;
+use std::net::SocketAddr;
+use std::sync::{Arc, Mutex};
 
 use bytes::Bytes;
 use gdp_core::{config::Config, detector::find_github_desktop, platform::config_dir};
-use http_body_util::{BodyExt, Full};
+use http_body_util::{BodyExt, Either, Empty};
 use hyper::body::Incoming;
-use hyper::header::{HeaderValue, CONTENT_TYPE};
+use hyper::header::{HeaderValue, SET_COOKIE};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Method, Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
-use serde::{Deserialize, Serialize};
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use serde::Serialize;
 use tokio::net::TcpListener;
 
-type Body = Full<Bytes>;
+use crate::auth::{
+    self, build_session_cookie, create_session, spawn_session_reaper, status_for,
+    validate_and_touch_session,
+};
+use crate::http_helpers::{Body, add_cors, json_err, json_ok, make_response, parse_query};
+use crate::sse::{self, SseBody};
+use crate::state::AppState;
+use crate::{locale, static_assets};
 
-// ── Shared state ─────────────────────────────────────────────────────────────
-
-#[derive(Clone)]
-struct AppState {
-    config_dir: Option<PathBuf>,
-    /// GDP data dir: <exe_dir>/gdp-data — used for locale file read/write.
-    data_dir: Option<PathBuf>,
-    config: Arc<Mutex<Config>>,
-    index_html: &'static str,
-    app_js: &'static str,
-    styles_css: &'static str,
-}
-
-// ── Locale types ──────────────────────────────────────────────────────────────
-
-#[derive(Debug, Serialize, Deserialize)]
-struct LocaleEntry {
-    key: String,
-    value: String,
-}
-
-// ── Response helpers ─────────────────────────────────────────────────────────
-
-fn make_response(
-    status: StatusCode,
-    content_type: &'static str,
-    body: impl Into<Bytes>,
-) -> Response<Body> {
-    let mut resp = Response::new(Full::new(body.into()));
-    *resp.status_mut() = status;
-    resp.headers_mut()
-        .insert(CONTENT_TYPE, HeaderValue::from_static(content_type));
-    resp
-}
-
-fn json_ok<T: Serialize>(value: &T) -> Response<Body> {
-    match serde_json::to_vec(value) {
-        Ok(body) => make_response(StatusCode::OK, "application/json; charset=utf-8", body),
-        Err(_) => make_response(
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "application/json; charset=utf-8",
-            br#"{"error":"serialization_failed"}"#.to_vec(),
-        ),
-    }
-}
-
-fn json_err(status: StatusCode, msg: &'static str) -> Response<Body> {
-    let body = format!("{{\"error\":\"{msg}\"}}").into_bytes();
-    make_response(status, "application/json; charset=utf-8", body)
-}
-
-fn add_cors(resp: &mut Response<Body>) {
-    resp.headers_mut()
-        .insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
-    resp.headers_mut().insert(
-        "Access-Control-Allow-Methods",
-        HeaderValue::from_static("GET, POST, OPTIONS"),
-    );
-    resp.headers_mut().insert(
-        "Access-Control-Allow-Headers",
-        HeaderValue::from_static("Content-Type"),
-    );
-}
-
-// ── Query-string helpers ──────────────────────────────────────────────────────
-
-/// Parse `key=value&key2=value2` into a HashMap (no URL-decoding needed for our params).
-fn parse_query(uri: &hyper::Uri) -> std::collections::HashMap<String, String> {
-    uri.query()
-        .unwrap_or("")
-        .split('&')
-        .filter_map(|pair| {
-            let mut it = pair.splitn(2, '=');
-            let k = it.next()?.to_owned();
-            let v = it.next().unwrap_or("").to_owned();
-            if k.is_empty() { None } else { Some((k, v)) }
-        })
-        .collect()
-}
-
-/// Resolve and validate a locale file path from data_dir.
-/// Returns None on invalid locale/category (prevents path traversal).
-fn locale_file_path(data_dir: &std::path::Path, locale: &str, category: &str) -> Option<PathBuf> {
-    let valid = |s: &str| s.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_');
-    if !valid(locale) || !valid(category) || locale.is_empty() || category.is_empty() {
-        return None;
-    }
-    Some(data_dir.join("locales").join(locale).join(format!("{category}.json")))
-}
-
-// ── Route handler ─────────────────────────────────────────────────────────────
+/// Either a buffered body (`Full<Bytes>`) or a streaming SSE body.
+type AnyBody = Either<Body, SseBody>;
 
 #[derive(Debug, Serialize)]
 struct TreeResponse {
@@ -122,41 +41,147 @@ struct DetectResponse {
     path: Option<String>,
 }
 
-async fn handle(request: Request<Incoming>, state: AppState) -> Result<Response<Body>, Infallible> {
+fn make_any(b: Response<Body>) -> Response<AnyBody> {
+    let (parts, body) = b.into_parts();
+    Response::from_parts(parts, Either::Left(body))
+}
+
+fn make_sse(b: Response<SseBody>) -> Response<AnyBody> {
+    let (parts, body) = b.into_parts();
+    Response::from_parts(parts, Either::Right(body))
+}
+
+/// Endpoints exempt from the auth-cookie check.
+fn is_public_path(path: &str) -> bool {
+    matches!(path, "/" | "/api/auth/exchange" | "/api/auth/status")
+        || path.starts_with("/assets/")
+        || !path.starts_with("/api/")
+}
+
+async fn handle(
+    request: Request<Incoming>,
+    state: AppState,
+) -> Result<Response<AnyBody>, Infallible> {
     let method = request.method().clone();
     let path = request.uri().path().to_owned();
     let query_str = request.uri().query().unwrap_or("").to_owned();
+    let cookie_header = request
+        .headers()
+        .get(hyper::header::COOKIE)
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
-    let post_body: Option<Bytes> = if method == Method::POST {
-        match request.into_body().collect().await {
-            Ok(c) => Some(c.to_bytes()),
-            Err(_) => {
-                let mut r = json_err(StatusCode::BAD_REQUEST, "body_read_error");
-                add_cors(&mut r);
-                return Ok(r);
-            }
+    // ── Auth gate: protected /api/* paths ────────────────────────────────────
+    if path.starts_with("/api/") && !is_public_path(&path) {
+        if !validate_and_touch_session(&state, cookie_header.as_deref()) {
+            let mut r = json_err(StatusCode::UNAUTHORIZED, "unauthorized");
+            add_cors(&mut r);
+            return Ok(make_any(r));
         }
-    } else {
-        None
-    };
+    }
 
-    // Build a fake uri for query parsing
+    // CORS preflight short-circuit.
+    if method == Method::OPTIONS {
+        let mut r = make_response(StatusCode::NO_CONTENT, "text/plain", "");
+        add_cors(&mut r);
+        return Ok(make_any(r));
+    }
+
+    // SSE log stream — bypass body collection.
+    if method == Method::GET && path == "/api/logs/stream" {
+        let query_uri: hyper::Uri = format!("/?{query_str}").parse().unwrap_or_default();
+        let q = parse_query(&query_uri);
+        let filter = sse::parse_filter(&q);
+        let mut r = sse::build_stream_response(filter);
+        // Add CORS to SSE — needs separate path because Body type differs.
+        let h = r.headers_mut();
+        h.insert("Access-Control-Allow-Origin", HeaderValue::from_static("*"));
+        h.insert(
+            "Access-Control-Allow-Credentials",
+            HeaderValue::from_static("true"),
+        );
+        return Ok(make_sse(r));
+    }
+
+    // For everything else, collect body (small payloads only).
+    let post_body: Option<Bytes> =
+        if method == Method::POST || method == Method::PUT || method == Method::DELETE {
+            match request.into_body().collect().await {
+                Ok(c) => Some(c.to_bytes()),
+                Err(_) => {
+                    let mut r = json_err(StatusCode::BAD_REQUEST, "body_read_error");
+                    add_cors(&mut r);
+                    return Ok(make_any(r));
+                }
+            }
+        } else {
+            None
+        };
+
     let query_uri: hyper::Uri = format!("/?{query_str}").parse().unwrap_or_default();
     let query = parse_query(&query_uri);
 
-    let mut resp = match (method, path.as_str()) {
-        (Method::GET, "/") => make_response(
-            StatusCode::OK,
-            "text/html; charset=utf-8",
-            state.index_html,
-        ),
-        (Method::GET, "/app.js") => make_response(
-            StatusCode::OK,
-            "application/javascript; charset=utf-8",
-            state.app_js,
-        ),
-        (Method::GET, "/styles.css") => {
-            make_response(StatusCode::OK, "text/css; charset=utf-8", state.styles_css)
+    let mut resp = route(method, &path, &query, post_body, &cookie_header, &state);
+    add_cors(&mut resp);
+    Ok(make_any(resp))
+}
+
+fn route(
+    method: Method,
+    path: &str,
+    query: &std::collections::HashMap<String, String>,
+    post_body: Option<Bytes>,
+    cookie_header: &Option<String>,
+    state: &AppState,
+) -> Response<Body> {
+    // ── Auth endpoints ───────────────────────────────────────────────────────
+    if method == Method::POST && path == "/api/auth/exchange" {
+        let supplied = query.get("t").cloned().unwrap_or_default();
+        if supplied.is_empty() || supplied != *state.auth_token {
+            return json_err(StatusCode::UNAUTHORIZED, "invalid_token");
+        }
+        let sid = create_session(state);
+        let mut resp = json_ok(&serde_json::json!({ "ok": true }));
+        resp.headers_mut().insert(
+            SET_COOKIE,
+            HeaderValue::from_str(&build_session_cookie(&sid))
+                .unwrap_or_else(|_| HeaderValue::from_static("")),
+        );
+        return resp;
+    }
+
+    if method == Method::GET && path == "/api/auth/status" {
+        let (authed, expires_in) = status_for(state, cookie_header.as_deref());
+        return json_ok(&serde_json::json!({
+            "authed": authed,
+            "expires_in_secs": expires_in,
+        }));
+    }
+
+    // ── Locale endpoints (see locale.rs) ─────────────────────────────────────
+    if let Some(resp) = route_locale(&method, path, post_body.as_ref(), state) {
+        return resp;
+    }
+
+    // ── Misc API ─────────────────────────────────────────────────────────────
+    match (method, path) {
+        // Legacy compat: /api/locale?locale=&category=
+        (Method::GET, "/api/locale") => {
+            let locale = query.get("locale").map(String::as_str).unwrap_or("zh-CN");
+            let category = query.get("category").map(String::as_str).unwrap_or("ui");
+            match &state.data_dir {
+                None => json_err(StatusCode::SERVICE_UNAVAILABLE, "data_dir_unavailable"),
+                Some(dir) => crate::locale::read_category(dir, locale, category),
+            }
+        }
+        (Method::POST, "/api/locale") => {
+            let locale = query.get("locale").map(String::as_str).unwrap_or("zh-CN");
+            let category = query.get("category").map(String::as_str).unwrap_or("ui");
+            let bytes = post_body.unwrap_or_default();
+            match &state.data_dir {
+                None => json_err(StatusCode::SERVICE_UNAVAILABLE, "data_dir_unavailable"),
+                Some(dir) => crate::locale::write_category(dir, locale, category, &bytes),
+            }
         }
 
         (Method::GET, "/api/status") => json_ok(&gdp_core::runtime_plan()),
@@ -164,7 +189,6 @@ async fn handle(request: Request<Incoming>, state: AppState) -> Result<Response<
         (Method::GET, "/api/tree") => json_ok(&TreeResponse {
             tree: gdp_core::project_tree(),
         }),
-
         (Method::GET, "/api/detect") => {
             let p = find_github_desktop();
             json_ok(&DetectResponse {
@@ -172,12 +196,10 @@ async fn handle(request: Request<Incoming>, state: AppState) -> Result<Response<
                 path: p.map(|x| x.display().to_string()),
             })
         }
-
         (Method::GET, "/api/config") => {
             let guard = state.config.lock().unwrap();
             json_ok(&*guard)
         }
-
         (Method::POST, "/api/config") => {
             let bytes = post_body.unwrap_or_default();
             match serde_json::from_slice::<Config>(&bytes) {
@@ -193,148 +215,160 @@ async fn handle(request: Request<Incoming>, state: AppState) -> Result<Response<
                 Err(_) => json_err(StatusCode::BAD_REQUEST, "invalid_config_json"),
             }
         }
+        (m, p) if !p.starts_with("/api/") && m == Method::GET => static_assets::serve(p),
+        _ => make_response(
+            StatusCode::NOT_FOUND,
+            "text/plain; charset=utf-8",
+            "not found",
+        ),
+    }
+}
 
-        // ── Locale API ────────────────────────────────────────────────────────
-
-        // List all available locales (subdirectories under gdp-data/locales/)
-        (Method::GET, "/api/locales") => {
-            match &state.data_dir {
-                None => json_ok(&Vec::<String>::new()),
-                Some(data_dir) => {
-                    let locales_dir = data_dir.join("locales");
-                    let locales: Vec<String> = std::fs::read_dir(&locales_dir)
-                        .ok()
-                        .map(|rd| {
-                            rd.filter_map(|e| e.ok())
-                                .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-                                .filter_map(|e| e.file_name().into_string().ok())
-                                .collect()
-                        })
-                        .unwrap_or_default();
-                    json_ok(&locales)
-                }
+fn route_locale(
+    method: &Method,
+    path: &str,
+    body: Option<&Bytes>,
+    state: &AppState,
+) -> Option<Response<Body>> {
+    let data_dir = match &state.data_dir {
+        Some(d) => d,
+        None => {
+            // Locale endpoints all require data_dir; if unavailable bail with 503.
+            if path == "/api/locales" || path.starts_with("/api/locale") {
+                return Some(json_err(
+                    StatusCode::SERVICE_UNAVAILABLE,
+                    "data_dir_unavailable",
+                ));
             }
+            return None;
         }
-
-        // GET /api/locale?locale=zh-CN&category=menu → [{key,value},…]
-        (Method::GET, "/api/locale") => {
-            let locale = query.get("locale").map(String::as_str).unwrap_or("zh-CN");
-            let category = query.get("category").map(String::as_str).unwrap_or("ui");
-            match &state.data_dir {
-                None => json_err(StatusCode::SERVICE_UNAVAILABLE, "data_dir_unavailable"),
-                Some(data_dir) => match locale_file_path(data_dir, locale, category) {
-                    None => json_err(StatusCode::BAD_REQUEST, "invalid_locale_params"),
-                    Some(path) => match std::fs::read_to_string(&path) {
-                        Err(_) => json_err(StatusCode::NOT_FOUND, "locale_file_not_found"),
-                        Ok(content) => {
-                            match serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(
-                                &content,
-                            ) {
-                                Err(_) => {
-                                    json_err(StatusCode::INTERNAL_SERVER_ERROR, "invalid_locale_json")
-                                }
-                                Ok(map) => {
-                                    let mut entries: Vec<LocaleEntry> = map
-                                        .into_iter()
-                                        .filter(|(k, _)| !k.starts_with('_'))
-                                        .map(|(k, v)| LocaleEntry {
-                                            key: k,
-                                            value: v.as_str().unwrap_or("").to_string(),
-                                        })
-                                        .collect();
-                                    entries.sort_by(|a, b| a.key.cmp(&b.key));
-                                    json_ok(&entries)
-                                }
-                            }
-                        }
-                    },
-                },
-            }
-        }
-
-        // POST /api/locale?locale=zh-CN&category=menu  body: [{key,value},…]
-        (Method::POST, "/api/locale") => {
-            let locale = query.get("locale").map(String::as_str).unwrap_or("zh-CN");
-            let category = query.get("category").map(String::as_str).unwrap_or("ui");
-            match &state.data_dir {
-                None => json_err(StatusCode::SERVICE_UNAVAILABLE, "data_dir_unavailable"),
-                Some(data_dir) => match locale_file_path(data_dir, locale, category) {
-                    None => json_err(StatusCode::BAD_REQUEST, "invalid_locale_params"),
-                    Some(path) => {
-                        let bytes = post_body.unwrap_or_default();
-                        match serde_json::from_slice::<Vec<LocaleEntry>>(&bytes) {
-                            Err(_) => json_err(StatusCode::BAD_REQUEST, "invalid_locale_entries"),
-                            Ok(entries) => {
-                                let map: serde_json::Map<String, serde_json::Value> = entries
-                                    .iter()
-                                    .map(|e| {
-                                        (e.key.clone(), serde_json::Value::String(e.value.clone()))
-                                    })
-                                    .collect();
-                                let count = map.len();
-                                match serde_json::to_string_pretty(&map) {
-                                    Err(_) => json_err(
-                                        StatusCode::INTERNAL_SERVER_ERROR,
-                                        "serialization_failed",
-                                    ),
-                                    Ok(content) => match std::fs::write(&path, &content) {
-                                        Err(_) => json_err(
-                                            StatusCode::INTERNAL_SERVER_ERROR,
-                                            "write_failed",
-                                        ),
-                                        Ok(()) => json_ok(&serde_json::json!({
-                                            "ok": true,
-                                            "locale": locale,
-                                            "category": category,
-                                            "count": count,
-                                        })),
-                                    },
-                                }
-                            }
-                        }
-                    }
-                },
-            }
-        }
-
-        (Method::OPTIONS, _) => make_response(StatusCode::NO_CONTENT, "text/plain", ""),
-
-        _ => make_response(StatusCode::NOT_FOUND, "text/plain; charset=utf-8", "not found"),
     };
 
-    add_cors(&mut resp);
-    Ok(resp)
+    // GET /api/locales
+    if method == Method::GET && path == "/api/locales" {
+        return Some(locale::list_locales(data_dir));
+    }
+
+    // Legacy compat: GET/POST /api/locale?locale=&category=
+    if path == "/api/locale" {
+        // Defer to old query-string form via state.config — handled by the old
+        // generic path. To keep behaviour, we read locale/category from query.
+        // Pull query off the request again by re-parsing path-less URI.
+        // Actually we have no query here; fall through.
+        return None;
+    }
+
+    // /api/locale/:locale → POST creates, DELETE removes
+    if let Some(rest) = path.strip_prefix("/api/locale/") {
+        let mut parts = rest.split('/');
+        let locale = match parts.next() {
+            Some(s) if !s.is_empty() => s,
+            _ => return Some(json_err(StatusCode::BAD_REQUEST, "missing_locale")),
+        };
+        match (method.clone(), parts.next(), parts.next(), parts.next()) {
+            (Method::POST, None, _, _) => {
+                return Some(crate::locale::create_locale(data_dir, locale));
+            }
+            (Method::DELETE, None, _, _) => {
+                return Some(crate::locale::delete_locale(data_dir, locale));
+            }
+            (Method::POST, Some("import"), None, _) => {
+                let b = body.cloned().unwrap_or_default();
+                return Some(crate::locale::import_locale(data_dir, locale, &b));
+            }
+            (Method::GET, Some("export"), None, _) => {
+                return Some(crate::locale::export_locale(data_dir, locale));
+            }
+            // /api/locale/:locale/:category and key sub-routes
+            (m, Some(category), key_part, key_val) => {
+                if key_part == Some("key") {
+                    if let Some(key) = key_val {
+                        if m == Method::DELETE {
+                            return Some(crate::locale::delete_key(
+                                data_dir, locale, category, key,
+                            ));
+                        }
+                    } else if m == Method::POST {
+                        let b = body.cloned().unwrap_or_default();
+                        return Some(crate::locale::upsert_key(data_dir, locale, category, &b));
+                    }
+                    return Some(json_err(StatusCode::METHOD_NOT_ALLOWED, "bad_method"));
+                }
+                if key_part.is_some() {
+                    return Some(json_err(StatusCode::NOT_FOUND, "unknown_route"));
+                }
+                if m == Method::GET {
+                    return Some(crate::locale::read_category(data_dir, locale, category));
+                }
+                if m == Method::PUT {
+                    let b = body.cloned().unwrap_or_default();
+                    return Some(crate::locale::write_category(
+                        data_dir, locale, category, &b,
+                    ));
+                }
+                return Some(json_err(StatusCode::METHOD_NOT_ALLOWED, "bad_method"));
+            }
+            _ => return Some(json_err(StatusCode::NOT_FOUND, "unknown_route")),
+        }
+    }
+
+    None
+}
+
+// Allow the unused `Empty` import quietly (kept for future BodyExt mappings).
+#[allow(dead_code)]
+fn _empty_body_ref() -> Empty<Bytes> {
+    Empty::new()
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
-/// Async core that can be spawned inside an existing Tokio runtime (e.g. `gdp dev`).
-pub async fn serve_async(
-    index_html: &'static str,
-    app_js: &'static str,
-    styles_css: &'static str,
-) {
+/// Build initial AppState: load config, derive data_dir, generate auth token,
+/// write the token file, print `gdp open` hint, spawn session reaper.
+pub fn build_state() -> AppState {
     let cfg_dir = config_dir();
     let initial = cfg_dir
         .as_deref()
         .and_then(|d| Config::load(d).ok())
         .unwrap_or_default();
 
-    // Compute data_dir relative to the running executable
     let data_dir = std::env::current_exe()
         .ok()
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .map(|exe_dir| exe_dir.join("gdp-data"));
 
+    let token = auth::generate_token();
+    if let Some(ref dir) = cfg_dir {
+        match auth::write_token_file(dir, &token) {
+            Ok(p) => {
+                eprintln!("gdp: auth token written to {}", p.display());
+                eprintln!("gdp: run `gdp open` to launch the WebUI");
+            }
+            Err(e) => eprintln!("warning: cannot write token file: {e}"),
+        }
+    }
+
+    if let Some(ref dir) = data_dir {
+        if let Err(e) = std::fs::create_dir_all(dir) {
+            eprintln!("warning: cannot create data dir {}: {e}", dir.display());
+        }
+        crate::locale_seed::seed_if_missing(dir);
+    }
+
     let state = AppState {
         config_dir: cfg_dir,
         data_dir,
         config: Arc::new(Mutex::new(initial)),
-        index_html,
-        app_js,
-        styles_css,
+        auth_token: Arc::new(token),
+        sessions: Arc::new(Mutex::new(Default::default())),
     };
 
+    spawn_session_reaper(state.clone());
+    state
+}
+
+pub async fn serve_async() {
+    let state = build_state();
     let addr = SocketAddr::from(([127, 0, 0, 1], 7788));
     let listener = match TcpListener::bind(addr).await {
         Ok(l) => l,
@@ -345,7 +379,7 @@ pub async fn serve_async(
         }
     };
 
-    println!("gdp serve  →  http://{addr}");
+    eprintln!("gdp serve  →  http://{addr}");
 
     loop {
         let (stream, _) = listener.accept().await.expect("accept");
@@ -356,17 +390,19 @@ pub async fn serve_async(
                 .serve_connection(io, service_fn(move |req| handle(req, state.clone())))
                 .await
             {
-                eprintln!("gdp serve connection error: {e}");
+                if std::env::var_os("GDP_VERBOSE").is_some() {
+                    eprintln!("gdp serve connection error: {e}");
+                }
             }
         });
     }
 }
 
-/// Blocking entry point — creates its own Tokio runtime. Used by `gdp serve` and daemon mode.
-pub fn run(index_html: &'static str, app_js: &'static str, styles_css: &'static str) {
+/// Blocking entry point — creates its own Tokio runtime.
+pub fn run() {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .expect("build tokio runtime");
-    rt.block_on(serve_async(index_html, app_js, styles_css));
+    rt.block_on(serve_async());
 }
