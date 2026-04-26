@@ -5,6 +5,8 @@
   "description": "External enhancement tool for GitHub Desktop — Rust runtime + 0-path Electron hooks",
   "scripts": {
     "build:hooks": "node scripts/build-hooks.mjs",
+    "fmt": "cargo fmt --all",
+    "fmt:check": "cargo fmt --all -- --check",
     "gdp:build": "pnpm run build:hooks && cargo build --workspace",
     "gdp:dev": "pnpm run build:hooks && cargo run -p gdp -- dev",
     "serve": "pnpm run build:hooks && cargo run -p gdp -- serve",

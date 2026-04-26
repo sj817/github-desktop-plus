@@ -15,3 +15,5 @@ output.js
 *.tmp
 *.log
 /src/ui-app
+*.tsbuildinfo
+/.github

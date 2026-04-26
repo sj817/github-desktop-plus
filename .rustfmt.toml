@@ -1,0 +1,11 @@
+edition = "2024"
+max_width = 100
+use_field_init_shorthand = true
+reorder_imports = true
+newline_style = "Unix"
+
+# The two settings below require nightly rustfmt. They are honored when running
+# `cargo +nightly fmt --all`; on stable they emit a benign warning. Keep them
+# enabled so contributors using nightly get consistent import grouping.
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
