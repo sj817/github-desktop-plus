@@ -18,8 +18,13 @@
   "License and Open Source Notices": "许可证和开源声明",
   "Responsible use of Copilot in GitHub Desktop": "在 GitHub Desktop 中负责任地使用 Copilot",
   "release notes": "发布说明",
+  "About {name}": "关于 {name}",
   "Version {version}": "版本 {version}",
   "Build {version}": "构建 {version}",
+  "You have the latest version (last checked": "您已是最新版本（上次检查于",
+  "You have the latest version (last checked {date})": "您已是最新版本（上次检查于 {date}）",
+  "This operating system is no longer supported. Software updates have been disabled.": "该操作系统已不再受支持。软件更新已被禁用。",
+  "Couldn't determine the last time an update check was performed. You may be running an old version. Please try manually checking for updates and contact GitHub Support if the problem persists": "无法确定上次执行更新检查的时间。您可能正在运行旧版本。请尝试手动检查更新，如果问题仍然存在，请联系 GitHub 支持团队",
   "Bugfixes": "错误修复",
   "Enhancements": "功能增强",
   "Install and Restart": "安装并重启",
@@ -27,5 +32,10 @@
   "Release notes generated from markdown": "从 Markdown 生成的发布说明",
 
   "Thanks so much for all your hard work on GitHub Desktop": "非常感谢您为 GitHub Desktop",
-  ". We're so grateful for your willingness to contribute and make the app better for everyone!": " 所做出的所有贡献！我们非常感激您的贡献，感谢您让应用对所有人更好！"
+  ". We're so grateful for your willingness to contribute and make the app better for everyone!": " 所做出的所有贡献！我们非常感激您的贡献，感谢您让应用对所有人更好！",
+
+  "_comment_acknowledgements": "开源声明对话框（acknowledgements.tsx）",
+  "is an open source project published under the MIT License. You can view the source code and contribute to this project on": "是一个在 MIT 许可证下发布的开源项目。您可以在以下位置查看源代码并为本项目贡献：",
+  "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发以下库：",
+  "Unknown license": "未知许可证"
 }

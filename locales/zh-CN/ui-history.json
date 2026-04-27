@@ -82,6 +82,33 @@
 
   "Empty commit message": "空的提交消息",
   "Collapse commit details": "折叠提交详情",
-  "Expand commit details": "展开提交详情"
+  "Expand commit details": "展开提交详情",
+
+  "_comment_commit_drag": "提交拖拽提示（drag-elements/commit-drag-element.tsx）",
+  "Copy to": "复制到",
+  "Squash {count} commits": "压缩 {count} 个提交",
+  "'Insert here'": "“插入到此”",
+  "Move {count} commit here": "将 {count} 个提交移到此处",
+  "Move {count} commits here": "将 {count} 个提交移到此处",
+
+  "_comment_compare": "分支比较视图（history/compare.tsx）",
+  "Branch filter": "分支筛选",
+  "No history": "无历史记录",
+  "No Branches to Compare": "没有可比较的分支",
+  "No branches to compare": "没有可比较的分支",
+  "Select Branch to Compare…": "选择要比较的分支…",
+  "Select branch to compare…": "选择要比较的分支…",
+  "The compared branch (": "比较分支（",
+  ") is up to date with your branch": "）已与您的分支保持最新",
+  "Your branch is up to date with the compared branch (": "您的分支已与比较分支（",
+
+  "_comment_expandable_summary": "可展开提交摘要（history/expandable-commit-summary.tsx）",
+  "Unknown user": "未知用户",
+  "Collapse": "折叠",
+  "Expand": "展开",
+  " not included.": " 未包含。",
+
+  "_comment_merge_cta": "合并行动号召（history/merge-call-to-action*.tsx）",
+  " on top of ": " 之上，基于 "
 }
 

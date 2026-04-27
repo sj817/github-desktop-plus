@@ -39,5 +39,14 @@
   "Current Branch": "当前分支",
   "On {sha}": "当前在 {sha}",
   "Checking out {target}": "正在切换到 {target}",
-  "Rebasing {targetBranch}": "正在变基 {targetBranch}"
+  "Rebasing {targetBranch}": "正在变基 {targetBranch}",
+
+  "_comment_repo_toolbar": "仓库工具栏按钮（app.tsx renderRepositoryToolbarButton）",
+  "Select a Repository": "选择仓库",
+  "Select a repository": "选择仓库",
+  "No Repositories": "无仓库",
+  "No repositories": "无仓库",
+  "Current Repository": "当前仓库",
+  "Current repository": "当前仓库",
+  "No repository selected": "未选择仓库"
 }

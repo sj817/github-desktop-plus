@@ -156,5 +156,47 @@
   "to customize how commit messages are generated.": "来自定义提交消息的生成方式。",
 
   ", but you can bypass it. Proceed with caution!": "，但您可以绕过它。请谨慎操作！",
-  ", but you can bypass them. Proceed with caution!": "，但您可以绕过它们。请谨慎操作！"
+  ", but you can bypass them. Proceed with caution!": "，但您可以绕过它们。请谨慎操作！",
+
+  "_comment_undo_continue": "撤销提交 / 继续 rebase（undo-commit.tsx, continue-rebase.tsx）",
+  "Undo": "撤销",
+  "Undo commit": "撤销提交",
+  "Undo is disabled while the repository is being updated": "仓库更新时无法撤销",
+  "Continue rebase": "继续变基",
+  "Rebasing": "变基中",
+  "Resolve all conflicts before continuing": "请先解决所有冲突再继续",
+
+  "_comment_filtered_dialog": "筛选后提交确认对话框（confirm-commit-filtered-changes-dialog.tsx）",
+  "Commit Filtered Changes?": "提交已筛选的更改？",
+  "Commit filtered changes?": "提交已筛选的更改？",
+  "Commit Anyway": "仍然提交",
+  "Commit anyway": "仍然提交",
+  "Do not show this message again": "不再显示此消息",
+  "You have a filter applied. There are": "您已应用筛选条件。存在",
+  "hidden changes": "隐藏的更改",
+  "that will be committed. Are you sure you want to commit these changes?": "将被提交。是否确定要提交这些更改？",
+
+  "_comment_oversized": "超大文件警告（oversized-files-warning.tsx）",
+  "Files Too Large": "文件过大",
+  "Files too large": "文件过大",
+  "The following files are over 100MB.": "以下文件超过 100MB。",
+  "If you commit these files, you will no longer be able to push this repository to GitHub.com.": "如果您提交这些文件，将无法再将此仓库推送到 GitHub.com。",
+  "We recommend you avoid committing these files or use": "我们建议您避免提交这些文件，或使用",
+  "to store large files on GitHub.": "在 GitHub 上存储大文件。",
+
+  "_comment_multi_select": "多选状态（multiple-selection.tsx）",
+  "files selected": "个文件已选中",
+
+  "_comment_submodule_tooltips": "子模块复选框提示（filter-changes-list.tsx）",
+  "This submodule change cannot be added to a commit in this repository because it contains changes that have not been committed.": "此子模块更改无法添加到此仓库的提交中，因为它包含尚未提交的更改。",
+  "Only changes that have been committed within the submodule will be added to this repository. You need to commit any other modified or untracked changes in the submodule before including them in this repository.": "只有在子模块中已提交的更改才会被添加到此仓库。如果要将子模块中其他已修改或未跟踪的更改包含到此仓库，您需要先在子模块中提交它们。",
+
+  "_comment_no_changes": "无更改提示（no-changes.tsx）",
+  "No local changes": "没有本地更改",
+  "There are no uncommitted changes in this repository. Here are some friendly suggestions for what to do next.": "此仓库中没有未提交的更改。以下是关于下一步操作的一些友好建议。",
+  "your File Manager": "文件管理器",
+
+  "_comment_misc": "其它",
+  "Commit description": "提交描述",
+  "New": "新"
 }

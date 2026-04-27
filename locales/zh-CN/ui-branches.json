@@ -33,7 +33,6 @@
   "{{n}} local commit": "{{n}} 个本地提交",
   "Would you like to push your changes to": "是否要将更改推送到",
   "before creating your pull request?": "再创建拉取请求？",
-  "Would you like to publish": "是否要发布",
   "now and open a pull request?": "并打开拉取请求？",
   "Default branch": "默认分支",
   "Recent branches": "最近分支",
@@ -108,5 +107,19 @@
 
   "Delete branch {branchName}?": "删除分支 {branchName}？",
   "Delete remote branch {branchName}?": "删除远程分支 {branchName}？",
-  "If #{pullRequestNumber} has been merged, you can also go to GitHub to delete the remote branch.": "如果 #{pullRequestNumber} 已合并，您也可以前往 GitHub 删除远程分支。"
+  "If #{pullRequestNumber} has been merged, you can also go to GitHub to delete the remote branch.": "如果 #{pullRequestNumber} 已合并，您也可以前往 GitHub 删除远程分支。",
+
+  "Branches": "分支",
+  "Rename…": "重命名…",
+  "Delete…": "删除…",
+  "Copy Branch Name": "复制分支名",
+  "Copy branch name": "复制分支名",
+  "View Branch on GitHub": "在 GitHub 上查看分支",
+  "View Pull Request on GitHub": "在 GitHub 上查看拉取请求",
+  "base:": "基础分支：",
+  "Choose a base branch": "选择基础分支",
+  "Refresh the list of pull requests": "刷新拉取请求列表",
+  "Hang Tight. Loading pull requests as fast as I can!": "请稍候，正在尽快加载拉取请求！",
+  "{n} pull request found": "找到 {n} 个拉取请求",
+  "{n} pull requests found": "找到 {n} 个拉取请求"
 }

@@ -72,5 +72,17 @@
 
   "A pull request allows you to propose changes to the code. By opening one, you're requesting that someone review and merge them. Since this is a demo repository, this pull request will be private.": "拉取请求允许您提议更改代码。发起后，您请求他人审查并合并这些更改。由于这是一个演示仓库，此拉取请求将保持私有。",
 
-  "This is used to identify the commits you create. Anyone will be able to see this information if you publish commits.": "此信息用于标识您创建的提交。如果您发布提交，任何人都可以看到此信息。"
+  "This is used to identify the commits you create. Anyone will be able to see this information if you publish commits.": "此信息用于标识您创建的提交。如果您发布提交，任何人都可以看到此信息。",
+
+  "_comment_confirm_exit_tutorial": "确认退出教程对话框（tutorial/confirm-exit-tutorial.tsx）",
+  "Are you sure you want to leave the tutorial? This will bring you back to the home screen.": "您确定要离开教程吗？这将带您返回主页。",
+
+  "_comment_tutorial_done": "教程完成页（tutorial/done.tsx）",
+  "You've learned the basics on how to use GitHub Desktop. Here are some suggestions for what to do next.": "您已学会 GitHub Desktop 的基本用法。以下是一些后续操作建议。",
+
+  "_comment_tutorial_welcome": "教程欢迎页（tutorial/welcome.tsx），strong 标签前缀（Git/GitHub/GitHub Desktop）保留原文",
+  "is the version control system.": "是版本控制系统。",
+  "is where you store your code and collaborate with others.": "是您存放代码并与他人协作的地方。",
+  "helps you work with GitHub locally.": "帮助您在本地与 GitHub 协作。",
+  "Use this tutorial to get comfortable with Git, GitHub, and GitHub Desktop.": "使用本教程来熟悉 Git、GitHub 和 GitHub Desktop。"
 }

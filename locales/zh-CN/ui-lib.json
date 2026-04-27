@@ -83,5 +83,36 @@
   "Use my GitHub Enterprise account name and email address": "使用我的 GitHub Enterprise 账户名称和电子邮件地址",
   "your-email@example.com": "your-email@example.com",
   "is not a valid name.": "不是有效的名称。",
-  "Input cleared": "输入已清除"
+  "Input cleared": "输入已清除",
+
+  "_comment_lib_authentication_form": "lib/authentication-form.tsx",
+  "Your browser will redirect you back to GitHub Desktop once you've signed in. If your browser asks for your permission to launch GitHub Desktop please allow it to.": "完成登录后，您的浏览器将重定向回 GitHub Desktop。如果浏览器请求授权启动 GitHub Desktop，请允许。",
+
+  "_comment_lib_branch_name_warnings": "lib/branch-name-warnings.tsx —— 仅补充未覆盖的片段",
+  "A branch named": "已存在名为",
+  "already exists on the remote.": "的远程分支。",
+
+  "_comment_lib_enterprise_server_entry": "lib/enterprise-server-entry.tsx",
+  "Continue": "继续",
+
+  "_comment_lib_git_config_user_form": "lib/git-config-user-form.tsx",
+  "(GitHub.com)": "(GitHub.com)",
+  "(GitHub Enterprise)": "(GitHub Enterprise)",
+  "Other": "其他",
+
+  "_comment_lib_popover_dropdown": "lib/popover-dropdown.tsx",
+  "Close": "关闭",
+
+  "_comment_lib_configure_git_user": "lib/configure-git-user.tsx —— 保存按钮默认文案",
+  "Save": "保存",
+
+  "_comment_lib_conflicts_unmerged_file": "lib/conflicts/unmerged-file.tsx —— editorButtonString 默认值",
+  "editor": "编辑器",
+  "Open in editor": "在编辑器中打开",
+  "target branch": "目标分支",
+
+  "_comment_lib_author_input": "lib/author-input/* —— 共同作者输入",
+  "Co-Authors": "共同作者",
+  "Co-Authors\u00a0": "共同作者\u00a0",
+  "@username": "@用户名"
 }

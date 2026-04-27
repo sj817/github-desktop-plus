@@ -44,5 +44,15 @@
   "This version of GitHub Desktop is missing": "此版本的 GitHub Desktop 缺少",
   "important updates": "重要更新",
   "now to install pending updates.": "立即安装待处理的更新。",
-  "An updated version of GitHub Desktop is available and will be installed at the next launch. See": "GitHub Desktop 的更新版本已可用，将在下次启动时安装。查看"
+  "An updated version of GitHub Desktop is available and will be installed at the next launch. See": "GitHub Desktop 的更新版本已可用，将在下次启动时安装。查看",
+
+  "Apple silicon": "Apple 芯片",
+  "Arm64": "Arm64",
+  "now.": "立即更新。",
+  "with GitHub Desktop {version}": "（GitHub Desktop {version}）",
+  ". See": "。查看",
+  "dismiss": "忽略",
+  ". Please": "。请",
+
+  "Dismiss this message": "关闭此消息"
 }

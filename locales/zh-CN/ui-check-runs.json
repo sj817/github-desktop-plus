@@ -36,5 +36,21 @@
 
   ". A check run cannot be re-run if the check is more than one month old, the check or its dependent has not completed, or the check is not configured to be re-run.": "。如果检查已超过一个月、检查或其依赖项尚未完成，或检查未配置为可重新运行，则无法重新运行该检查。",
   "There are no checks that can be re-run": "没有可以重新运行的检查",
-  "There are no failed checks that can be re-run": "没有可以重新运行的失败检查"
+  "There are no failed checks that can be re-run": "没有可以重新运行的失败检查",
+
+  "_comment_rerun_dialog": "重新运行对话框（ci-check-run-rerun-dialog.tsx）",
+  "Re-run Check": "重新运行检查",
+  "Re-run Checks": "重新运行检查",
+  "Re-run Single Check": "重新运行单个检查",
+  "Re-run single check": "重新运行单个检查",
+  "Re-run Failed Check": "重新运行失败的检查",
+  "Re-run failed check": "重新运行失败的检查",
+  "these workflows": "这些工作流",
+  "A new attempt of": "将开始一次新的尝试：",
+  "will be started, including all of": "，包括其所有",
+  "dependents:": "依赖项：",
+  "There is {n} check that cannot be re-run": "有 {n} 个检查无法重新运行",
+  "There are {n} checks that cannot be re-run": "有 {n} 个检查无法重新运行",
+  "There is {n} failed check that cannot be re-run": "有 {n} 个失败的检查无法重新运行",
+  "There are {n} failed checks that cannot be re-run": "有 {n} 个失败的检查无法重新运行"
 }

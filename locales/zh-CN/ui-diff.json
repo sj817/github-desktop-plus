@@ -69,5 +69,6 @@
   "' to '": "' 到 '",
 
   "modified and untracked": "已修改且未追踪",
-  "untracked": "未追踪"
+  "untracked": "未追踪",
+  "modified": "已修改"
 }

@@ -89,5 +89,11 @@
   "There is already a file with this name. Git can only clone to a folder.": "已有同名文件存在。Git 只能克隆到文件夹中。",
   "This directory appears to be a bare repository. Bare repositories are not currently supported.": "该目录似乎是一个裸仓库。当前不支持裸仓库。",
   "This directory does not appear to be a Git repository. Would you like to create a repository here instead?": "该目录似乎不是 Git 仓库。是否要在此处创建一个仓库？",
-  "Loading repositories from {endpoint}…": "正在从 {endpoint} 加载仓库…"
+  "Loading repositories from {endpoint}…": "正在从 {endpoint} 加载仓库…",
+
+  "_comment_more_clone_add": "其它克隆/添加片段",
+  "Choose…": "选择…",
+  "Repository URL or GitHub username and repository": "仓库 URL 或 GitHub 用户名/仓库名",
+  "Clone As:": "克隆为：",
+  "GitHub.com": "GitHub.com"
 }
