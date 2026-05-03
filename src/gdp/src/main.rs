@@ -39,7 +39,7 @@ fn main() {
             desktop_path,
             no_serve,
         } => {
-            launch::run(force, desktop_path, no_serve);
+            launch::run(force, desktop_path, no_serve, false);
         }
         Command::Serve => {
             serve::run();
@@ -56,7 +56,7 @@ fn main() {
             unsafe {
                 std::env::set_var("GDP_VERBOSE", "1");
             }
-            launch::run(false, desktop_path, false);
+            launch::run(false, desktop_path, false, true);
         }
     }
 }

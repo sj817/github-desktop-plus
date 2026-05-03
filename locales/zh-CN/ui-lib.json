@@ -6,7 +6,6 @@
   },
   "Sign in using your browser": "使用浏览器登录",
   "This branch is tracking": "此分支正在跟踪",
-  "Example commit": "示例提交",
   "Your Name": "您的姓名",
   "Configure manually": "手动配置",
   "All conflicts resolved": "所有冲突已解决",
@@ -19,7 +18,6 @@
   "Copy": "复制",
   "Search for user": "搜索用户",
   "Copy to": "复制到",
-
   "Enterprise address": "Enterprise 地址",
   "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发了以下库：",
   "is an open source project published under the MIT License. You can view the source code and contribute to this project on": "是一个根据 MIT 许可证发布的开源项目。您可以查看源代码并在以下地址为此项目做贡献：",
@@ -27,46 +25,38 @@
   "Updating submodules": "正在更新子模块",
   "Updating submodules: {{text}}": "正在更新子模块：{{text}}",
   "Submodules updated": "子模块已更新",
-
   "1 conflicted file": "1 个冲突文件",
   "{n} conflicted files": "{n} 个冲突文件",
   "your tool of choice, or close to resolve manually.": "您首选的工具，或关闭后手动解决。",
-
   "No conflicts remaining": "无剩余冲突",
   "Manual conflict": "手动冲突",
   "File does not exist on {targetBranch}.": "文件不存在于 {targetBranch}。",
   "1 conflict": "1 个冲突",
   "{n} conflicts": "{n} 个冲突",
   "Open in {editorName}": "在 {editorName} 中打开",
-  "No editor configured in Preferences > Advanced": "未在\u201c偏好设置 > 高级\u201d中配置编辑器",
-  "No editor configured in Options > Advanced": "未在\u201c选项 > 高级\u201d中配置编辑器",
+  "No editor configured in Preferences > Advanced": "未在“偏好设置 > 高级”中配置编辑器",
+  "No editor configured in Options > Advanced": "未在“选项 > 高级”中配置编辑器",
   "File resolution options": "文件解决选项",
-
   "All resolutions have been undone.": "所有冲突解决已撤销。",
   "All conflicted files have been resolved.": "所有冲突文件已解决。",
   "file has": "个文件已",
   "files have": "个文件已",
   "been resolved.": "解决冲突。",
   "Resolve all changes before continuing": "请先解决所有更改冲突再继续",
-
   "and renaming this branch will not change the branch name on the remote.": "，重命名此分支不会更改远程上的分支名称。",
-
   "Failed to update Git configuration file. A lock file already exists at": "更新 Git 配置文件失败。锁定文件已存在于",
   "This can happen if another tool is currently modifying the Git configuration or if a Git process has terminated earlier without cleaning up the lock file. Do you want to": "这可能是因为另一工具正在修改 Git 配置，或 Git 进程之前已异常终止而未清理锁定文件。您是否要",
   "delete the lock file": "删除锁定文件",
   "and try again?": "然后重试？",
-
   "You're already signed in to": "您已登录到",
   "with the account": "，账号为",
   ". If you continue, you will first be signed out.": "。如果继续，您将先退出登录。",
-
   "This email address does not match your GitHub account. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub 账号不匹配。您的提交将被错误归属。",
   "This email address matches your GitHub account.": "此电子邮件地址与您的 GitHub 账号匹配。",
   "This email address does not match your GitHub Enterprise account. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub Enterprise 账号不匹配。您的提交将被错误归属。",
   "This email address matches your GitHub Enterprise account.": "此电子邮件地址与您的 GitHub Enterprise 账号匹配。",
   "This email address does not match either of your GitHub.com nor GitHub Enterprise accounts. Your commits will be wrongly attributed.": "此电子邮件地址与您的 GitHub.com 或 GitHub Enterprise 账号均不匹配。您的提交将被错误归属。",
   "This email address matches either of your GitHub.com nor GitHub Enterprise accounts.": "此电子邮件地址与您的 GitHub.com 或 GitHub Enterprise 账号匹配。",
-
   "Authentication Failed": "身份验证失败",
   "Authentication failed": "身份验证失败",
   "We were unable to authenticate with": "无法通过以下地址进行身份验证：",
@@ -76,7 +66,6 @@
   "to try again.": "以重试。",
   "Depending on your repository's hosting service, you might need to use a Personal Access Token (PAT) as your password. Learn more about creating a PAT in our": "根据您的仓库托管服务，您可能需要使用个人访问令牌（PAT）作为密码。在我们的",
   "integration docs": "集成文档",
-
   "Fix all the things": "修复所有问题",
   "Example commit": "示例提交",
   "Use my GitHub account name and email address": "使用我的 GitHub 账户名称和电子邮件地址",
@@ -84,35 +73,27 @@
   "your-email@example.com": "your-email@example.com",
   "is not a valid name.": "不是有效的名称。",
   "Input cleared": "输入已清除",
-
   "_comment_lib_authentication_form": "lib/authentication-form.tsx",
   "Your browser will redirect you back to GitHub Desktop once you've signed in. If your browser asks for your permission to launch GitHub Desktop please allow it to.": "完成登录后，您的浏览器将重定向回 GitHub Desktop。如果浏览器请求授权启动 GitHub Desktop，请允许。",
-
   "_comment_lib_branch_name_warnings": "lib/branch-name-warnings.tsx —— 仅补充未覆盖的片段",
   "A branch named": "已存在名为",
   "already exists on the remote.": "的远程分支。",
-
   "_comment_lib_enterprise_server_entry": "lib/enterprise-server-entry.tsx",
   "Continue": "继续",
-
   "_comment_lib_git_config_user_form": "lib/git-config-user-form.tsx",
   "(GitHub.com)": "(GitHub.com)",
   "(GitHub Enterprise)": "(GitHub Enterprise)",
   "Other": "其他",
-
   "_comment_lib_popover_dropdown": "lib/popover-dropdown.tsx",
   "Close": "关闭",
-
   "_comment_lib_configure_git_user": "lib/configure-git-user.tsx —— 保存按钮默认文案",
   "Save": "保存",
-
   "_comment_lib_conflicts_unmerged_file": "lib/conflicts/unmerged-file.tsx —— editorButtonString 默认值",
   "editor": "编辑器",
   "Open in editor": "在编辑器中打开",
   "target branch": "目标分支",
-
   "_comment_lib_author_input": "lib/author-input/* —— 共同作者输入",
   "Co-Authors": "共同作者",
-  "Co-Authors\u00a0": "共同作者\u00a0",
+  "Co-Authors ": "共同作者 ",
   "@username": "@用户名"
 }

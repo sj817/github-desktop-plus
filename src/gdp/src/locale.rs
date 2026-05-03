@@ -1,7 +1,8 @@
-//! Locale CRUD endpoints. All routes operate under `<data_dir>/locales/<locale>/<category>.json`.
+//! Locale package endpoints. Runtime storage is one aggregate JSON file per
+//! locale: `<data_dir>/locales/<locale>.json`.
 //!
-//! Path components are validated to prevent traversal; `zh-CN` is a built-in
-//! locale that cannot be deleted.
+//! The source tree can stay split for maintenance, but the core runtime only
+//! reads and writes aggregate packages whose top-level keys are category names.
 
 use std::path::{Path, PathBuf};
 
@@ -33,29 +34,16 @@ fn valid(s: &str) -> bool {
             .all(|c| c.is_alphanumeric() || c == '-' || c == '_')
 }
 
-/// Resolve and validate a locale file path. Returns `None` on invalid input.
-pub fn locale_file_path(data_dir: &Path, locale: &str, category: &str) -> Option<PathBuf> {
-    if !valid(locale) || !valid(category) {
-        return None;
-    }
-    Some(
-        data_dir
-            .join("locales")
-            .join(locale)
-            .join(format!("{category}.json")),
-    )
-}
-
-fn locale_dir(data_dir: &Path, locale: &str) -> Option<PathBuf> {
+pub fn locale_file_path(data_dir: &Path, locale: &str) -> Option<PathBuf> {
     if !valid(locale) {
         return None;
     }
-    Some(data_dir.join("locales").join(locale))
+    Some(data_dir.join("locales").join(format!("{locale}.json")))
 }
 
 /// Touch `<data_dir>/.gdp-locale-reload` with the current unix timestamp so the
 /// hook side can re-read translations.
-fn reload_signal(data_dir: &Path) {
+pub fn reload_signal(data_dir: &Path) {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map(|d| d.as_secs())
@@ -63,20 +51,47 @@ fn reload_signal(data_dir: &Path) {
     let _ = std::fs::write(data_dir.join(".gdp-locale-reload"), ts.to_string());
 }
 
-fn read_json_map(path: &Path) -> Option<serde_json::Map<String, serde_json::Value>> {
+fn read_bundle(path: &Path) -> Option<serde_json::Map<String, serde_json::Value>> {
     let content = std::fs::read_to_string(path).ok()?;
     serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&content).ok()
 }
 
-fn write_json_map(
+fn write_bundle(
     path: &Path,
-    map: &serde_json::Map<String, serde_json::Value>,
+    bundle: &serde_json::Map<String, serde_json::Value>,
 ) -> std::io::Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent)?;
     }
-    let s = serde_json::to_string_pretty(map).map_err(std::io::Error::other)?;
-    std::fs::write(path, s)
+    let s = serde_json::to_string_pretty(bundle).map_err(std::io::Error::other)?;
+    std::fs::write(path, format!("{s}\n"))
+}
+
+fn category_map(
+    bundle: &serde_json::Map<String, serde_json::Value>,
+    category: &str,
+) -> Option<serde_json::Map<String, serde_json::Value>> {
+    bundle.get(category)?.as_object().cloned()
+}
+
+fn summarize(locale: String, bundle: serde_json::Map<String, serde_json::Value>) -> LocaleSummary {
+    let mut categories = Vec::new();
+    let mut total_keys = 0usize;
+
+    for (category, value) in bundle {
+        let Some(map) = value.as_object() else {
+            continue;
+        };
+        categories.push(category);
+        total_keys += map.iter().filter(|(k, _)| !k.starts_with('_')).count();
+    }
+    categories.sort();
+
+    LocaleSummary {
+        locale,
+        categories,
+        total_keys,
+    }
 }
 
 // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -88,46 +103,50 @@ pub fn list_locales(data_dir: &Path) -> hyper::Response<Body> {
         Ok(rd) => rd,
         Err(_) => return json_ok(&summaries),
     };
+
     for entry in entries.flatten() {
         let ft = match entry.file_type() {
             Ok(ft) => ft,
             Err(_) => continue,
         };
-        if !ft.is_dir() {
+        if !ft.is_file() {
             continue;
         }
-        let name = entry.file_name().to_string_lossy().to_string();
-        let mut categories = Vec::new();
-        let mut total_keys = 0usize;
-        if let Ok(rd) = std::fs::read_dir(entry.path()) {
-            for f in rd.flatten() {
-                let fname = f.file_name().to_string_lossy().to_string();
-                if let Some(cat) = fname.strip_suffix(".json") {
-                    categories.push(cat.to_string());
-                    if let Some(map) = read_json_map(&f.path()) {
-                        total_keys += map.iter().filter(|(k, _)| !k.starts_with('_')).count();
-                    }
-                }
-            }
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
         }
-        categories.sort();
-        summaries.push(LocaleSummary {
-            locale: name,
-            categories,
-            total_keys,
-        });
+        let Some(locale) = path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .map(str::to_string)
+        else {
+            continue;
+        };
+        let Some(bundle) = read_bundle(&path) else {
+            continue;
+        };
+        summaries.push(summarize(locale, bundle));
     }
+
     summaries.sort_by(|a, b| a.locale.cmp(&b.locale));
     json_ok(&summaries)
 }
 
 pub fn read_category(data_dir: &Path, locale: &str, category: &str) -> hyper::Response<Body> {
-    let Some(path) = locale_file_path(data_dir, locale, category) else {
+    if !valid(category) {
+        return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
+    }
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
     };
-    let Some(map) = read_json_map(&path) else {
+    let Some(bundle) = read_bundle(&path) else {
         return json_err(StatusCode::NOT_FOUND, "locale_file_not_found");
     };
+    let Some(map) = category_map(&bundle, category) else {
+        return json_err(StatusCode::NOT_FOUND, "locale_category_not_found");
+    };
+
     let mut entries: Vec<LocaleEntry> = map
         .into_iter()
         .filter(|(k, _)| !k.starts_with('_'))
@@ -146,19 +165,27 @@ pub fn write_category(
     category: &str,
     body: &Bytes,
 ) -> hyper::Response<Body> {
-    let Some(path) = locale_file_path(data_dir, locale, category) else {
+    if !valid(category) {
+        return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
+    }
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
     };
     let entries: Vec<LocaleEntry> = match serde_json::from_slice(body) {
         Ok(v) => v,
         Err(_) => return json_err(StatusCode::BAD_REQUEST, "invalid_locale_entries"),
     };
-    let map: serde_json::Map<String, serde_json::Value> = entries
+    let category_obj: serde_json::Map<String, serde_json::Value> = entries
         .iter()
         .map(|e| (e.key.clone(), serde_json::Value::String(e.value.clone())))
         .collect();
-    let count = map.len();
-    if write_json_map(&path, &map).is_err() {
+
+    let mut bundle = read_bundle(&path).unwrap_or_default();
+    bundle.insert(
+        category.to_string(),
+        serde_json::Value::Object(category_obj),
+    );
+    if write_bundle(&path, &bundle).is_err() {
         return json_err(StatusCode::INTERNAL_SERVER_ERROR, "write_failed");
     }
     reload_signal(data_dir);
@@ -166,7 +193,7 @@ pub fn write_category(
         "ok": true,
         "locale": locale,
         "category": category,
-        "count": count,
+        "count": entries.len(),
     }))
 }
 
@@ -176,19 +203,26 @@ pub fn upsert_key(
     category: &str,
     body: &Bytes,
 ) -> hyper::Response<Body> {
-    let Some(path) = locale_file_path(data_dir, locale, category) else {
+    if !valid(category) {
+        return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
+    }
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
     };
     let entry: LocaleEntry = match serde_json::from_slice(body) {
         Ok(v) => v,
         Err(_) => return json_err(StatusCode::BAD_REQUEST, "invalid_entry"),
     };
-    let mut map = read_json_map(&path).unwrap_or_default();
+
+    let mut bundle = read_bundle(&path).unwrap_or_default();
+    let mut map = category_map(&bundle, category).unwrap_or_default();
     map.insert(
         entry.key.clone(),
         serde_json::Value::String(entry.value.clone()),
     );
-    if write_json_map(&path, &map).is_err() {
+    bundle.insert(category.to_string(), serde_json::Value::Object(map));
+
+    if write_bundle(&path, &bundle).is_err() {
         return json_err(StatusCode::INTERNAL_SERVER_ERROR, "write_failed");
     }
     reload_signal(data_dir);
@@ -201,17 +235,25 @@ pub fn delete_key(
     category: &str,
     key: &str,
 ) -> hyper::Response<Body> {
-    let Some(path) = locale_file_path(data_dir, locale, category) else {
+    if !valid(category) {
+        return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
+    }
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale_params");
     };
-    let mut map = match read_json_map(&path) {
+    let mut bundle = match read_bundle(&path) {
         Some(m) => m,
         None => return json_err(StatusCode::NOT_FOUND, "locale_file_not_found"),
+    };
+    let mut map = match category_map(&bundle, category) {
+        Some(m) => m,
+        None => return json_err(StatusCode::NOT_FOUND, "locale_category_not_found"),
     };
     if map.remove(key).is_none() {
         return json_err(StatusCode::NOT_FOUND, "key_not_found");
     }
-    if write_json_map(&path, &map).is_err() {
+    bundle.insert(category.to_string(), serde_json::Value::Object(map));
+    if write_bundle(&path, &bundle).is_err() {
         return json_err(StatusCode::INTERNAL_SERVER_ERROR, "write_failed");
     }
     reload_signal(data_dir);
@@ -219,13 +261,13 @@ pub fn delete_key(
 }
 
 pub fn create_locale(data_dir: &Path, locale: &str) -> hyper::Response<Body> {
-    let Some(dir) = locale_dir(data_dir, locale) else {
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale");
     };
-    if dir.exists() {
+    if path.exists() {
         return json_err(StatusCode::CONFLICT, "locale_exists");
     }
-    if std::fs::create_dir_all(&dir).is_err() {
+    if write_bundle(&path, &serde_json::Map::new()).is_err() {
         return json_err(StatusCode::INTERNAL_SERVER_ERROR, "create_failed");
     }
     reload_signal(data_dir);
@@ -236,13 +278,13 @@ pub fn delete_locale(data_dir: &Path, locale: &str) -> hyper::Response<Body> {
     if locale == PROTECTED_LOCALE {
         return json_err(StatusCode::CONFLICT, "cannot_delete_protected_locale");
     }
-    let Some(dir) = locale_dir(data_dir, locale) else {
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale");
     };
-    if !dir.exists() {
+    if !path.exists() {
         return json_err(StatusCode::NOT_FOUND, "locale_not_found");
     }
-    if std::fs::remove_dir_all(&dir).is_err() {
+    if std::fs::remove_file(&path).is_err() {
         return json_err(StatusCode::INTERNAL_SERVER_ERROR, "delete_failed");
     }
     reload_signal(data_dir);
@@ -250,53 +292,36 @@ pub fn delete_locale(data_dir: &Path, locale: &str) -> hyper::Response<Body> {
 }
 
 pub fn import_locale(data_dir: &Path, locale: &str, body: &Bytes) -> hyper::Response<Body> {
-    let Some(dir) = locale_dir(data_dir, locale) else {
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale");
     };
     let parsed: serde_json::Map<String, serde_json::Value> = match serde_json::from_slice(body) {
         Ok(v) => v,
         Err(_) => return json_err(StatusCode::BAD_REQUEST, "invalid_import_payload"),
     };
-    if std::fs::create_dir_all(&dir).is_err() {
-        return json_err(StatusCode::INTERNAL_SERVER_ERROR, "create_failed");
+
+    let mut bundle = serde_json::Map::new();
+    for (category, value) in parsed {
+        if valid(&category) && value.is_object() {
+            bundle.insert(category, value);
+        }
     }
-    let mut written = 0usize;
-    for (cat, value) in parsed {
-        if !valid(&cat) {
-            continue;
-        }
-        let map = match value {
-            serde_json::Value::Object(m) => m,
-            _ => continue,
-        };
-        let path = dir.join(format!("{cat}.json"));
-        if write_json_map(&path, &map).is_ok() {
-            written += 1;
-        }
+    let written = bundle.len();
+    if write_bundle(&path, &bundle).is_err() {
+        return json_err(StatusCode::INTERNAL_SERVER_ERROR, "write_failed");
     }
     reload_signal(data_dir);
     json_ok(&serde_json::json!({ "ok": true, "locale": locale, "categories_written": written }))
 }
 
 pub fn export_locale(data_dir: &Path, locale: &str) -> hyper::Response<Body> {
-    let Some(dir) = locale_dir(data_dir, locale) else {
+    let Some(path) = locale_file_path(data_dir, locale) else {
         return json_err(StatusCode::BAD_REQUEST, "invalid_locale");
     };
-    if !dir.exists() {
+    if !path.exists() {
         return json_err(StatusCode::NOT_FOUND, "locale_not_found");
     }
-    let mut bundle = serde_json::Map::new();
-    if let Ok(rd) = std::fs::read_dir(&dir) {
-        for f in rd.flatten() {
-            let fname = f.file_name().to_string_lossy().to_string();
-            if let Some(cat) = fname.strip_suffix(".json") {
-                if let Some(map) = read_json_map(&f.path()) {
-                    bundle.insert(cat.to_string(), serde_json::Value::Object(map));
-                }
-            }
-        }
-    }
-    let body = serde_json::to_vec_pretty(&bundle).unwrap_or_default();
+    let body = std::fs::read(&path).unwrap_or_default();
     let mut resp = make_response(StatusCode::OK, "application/json; charset=utf-8", body);
     resp.headers_mut().insert(
         hyper::header::CONTENT_DISPOSITION,
@@ -326,17 +351,15 @@ mod tests {
     #[test]
     fn locale_file_path_rejects_traversal() {
         let root = std::path::Path::new("/data");
-        assert!(locale_file_path(root, "../etc", "ui").is_none());
-        assert!(locale_file_path(root, "zh-CN", "../etc/passwd").is_none());
-        assert!(locale_file_path(root, "", "ui").is_none());
-        assert!(locale_file_path(root, "zh-CN", "").is_none());
+        assert!(locale_file_path(root, "../etc").is_none());
+        assert!(locale_file_path(root, "").is_none());
     }
 
     #[test]
     fn locale_file_path_constructs_expected() {
         let root = std::path::Path::new("/data");
-        let p = locale_file_path(root, "zh-CN", "ui-dialogs").unwrap();
-        assert!(p.ends_with("locales/zh-CN/ui-dialogs.json") || p.ends_with("locales\\zh-CN\\ui-dialogs.json"));
+        let p = locale_file_path(root, "zh-CN").unwrap();
+        assert!(p.ends_with("locales/zh-CN.json") || p.ends_with("locales\\zh-CN.json"));
     }
 
     #[test]

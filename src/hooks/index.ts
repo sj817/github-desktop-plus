@@ -23,6 +23,8 @@ interface HookConfig {
   enableI18n: boolean
   locale: string
   dataDir: string
+  authToken: string
+  controlOrigin: string
   /** Max number of repos to keep in the "Recent" group (default: 3) */
   recentReposLimit: number
 }
@@ -43,6 +45,8 @@ function parseConfig(): HookConfig {
     enableI18n: true,
     locale: 'zh-CN',
     dataDir: '',
+    authToken: '',
+    controlOrigin: 'http://127.0.0.1:7788',
     recentReposLimit: 3,
   }
 
@@ -174,69 +178,58 @@ interface TrackedWebContents {
   isDestroyed(): boolean
 }
 
-function loadTranslationFiles(
-  localeDir: string,
-  excludedFileNames: ReadonlySet<string>
-): Record<string, string> {
-  if (!_fs.existsSync(localeDir)) {
+type LocaleCategory = Record<string, unknown>
+type LocaleBundle = Record<string, LocaleCategory>
+
+function localeBundlePath(dir: string, locale: string, dataDir: string): string {
+  if (dataDir) {
+    return _path.join(dataDir, 'locales', `${locale}.json`)
+  }
+  return _path.join(dir, '..', 'locales', `${locale}.json`)
+}
+
+function loadLocaleBundle(dir: string, locale: string, dataDir: string): LocaleBundle {
+  const filePath = localeBundlePath(dir, locale, dataDir)
+  try {
+    const parsed = JSON.parse(_fs.readFileSync(filePath, 'utf-8')) as LocaleBundle
+    gdpLog(`Loaded locale package from ${filePath}`, 'info', 'i18n')
+    return parsed
+  } catch (e) {
+    gdpLog(`Locale package unavailable: ${filePath} (${e})`, 'warn', 'i18n')
     return {}
   }
+}
 
+function flattenLocaleBundle(
+  bundle: LocaleBundle,
+  excludedCategories: ReadonlySet<string>
+): Record<string, string> {
   const translations: Record<string, string> = {}
-  const files = _fs
-    .readdirSync(localeDir, { withFileTypes: true })
-    .filter(
-      entry =>
-        entry.isFile() &&
-        entry.name.endsWith('.json') &&
-        !excludedFileNames.has(entry.name)
-    )
-    .map(entry => entry.name)
-    .sort((a, b) => a.localeCompare(b))
-
-  for (const fileName of files) {
-    const filePath = _path.join(localeDir, fileName)
-    const data = JSON.parse(_fs.readFileSync(filePath, 'utf-8')) as Record<
-      string,
-      string
-    >
-
-    delete data._meta
-    Object.assign(translations, data)
+  for (const [category, entries] of Object.entries(bundle)) {
+    if (excludedCategories.has(category) || !entries || typeof entries !== 'object') {
+      continue
+    }
+    const copy = { ...entries }
+    delete copy._meta
+    for (const [key, value] of Object.entries(copy)) {
+      if (typeof value === 'string') {
+        translations[key] = value
+      }
+    }
   }
-
   return translations
 }
 
 function loadMenuTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
-  // Layer 1: built-in translations (shipped with GDP)
-  const builtinFile = _path.join(dir, '..', 'locales', locale, 'menu.json')
-  let translations: Record<string, string> = {}
-  try {
-    const data = JSON.parse(_fs.readFileSync(builtinFile, 'utf-8'))
-    delete data._meta
-    translations = data
-    gdpLog(`Loaded ${Object.keys(data).length} built-in menu translations from ${builtinFile}`, 'info', 'menu')
-  } catch {
-    gdpLog(`Built-in menu locale file not found: ${builtinFile}`, 'warn', 'menu')
-  }
-
-  // Layer 2: user-custom translations (override built-in)
-  if (dataDir) {
-    const userFile = _path.join(dataDir, 'locales', locale, 'menu.json')
-    try {
-      if (_fs.existsSync(userFile)) {
-        const userData = JSON.parse(_fs.readFileSync(userFile, 'utf-8'))
-        delete userData._meta
-        const overrideCount = Object.keys(userData).length
-        Object.assign(translations, userData)
-        gdpLog(`Applied ${overrideCount} user menu overrides from ${userFile}`, 'info', 'menu')
-      }
-    } catch (e) {
-      gdpLog(`Failed to load user menu overrides: ${e}`, 'warn', 'menu')
+  const menu = loadLocaleBundle(dir, locale, dataDir).menu ?? {}
+  const translations: Record<string, string> = {}
+  for (const [key, value] of Object.entries(menu)) {
+    if (typeof value === 'string') {
+      translations[key] = value
     }
   }
-
+  delete translations._meta
+  gdpLog(`Loaded ${Object.keys(translations).length} menu translations from aggregate package`, 'info', 'menu')
   return translations
 }
 
@@ -329,37 +322,8 @@ function translateMenuItem(item: MenuItem, translations: Record<string, string>)
 // 3. Renderer i18n — use app.on('browser-window-created') + executeJavaScript
 // ---------------------------------------------------------------------------
 function loadUiTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
-  const excludedFileNames = new Set(['menu.json'])
-
-  // Layer 1: built-in translations
-  let translations: Record<string, string> = {}
-  const builtinDir = _path.join(dir, '..', 'locales', locale)
-  try {
-    translations = loadTranslationFiles(builtinDir, excludedFileNames)
-    gdpLog(
-      `Loaded ${Object.keys(translations).length} built-in UI translations from ${builtinDir}`,
-      'info',
-      'i18n'
-    )
-  } catch {
-    gdpLog(`Built-in UI locale directory not found or invalid: ${builtinDir}`, 'warn', 'i18n')
-  }
-
-  // Layer 2: user-custom translations (override built-in)
-  if (dataDir) {
-    const userDir = _path.join(dataDir, 'locales', locale)
-    try {
-      if (_fs.existsSync(userDir)) {
-        const userData = loadTranslationFiles(userDir, excludedFileNames)
-        const overrideCount = Object.keys(userData).length
-        Object.assign(translations, userData)
-        gdpLog(`Applied ${overrideCount} user UI overrides from ${userDir}`, 'info', 'i18n')
-      }
-    } catch (e) {
-      gdpLog(`Failed to load user UI overrides: ${e}`, 'warn', 'i18n')
-    }
-  }
-
+  const translations = flattenLocaleBundle(loadLocaleBundle(dir, locale, dataDir), new Set(['menu']))
+  gdpLog(`Loaded ${Object.keys(translations).length} UI translations from aggregate package`, 'info', 'i18n')
   return translations
 }
 
@@ -496,39 +460,95 @@ function setupTelemetryBlocker(
 // 5. GDP Menu — inject a "GDP" top-level menu into the menu bar
 //    Independent of i18n toggle — always injected when hooks are active.
 // ---------------------------------------------------------------------------
-const GDP_WEBUI_URL = 'http://127.0.0.1:7788'
+const GDP_CONTROL_ORIGIN = 'http://127.0.0.1:7788'
+
+interface GDPBrowserWindow {
+  loadURL(url: string): Promise<void>
+  once(event: string, cb: () => void): void
+  show(): void
+  focus(): void
+  isDestroyed(): boolean
+}
+
+interface GDPBrowserWindowConstructor {
+  new(options: Record<string, unknown>): GDPBrowserWindow
+  getFocusedWindow?: () => GDPBrowserWindow | null
+}
+
+let gdpControlWindow: GDPBrowserWindow | null = null
+
+function controlPanelUrl(config: HookConfig, route: string): string {
+  const origin = config.controlOrigin || GDP_CONTROL_ORIGIN
+  const url = new URL(route, origin)
+  if (config.authToken) {
+    url.searchParams.set('t', config.authToken)
+  }
+  return url.toString()
+}
+
+function openControlPanel(
+  BrowserWindow: GDPBrowserWindowConstructor,
+  config: HookConfig,
+  route: string
+): void {
+  if (gdpControlWindow && !gdpControlWindow.isDestroyed()) {
+    gdpControlWindow.focus()
+    void gdpControlWindow.loadURL(controlPanelUrl(config, route))
+    return
+  }
+
+  const parent = BrowserWindow.getFocusedWindow?.() ?? undefined
+  const win = new BrowserWindow({
+    width: 1080,
+    height: 760,
+    minWidth: 900,
+    minHeight: 620,
+    parent,
+    modal: Boolean(parent),
+    show: false,
+    title: 'GitHub Desktop Plus',
+    backgroundColor: '#0f1117',
+    autoHideMenuBar: true,
+    webPreferences: {
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+    },
+  })
+  gdpControlWindow = win
+  win.once('ready-to-show', () => win.show())
+  void win.loadURL(controlPanelUrl(config, route)).catch((e: unknown) => {
+    gdpLog(`Failed to open control panel: ${e}`, 'error', 'system')
+  })
+}
 
 function buildGDPMenuItems(
+  BrowserWindow: GDPBrowserWindowConstructor,
   shell: { openExternal(url: string): Promise<void> },
   config: HookConfig
 ): MenuItem[] {
   const check = (v: boolean) => v ? '✓' : '✗'
   return [
     {
-      id: 'gdp.open-webui',
-      label: '打开控制面板 (WebUI)',
+      id: 'gdp.settings',
+      label: '基本配置',
       accelerator: 'CmdOrCtrl+Alt+G',
-      click: () => { shell.openExternal(GDP_WEBUI_URL).catch(() => {}) },
+      click: () => { openControlPanel(BrowserWindow, config, '/settings') },
+    },
+    {
+      id: 'gdp.logs',
+      label: '日志',
+      click: () => { openControlPanel(BrowserWindow, config, '/logs') },
+    },
+    {
+      id: 'gdp.locales',
+      label: '语言包管理',
+      click: () => { openControlPanel(BrowserWindow, config, '/locales') },
     },
     { id: 'gdp.separator.1', type: 'separator' },
     {
-      id: 'gdp.status.updates',
-      label: `更新拦截: ${check(config.blockUpdates)} ${config.blockUpdates ? '已启用' : '已禁用'}`,
-      enabled: false,
-    },
-    {
-      id: 'gdp.status.manual-updates',
-      label: `手动更新拦截: ${check(config.blockManualUpdateCheck)} ${config.blockManualUpdateCheck ? '已启用' : '已禁用'}`,
-      enabled: false,
-    },
-    {
-      id: 'gdp.status.telemetry',
-      label: `遥测拦截: ${check(config.blockTelemetry)} ${config.blockTelemetry ? '已启用' : '已禁用'}`,
-      enabled: false,
-    },
-    {
-      id: 'gdp.status.i18n',
-      label: `中文界面: ${check(config.enableI18n)} ${config.enableI18n ? '已启用' : '已禁用'}`,
+      id: 'gdp.status',
+      label: `更新 ${check(config.blockUpdates)} / 遥测 ${check(config.blockTelemetry)} / 中文 ${check(config.enableI18n)}`,
       enabled: false,
     },
     { id: 'gdp.separator.2', type: 'separator' },
@@ -542,6 +562,7 @@ function buildGDPMenuItems(
 
 function setupGDPMenu(
   Menu: { buildFromTemplate(template: MenuItem[]): unknown },
+  BrowserWindow: GDPBrowserWindowConstructor,
   shell: { openExternal(url: string): Promise<void> },
   config: HookConfig,
   menuTranslations: Record<string, string> | null
@@ -571,7 +592,7 @@ function setupGDPMenu(
         const gdpMenu: MenuItem = {
           id: 'gdp',
           label: 'GDP',
-          submenu: buildGDPMenuItems(shell, config),
+          submenu: buildGDPMenuItems(BrowserWindow, shell, config),
         }
 
         // Insert before Help when present, otherwise append to end.
@@ -604,7 +625,8 @@ function setupGDPShortcut(
     register(accelerator: string, cb: () => void): boolean
     isRegistered(accelerator: string): boolean
   },
-  shell: { openExternal(url: string): Promise<void> }
+  BrowserWindow: GDPBrowserWindowConstructor,
+  config: HookConfig
 ): void {
   const ACCELERATOR = 'CommandOrControl+Alt+G'
   const register = () => {
@@ -614,11 +636,11 @@ function setupGDPShortcut(
         return
       }
       const ok = globalShortcut.register(ACCELERATOR, () => {
-        gdpLog(`Global shortcut triggered — opening WebUI`, 'info', 'system')
-        shell.openExternal(GDP_WEBUI_URL).catch(() => {})
+        gdpLog('Global shortcut triggered — opening GDP control panel', 'info', 'system')
+        openControlPanel(BrowserWindow, config, '/settings')
       })
       if (ok) {
-        gdpLog(`Global shortcut registered: ${ACCELERATOR} → ${GDP_WEBUI_URL}`, 'info', 'system')
+        gdpLog(`Global shortcut registered: ${ACCELERATOR}`, 'info', 'system')
       } else {
         gdpLog(`Global shortcut registration failed: ${ACCELERATOR}`, 'warn', 'system')
       }
@@ -634,7 +656,7 @@ function setupGDPShortcut(
 }
 
 // ---------------------------------------------------------------------------
-// 6. Dev-mode Hot-Reload — watch locale source files for changes
+// 6. Locale Hot-Reload — watch the aggregate locale package
 //    and push updated translations to active renderers.
 // ---------------------------------------------------------------------------
 function setupLocaleHotReload(
@@ -642,28 +664,23 @@ function setupLocaleHotReload(
   config: HookConfig,
   activeWebContents: TrackedWebContents[]
 ): void {
-  // Watch both built-in and user-custom locale directories
-  const watchDirs: string[] = []
-  const builtinDir = _path.join(dir, '..', 'locales', config.locale)
-  if (_fs.existsSync(builtinDir)) watchDirs.push(builtinDir)
-  if (config.dataDir) {
-    const userDir = _path.join(config.dataDir, 'locales', config.locale)
-    if (_fs.existsSync(userDir)) watchDirs.push(userDir)
-  }
+  const localeFile = localeBundlePath(dir, config.locale, config.dataDir)
+  const watchDir = _path.dirname(localeFile)
+  const watchName = _path.basename(localeFile)
 
-  if (watchDirs.length === 0) {
-    gdpLog('No locale directories to watch for hot-reload', 'warn', 'i18n')
+  if (!_fs.existsSync(watchDir)) {
+    gdpLog(`No locale package directory to watch: ${watchDir}`, 'warn', 'i18n')
     return
   }
 
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const onFileChange = (_eventType: string, filename: string | null) => {
-    if (!filename || !filename.endsWith('.json')) return
+    if (filename && filename !== watchName) return
     // Debounce — coalesce rapid changes
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
-      gdpLog(`Locale file changed: ${filename} — hot-reloading translations`, 'info', 'i18n')
+      gdpLog(`Locale package changed: ${localeFile} — hot-reloading translations`, 'info', 'i18n')
 
       // Reload UI translations
       const newUiTranslations = loadUiTranslations(dir, config.locale, config.dataDir)
@@ -689,21 +706,16 @@ function setupLocaleHotReload(
         })
       }
 
-      // Also reload menu translations for next menu rebuild
-      if (filename.includes('menu')) {
-        const newMenuTranslations = loadMenuTranslations(dir, config.locale, config.dataDir)
-        gdpLog(`Menu translations reloaded (${Object.keys(newMenuTranslations).length} entries)`, 'info', 'menu')
-      }
+      const newMenuTranslations = loadMenuTranslations(dir, config.locale, config.dataDir)
+      gdpLog(`Menu translations reloaded (${Object.keys(newMenuTranslations).length} entries)`, 'info', 'menu')
     }, 300)
   }
 
-  for (const watchDir of watchDirs) {
-    try {
-      _fs.watch(watchDir, { persistent: false }, onFileChange)
-      gdpLog(`Watching locale directory for changes: ${watchDir}`, 'info', 'i18n')
-    } catch (e) {
-      gdpLog(`Failed to watch ${watchDir}: ${e}`, 'warn', 'i18n')
-    }
+  try {
+    _fs.watch(watchDir, { persistent: false }, onFileChange)
+    gdpLog(`Watching aggregate locale package: ${localeFile}`, 'info', 'i18n')
+  } catch (e) {
+    gdpLog(`Failed to watch ${watchDir}: ${e}`, 'warn', 'i18n')
   }
 }
 
@@ -757,24 +769,26 @@ function main(): void {
     ? loadMenuTranslations(dir, config.locale, config.dataDir)
     : null
 
-  if (electron.Menu && electron.shell) {
+  if (electron.Menu && electron.BrowserWindow && electron.shell) {
     setupGDPMenu(
       electron.Menu as { buildFromTemplate(template: MenuItem[]): unknown },
+      electron.BrowserWindow as GDPBrowserWindowConstructor,
       electron.shell as { openExternal(url: string): Promise<void> },
       config,
       menuTranslations
     )
   }
 
-  // 2b. Global keyboard shortcut for opening the WebUI control panel
-  if (electron.app && electron.globalShortcut && electron.shell) {
+  // 2b. Global keyboard shortcut for opening the GDP control panel
+  if (electron.app && electron.globalShortcut && electron.BrowserWindow) {
     setupGDPShortcut(
       electron.app as { isReady(): boolean; whenReady(): Promise<void> },
       electron.globalShortcut as {
         register(accelerator: string, cb: () => void): boolean
         isRegistered(accelerator: string): boolean
       },
-      electron.shell as { openExternal(url: string): Promise<void> }
+      electron.BrowserWindow as GDPBrowserWindowConstructor,
+      config
     )
   }
 

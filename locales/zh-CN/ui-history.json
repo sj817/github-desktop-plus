@@ -6,7 +6,6 @@
   },
   "Date:": "日期：",
   "Commits": "提交",
-  "This commit has not been pushed to the remote repository": "此提交尚未推送到远程仓库",
   "This commit has": "此提交有",
   "to push": "个待推送",
   "Press": "按",
@@ -61,36 +60,28 @@
   "in {{n}} days": "{{n}} 天后",
   "in {{n}} months": "{{n}} 个月后",
   "in {{n}} years": "{{n}} 年后",
-
   "No commits to list": "没有可显示的提交",
   "This commit has not been pushed to the remote repository": "此提交尚未推送到远程仓库",
   "This commit has {n} tag to push": "此提交有 {n} 个标签待推送",
   "This commit has {n} tags to push": "此提交有 {n} 个标签待推送",
-
   "Reorder Commits": "重新排序提交",
   "Reorder commits": "重新排序提交",
-
   "to choose a new location.": "来选择新位置。",
   " to confirm.": " 来确认。",
-
   "Use the Up and Down arrow keys to choose a new location for the selected commit, then press Enter to confirm or Escape to cancel.": "使用上下方向键为选定的提交选择新位置，然后按 Enter 确认或按 Escape 取消。",
   "Use the Up and Down arrow keys to choose a new location for the selected commits, then press Enter to confirm or Escape to cancel.": "使用上下方向键为选定的多个提交选择新位置，然后按 Enter 确认或按 Escape 取消。",
   "Press Enter to insert the selected commit {insertionPoint} or Escape to cancel.": "按 Enter 将选定的提交 {insertionPoint}，或按 Escape 取消。",
   "Press Enter to insert the selected commits {insertionPoint} or Escape to cancel.": "按 Enter 将选定的多个提交 {insertionPoint}，或按 Escape 取消。",
-
   "No file selected": "未选择文件",
-
   "Empty commit message": "空的提交消息",
   "Collapse commit details": "折叠提交详情",
   "Expand commit details": "展开提交详情",
-
   "_comment_commit_drag": "提交拖拽提示（drag-elements/commit-drag-element.tsx）",
   "Copy to": "复制到",
   "Squash {count} commits": "压缩 {count} 个提交",
   "'Insert here'": "“插入到此”",
   "Move {count} commit here": "将 {count} 个提交移到此处",
   "Move {count} commits here": "将 {count} 个提交移到此处",
-
   "_comment_compare": "分支比较视图（history/compare.tsx）",
   "Branch filter": "分支筛选",
   "No history": "无历史记录",
@@ -101,14 +92,11 @@
   "The compared branch (": "比较分支（",
   ") is up to date with your branch": "）已与您的分支保持最新",
   "Your branch is up to date with the compared branch (": "您的分支已与比较分支（",
-
   "_comment_expandable_summary": "可展开提交摘要（history/expandable-commit-summary.tsx）",
   "Unknown user": "未知用户",
   "Collapse": "折叠",
   "Expand": "展开",
   " not included.": " 未包含。",
-
   "_comment_merge_cta": "合并行动号召（history/merge-call-to-action*.tsx）",
   " on top of ": " 之上，基于 "
 }
-

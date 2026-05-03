@@ -22,7 +22,7 @@ use crate::proc::{
     daemonize_and_exit, find_main_js, find_real_electron_exe, is_process_alive,
     kill_github_desktop_if_running, kill_process, read_inspect_ws_url_sync,
 };
-use crate::{injector, serve};
+use crate::{auth, injector, serve};
 
 const SINGLE_INSTANCE_PORT: u16 = 7788;
 
@@ -191,7 +191,7 @@ fn watch_pid_and_exit(pid: u32) {
 }
 
 /// Implementation of `gdp launch`.
-pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool) {
+pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foreground: bool) {
     let already_daemon = std::env::var("GDP_DAEMON").is_ok();
     let (mut config, cfg_dir) = load_config();
 
@@ -242,20 +242,36 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool) {
 
     if !already_daemon {
         println!(
-            "GitHub Desktop Plus  |  desktop: {}  |  webui: {}",
+            "GitHub Desktop Plus  |  desktop: {}  |  control: {}",
             real_exe.display(),
             if no_serve {
                 "(disabled)"
             } else {
-                "http://127.0.0.1:7788"
+                "GDP menu popup"
             }
         );
-        daemonize_and_exit(no_serve);
-        // Windows: parent exits here. Unix: daemon child falls through.
+        if !foreground {
+            daemonize_and_exit(no_serve);
+            // Windows: parent exits here. Unix: daemon child falls through.
+        }
     }
 
     // ── Daemon process ───────────────────────────────────────────────────────
     kill_github_desktop_if_running();
+
+    let auth_token = auth::generate_token();
+    if let Some(ref dir) = cfg_dir {
+        if let Err(e) = auth::write_token_file(dir, &auth_token) {
+            eprintln!("warning: cannot write token file: {e}");
+        }
+    }
+
+    let runtime_data_dir = hooks_dir
+        .parent()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
+    let control_origin =
+        std::env::var("GDP_CONTROL_ORIGIN").unwrap_or_else(|_| "http://127.0.0.1:7788".to_string());
 
     let hook_config = serde_json::json!({
         "blockUpdates": config.updates.disabled,
@@ -264,7 +280,9 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool) {
         "logLevel": config.logging.level,
         "enableI18n": config.i18n.enabled,
         "locale": config.i18n.locale,
-        "dataDir": cfg_dir.as_ref().map(|d| d.display().to_string()).unwrap_or_default(),
+        "dataDir": runtime_data_dir,
+        "authToken": auth_token.clone(),
+        "controlOrigin": control_origin,
         "recentReposLimit": config.ui.recent_repos_limit,
     });
     let config_json = hook_config.to_string();
@@ -324,7 +342,7 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool) {
     rt.block_on(async move {
         watch_pid_and_exit(pid);
         if !no_serve {
-            serve::serve_async().await;
+            serve::serve_async_with_token(Some(auth_token)).await;
         } else {
             // Without serve, just sleep forever — the watcher will exit() when GD dies.
             loop {

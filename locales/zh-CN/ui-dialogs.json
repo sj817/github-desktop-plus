@@ -4,16 +4,11 @@
     "target": "renderer",
     "section": "dialogs"
   },
-
-  "Do not show this message again": "不再显示此消息",
   "This action cannot be undone.": "此操作无法撤销。",
-
   "Invalidated Account Token": "账户令牌已失效",
   "Invalidated account token": "账户令牌已失效",
   "Your account token has been invalidated and you have been signed out from your": "您的账户令牌已失效，您已从以下账户中退出登录：",
   "account. Do you want to sign in again?": "账户。是否要重新登录？",
-
-  "Are you sure you want to discard all changes to:": "确定要放弃以下所有更改吗：",
   "Are you sure you want to discard the selected changes to:": "确定要放弃以下选定更改吗：",
   "Common reasons are:": "常见原因有：",
   "Restricted access to move the file(s).": "移动文件时访问受限。",
@@ -22,62 +17,39 @@
   "Failed to discard changes to": "无法将更改丢弃到",
   "is configured to delete items immediately.": "已配置为立即删除项目。",
   "These changes will be unrecoverable from the": "这些更改将无法从",
-
   "Delete branch": "删除分支",
   "Yes, delete this branch on the remote": "是，同时删除远程分支",
   "This branch may have an open pull request associated with it.": "此分支可能关联了一个未关闭的拉取请求。",
   "Delete remote branch": "删除远程分支",
-
   "Are you sure you want to force push?": "确定要强制推送吗？",
   "I'm sure": "确定",
-
-  "Overwrite": "覆盖",
   "You have changes on this branch. What would you like to do with them?": "此分支上有未提交的更改，您希望如何处理？",
-
-  "Are you sure you want to discard these stashed changes?": "确定要放弃这些暂存的更改吗？",
   "Restore": "恢复",
   "Stash file list": "暂存文件列表",
-
   "Do you want to continue anyway?": "是否仍然继续？",
-
-  "Are you sure you want to commit these conflicted files?": "确定要提交这些存在冲突的文件吗？",
-
-  "You can stash your changes now and recover them afterwards.": "您可以暂存您的更改，之后再恢复。",
   "Error": "错误",
-
   "Are you sure you want to continue connecting?": "确定要继续连接吗？",
   "SSH Host": "SSH 主机",
   "SSH Key Passphrase": "SSH 密钥密码短语",
   "Remember passphrase": "记住密码短语",
   "SSH User Password": "SSH 用户密码",
   "Remember password": "记住密码",
-
   "Allow me to expose this secret": "允许我暴露此密钥",
   "Secret Scanning": "密钥扫描",
-  "Exposing this secret can allow someone to:": "暴露此密钥可能让他人能够：",
-  "Act on behalf of the secret's owner": "代表密钥所有者进行操作",
   "Bypass": "绕过",
   "Secrets": "密钥",
-
   "This may indicate attackers are trying to steal your data.": "这可能表明攻击者正试图窃取您的数据。",
   "In some cases, this may be expected. For example:": "在某些情况下，这可能是预期情况，例如：",
   "If this is a GitHub Enterprise trial.": "如果这是 GitHub Enterprise 试用版。",
   "If your GitHub Enterprise instance is run on an unusual top-level domain.": "如果您的 GitHub Enterprise 实例运行在非常规顶级域名上。",
-
   "The repository": "仓库",
   "Current:": "当前：",
   "Expected:": "预期：",
   "Would you like to update the remote to use the expected URL?": "是否将远程更新为使用预期的 URL？",
-
   "How are you planning to use this fork?": "您打算如何使用此 fork？",
   "This repository is a fork. How do you plan to use it?": "此仓库是一个 fork，您打算如何使用它？",
-
-  "Error details": "错误详情",
-  "Do you want to fork this repository?": "是否要 fork 此仓库？",
-
   "Username": "用户名",
   "Password": "密码",
-
   "There are no changes.": "没有更改。",
   "Could not find a default branch to compare against.": "找不到可用于比较的默认分支。",
   "Select a base branch above.": "请在上方选择一个基础分支。",
@@ -86,38 +58,30 @@
   "Lines changed:": "更改行数：",
   "Showing changes from all commits": "显示所有提交的更改",
   "Pull request file list": "拉取请求文件列表",
-  "Checking mergeability\u2026": "正在检查可合并性…",
+  "Checking mergeability…": "正在检查可合并性…",
   "Error checking merge status.": "检查合并状态时出错。",
   "Able to merge.": "可以合并。",
   "Can't automatically merge.": "无法自动合并。",
-
   "Keep this code private": "保持此代码私密",
   "Organization": "组织",
-
   "The repository will be removed from GitHub Desktop:": "该仓库将从 GitHub Desktop 中移除：",
   "Also move this repository to Trash": "同时将此仓库移至废纸篓",
   "Also move this repository to Recycle Bin": "同时将此仓库移至回收站",
-
-  "Installing Update\u2026": "正在安装更新\u2026",
-  "Installing update\u2026": "正在安装更新\u2026",
+  "Installing Update…": "正在安装更新…",
+  "Installing update…": "正在安装更新…",
   "Do not close GitHub Desktop while the update is in progress. Closing now may break your installation.": "请勿在更新进行中关闭 GitHub Desktop。现在关闭可能会损坏您的安装。",
   "Quit Anyway": "仍然退出",
   "Quit anyway": "仍然退出",
-
   "Learn more about Copilot in GitHub Desktop.": "了解更多关于 GitHub Desktop 中 Copilot 的信息。",
   "GitHub Copilot": "GitHub Copilot",
   "I understand": "我已了解",
   "Copilot Instructions": "Copilot 指令",
   "Commit message override": "提交消息覆盖",
   "Override": "覆盖",
-
   "View all release notes": "查看所有版本说明",
-
   "Move GitHub Desktop to the Applications folder?": "将 GitHub Desktop 移至应用程序文件夹？",
   "Move and Restart": "移动并重启",
-  "Not Now": "稍后再说",
   "Review requested": "已请求审查",
-
   "Account": "账户",
   "Files that exceed the limit": "超过大小限制的文件",
   "Upgrade to increase your limit.": "升级以提高限制。",
@@ -125,7 +89,6 @@
   "Locate…": "定位…",
   "Clone Again": "重新克隆",
   "The Git repository at": "位于以下路径的 Git 仓库",
-
   "Select the type of notification to display:": "选择要显示的通知类型：",
   "Done!": "完成！",
   "No pull requests found": "未找到拉取请求",
@@ -135,39 +98,29 @@
   "Comments:": "评论：",
   "Review without body": "无正文的审查",
   "Test Notifications": "测试通知",
-
   "View all rulesets for this branch.": "查看此分支的所有规则集。",
-
   "This will not affect the original repository name on GitHub.": "这不会影响 GitHub 上的原始仓库名称。",
-
   "A tag named": "名为",
-
   "Select an editor": "选择编辑器",
-
   "Resize handle": "调整大小句柄",
   "Application menu": "应用程序菜单",
-
   "View conflicts": "查看冲突",
   "Open Your Card": "打开您的贺卡",
   "Throw It Away": "忽略",
   "Support details": "支持详情",
-
   "Checkout": "检出",
   "Install Git": "安装 Git",
   "Dismiss": "关闭",
   "Icon Preview": "图标预览",
   "Open": "打开",
   "Back": "返回",
-
   "Rebase in progress": "正在变基",
   "Cherry-pick in progress": "正在拣选",
   "Squash in progress": "正在压缩",
   "Reorder in progress": "正在重新排序",
   "Merge in progress": "正在合并",
-
   "Merge into": "合并到",
   "Squash and Merge into": "压缩合并到",
-
   "Checking for ability to merge automatically...": "正在检查是否可以自动合并...",
   "Checking for ability to rebase automatically…": "正在检查是否可以自动变基…",
   "Unable to start rebase. Check you have chosen a valid branch.": "无法开始变基。请检查您是否选择了有效的分支。",
@@ -175,14 +128,12 @@
   "The current branch is already up to date with the selected branch.": "当前分支已与所选分支保持最新。",
   "Unable to merge unrelated histories in this repository": "无法合并此仓库中不相关的历史记录",
   "is already up to date with": "已与以下分支保持最新：",
-
   "This will merge": "这将合并",
   "There will be": "将会有",
   "when merging": "合并时",
   "This will fast-forward": "这将快进",
   "This will update": "这将更新",
   "by applying its": "通过应用其",
-
   "Confirm Abort {operation}": "确认中止 {operation}",
   "Confirm abort {operation}": "确认中止 {operation}",
   "Are you sure you want to abort this {operation}?": "您确定要中止此 {operation} 吗？",
@@ -190,25 +141,21 @@
   "Abort {operation}": "中止 {operation}",
   "Continue {operation}": "继续 {operation}",
   "Resolve conflicts before {operationDetail.kind}": "在 {operationDetail.kind} 前解决冲突",
-
   "{operation} Will Require Force Push": "{operation} 需要强制推送",
   "{operation} will require force push": "{operation} 需要强制推送",
   "Are you sure you want to {operation}?": "您确定要执行 {operation} 吗？",
   "At the end of the {operation} flow, GitHub Desktop will enable you to force push the branch to update the upstream branch. Force pushing will alter the history on the remote and potentially cause problems for others collaborating on this branch.": "在 {operation} 流程结束时，GitHub Desktop 将允许您强制推送分支以更新上游分支。强制推送将改变远程历史记录，可能给协作者带来问题。",
   "Do not show this message again": "不再显示此消息",
   "Begin {operation}": "开始 {operation}",
-
   "Overwrite Stash?": "覆盖暂存？",
   "Overwrite stash?": "覆盖暂存？",
   "Are you sure you want to proceed? This will overwrite your existing stash with your current changes.": "您确定要继续吗？这将用当前更改覆盖您现有的暂存。",
   "Overwrite": "覆盖",
-
   "{hookName} Failed": "{hookName} 失败",
   "{hookName} failed": "{hookName} 失败",
   "The {hookName} hook failed. What would you like to do?": "{hookName} 钩子执行失败。您想如何处理？",
   "Ignore and Continue": "忽略并继续",
   "Abort": "中止",
-
   "Confirm Discard All Changes": "确认丢弃所有更改",
   "Confirm discard all changes": "确认丢弃所有更改",
   "Confirm Discard Changes": "确认丢弃更改",
@@ -219,50 +166,41 @@
   "Discard Changes": "丢弃更改",
   "Discard changes": "丢弃更改",
   "Changes can be restored by retrieving them from the": "更改可以通过从以下位置找回：",
-
   "Reset to Commit": "重置到提交",
   "Reset to commit": "重置到提交",
   "You have changes in progress. Resetting to a previous commit might result in some of these changes being lost. Do you want to continue anyway?": "您有正在进行中的更改。重置到以前的提交可能会导致部分更改丢失。您确定要继续吗？",
-
   "Newer Commits on Remote": "远程有更新的提交",
   "Newer commits on remote": "远程有更新的提交",
   "GitHub Desktop is unable to push commits to this branch because there are commits on the remote that are not present on your local branch. Fetch these new commits before pushing in order to reconcile them with your local commits.": "GitHub Desktop 无法将提交推送到此分支，因为远程上存在您本地分支中没有的提交。请先获取这些新提交，然后再推送，以便与您的本地提交进行协调。",
-
   "Discard Stash?": "丢弃暂存？",
   "Discard stash?": "丢弃暂存？",
   "Are you sure you want to discard these stashed changes?": "您确定要丢弃这些暂存的更改吗？",
-
   "Confirm committing conflicted files": "确认提交冲突文件",
   "If you choose to commit, you'll be committing the following conflicted files into your repository:": "如果您选择提交，将把以下冲突文件提交到您的仓库中：",
   "Are you sure you want to commit these conflicted files?": "您确定要提交这些冲突文件吗？",
   "Yes, Commit Files": "是的，提交文件",
   "Yes, commit files": "是的，提交文件",
-
   "Stash Changes and Continue": "暂存更改并继续",
   "Stash changes and continue": "暂存更改并继续",
   "This will create a stash with your current changes. You can recover them by restoring the stash afterwards.": "这将使用您当前的更改创建一个暂存。您可以之后通过恢复暂存来找回这些更改。",
   "You can stash your changes now and recover them afterwards.": "您现在可以暂存更改，之后再恢复。",
   "when changes are present on your branch.": "当您的分支上存在更改时。",
   "The following files would be overwritten:": "以下文件将被覆盖：",
-
   "Resolve all changes before continuing": "请先解决所有更改再继续",
   "All resolutions have been undone.": "所有冲突解决已撤销。",
   "All conflicted files have been resolved.": "所有冲突文件已解决。",
   "{countResolved} conflicted files have been resolved.": "{countResolved} 个冲突文件已解决。",
   "{countResolved} conflicted file has been resolved.": "{countResolved} 个冲突文件已解决。",
-
   "Push Rejected": "推送被拒绝",
   "Push rejected": "推送被拒绝",
   "The push was rejected by the server for containing a modification to the workflow file {rejectedPath}. In order to be able to push to workflow files GitHub Desktop needs to request additional permissions.": "推送被服务器拒绝，因为包含了对工作流文件 {rejectedPath} 的修改。为了能够推送到工作流文件，GitHub Desktop 需要请求额外的权限。",
   "Would you like to open a browser to grant GitHub Desktop permission to update workflow files?": "是否要打开浏览器以授予 GitHub Desktop 更新工作流文件的权限？",
   "Continue in Browser": "在浏览器中继续",
   "Continue in browser": "在浏览器中继续",
-
   "Re-authorization Required": "需要重新授权",
   "Re-authorization required": "需要重新授权",
-  "The \"{organizationName}\" organization has enabled or enforced SAML SSO. To access this repository, you must sign in again and grant GitHub Desktop permission to access the organization\u2019s repositories.": "\u201c{organizationName}\u201d组织已启用或强制执行 SAML SSO。要访问此仓库，您必须重新登录并授予 GitHub Desktop 访问该组织仓库的权限。",
+  "The \"{organizationName}\" organization has enabled or enforced SAML SSO. To access this repository, you must sign in again and grant GitHub Desktop permission to access the organization’s repositories.": "“{organizationName}”组织已启用或强制执行 SAML SSO。要访问此仓库，您必须重新登录并授予 GitHub Desktop 访问该组织仓库的权限。",
   "Would you like to open a browser to grant GitHub Desktop permission to access the repository?": "是否要打开浏览器以授予 GitHub Desktop 访问该仓库的权限？",
-
   "Do you want to fork this repository?": "是否要 Fork 此仓库？",
   "It looks like you don't have write access to {fullName}. If you should, please check with a repository administrator.": "您似乎没有对 {fullName} 的写入权限。如果您应该有，请联系仓库管理员。",
   "Do you want to create a fork of this repository at {login}/{name} to continue?": "是否要在 {login}/{name} 创建此仓库的 Fork 以继续？",
@@ -271,11 +209,9 @@
   "Creating your fork {login}/{name} failed. You can try": "创建您的 Fork {login}/{name} 失败。您可以尝试",
   "creating the fork manually on GitHub": "在 GitHub 上手动创建 Fork",
   "Error details": "错误详情",
-
   "Checkout Commit?": "检出提交？",
   "Checkout commit?": "检出提交？",
   "Checking out a commit will create a detached HEAD, and you will no longer be on any branch. Are you sure you want to checkout this commit?": "检出提交将创建一个游离的 HEAD，您将不再处于任何分支上。您确定要检出此提交吗？",
-
   "Quota exceeded": "已超出配额",
   "File size limit exceeded": "文件大小超出限制",
   "Clone failed": "克隆失败",
@@ -290,14 +226,12 @@
   "Retry clone": "重试克隆",
   "Open Preferences": "打开偏好设置",
   "Open options": "打开选项",
-
   "Unable to Locate Git": "无法定位 Git",
   "Unable to locate Git": "无法定位 Git",
   "We were unable to locate Git on your system. This means you won't be able to execute any Git commands in the Terminal window / command prompt.": "无法在您的系统上定位 Git。这意味着您将无法在终端窗口/命令提示符中执行任何 Git 命令。",
   "To help you get Git installed and configured for your operating system, we have some external resources available.": "为了帮助您安装和配置适用于您操作系统的 Git，我们提供了一些外部资源。",
   "Open Without Git": "不使用 Git 打开",
   "Open without Git": "不使用 Git 打开",
-
   "Initialize Git LFS": "初始化 Git LFS",
   "repositories use": "个仓库使用",
   "Git LFS must first be initialized. Would you like to do so now?": "必须先初始化 Git LFS。是否立即执行？",
@@ -305,24 +239,19 @@
   "This repository uses": "此仓库使用",
   "Not Now": "暂不",
   "Not now": "暂不",
-
   "Update Existing Git LFS Filters?": "更新现有 Git LFS 过滤器？",
   "Update existing Git LFS filters?": "更新现有 Git LFS 过滤器？",
   "Git LFS filters are already configured in your global git config but are not the values it expects. Would you like to update them now?": "Git LFS 过滤器已在全局 git 配置中设置，但不是预期的值。是否立即更新？",
   "Update Existing Filters": "更新现有过滤器",
   "Update existing filters": "更新现有过滤器",
-
-  "We've detected that you're not running GitHub Desktop from the Applications folder of your machine. This could cause problems with the app, including impacting your ability to sign in.": "检测到您未从计算机的\u201c应用程序\u201d文件夹运行 GitHub Desktop，这可能导致应用问题，包括影响您的登录能力。",
-  "Do you want to move GitHub Desktop to the Applications folder now? This will also restart the app.": "是否立即将 GitHub Desktop 移至\u201c应用程序\u201d文件夹？此操作同时会重启应用。",
-  "This will move GitHub Desktop to the Applications folder in your machine and restart the app.": "这将把 GitHub Desktop 移至计算机的\u201c应用程序\u201d文件夹并重启应用。",
-
+  "We've detected that you're not running GitHub Desktop from the Applications folder of your machine. This could cause problems with the app, including impacting your ability to sign in.": "检测到您未从计算机的“应用程序”文件夹运行 GitHub Desktop，这可能导致应用问题，包括影响您的登录能力。",
+  "Do you want to move GitHub Desktop to the Applications folder now? This will also restart the app.": "是否立即将 GitHub Desktop 移至“应用程序”文件夹？此操作同时会重启应用。",
+  "This will move GitHub Desktop to the Applications folder in your machine and restart the app.": "这将把 GitHub Desktop 移至计算机的“应用程序”文件夹并重启应用。",
   "Cloning": "正在克隆",
-
   "Upstream Already Exists": "上游远程已存在",
   "Upstream already exists": "上游远程已存在",
   "is a fork of": "是以下仓库的分支：",
   "remote points elsewhere.": "远程指向其他位置。",
-
   "Unknown Co-Authors": "未知协同作者",
   "Unknown co-authors": "未知协同作者",
   "Commit Anyway": "仍然提交",
@@ -331,7 +260,6 @@
   "Files too large": "文件过大",
   "users weren't found and won't be added as co-authors of this commit. Are you sure you want to commit?": "位用户未找到，不会作为此提交的协同作者。是否仍然提交？",
   "These users weren't found and won't be added as co-authors of this commit. Are you sure you want to commit?": "这些用户未找到，不会作为此提交的协同作者。是否仍然提交？",
-
   "Bypass Push Detection": "绕过推送保护",
   "Bypass push detection": "绕过推送保护",
   "It's used in tests": "用于测试",
@@ -340,7 +268,6 @@
   "The detected string is not a secret": "检测到的字符串不是密钥",
   "I'll fix it later": "稍后修复",
   "The secret is real, I understand the risk, and I will need to revoke it. This will open a security alert and notify admins of this repository.": "此密钥是真实的，我了解风险，需要将其撤销。这将创建安全警报并通知此仓库的管理员。",
-
   "Push Blocked: Secret Detected": "推送已拦截：检测到密钥",
   "Push blocked: secret detected": "推送已拦截：检测到密钥",
   "found secret(s) in the commit(s) you attempted to push.": "在您尝试推送的提交中发现了密钥。",
@@ -355,7 +282,6 @@
   "Show Less Locations": "显示更少位置",
   "Show More locations": "显示更多位置",
   "at line": "在第",
-
   "Untrusted Server": "不受信任的服务器",
   "Untrusted server": "不受信任的服务器",
   "GitHub Desktop cannot verify the identity of": "GitHub Desktop 无法验证以下主机的身份：",
@@ -364,55 +290,43 @@
   "If you are unsure of what to do, cancel and contact your system administrator.": "如果您不确定该怎么做，请取消并联系您的系统管理员。",
   "View Certificate": "查看证书",
   "Add certificate": "添加证书",
-
   "Enter passphrase for key '{keyPath}':": "输入密钥 '{keyPath}' 的密码短语：",
   "Enter password for '{username}':": "输入 '{username}' 的密码：",
-
   "To contribute to the parent project": "为父项目做贡献",
-
   "You have changes in progress. Undoing the commit might result in some of these changes being lost. Do you want to continue anyway?": "您有正在进行的更改。撤销提交可能会导致这些更改中的某些内容丢失。是否仍然继续？",
   "You have changes in progress. Undoing the merge commit might result in some of these changes being lost.": "您有正在进行的更改。撤销合并提交可能会导致这些更改中的某些内容丢失。",
   "Undoing a merge commit will apply the changes from the merge into your working directory, and committing again will create an entirely new commit. This means you will lose the merge commit and, as a result, commits from the merged branch could disappear from this branch.": "撤销合并提交会将合并中的更改应用到您的工作目录，再次提交将创建一个全新的提交。这意味着您将丢失合并提交，因此被合并分支中的提交可能会从此分支中消失。",
-
   "Create Repository Alias": "创建仓库别名",
   "Create repository alias": "创建仓库别名",
   "Change Repository Alias": "更改仓库别名",
   "Change repository alias": "更改仓库别名",
   "Choose a new alias for the repository \"": "为仓库 \"",
-
   "Unable to Open External Editor": "无法打开外部编辑器",
   "Unable to open external editor": "无法打开外部编辑器",
-
   "_comment_account_picker": "账户选择器（account-picker.tsx）",
   "Choose an account": "选择账户",
-
   "_comment_misc_app": "其它",
   "Close": "关闭",
-
   "_comment_change_repo_alias": "更改仓库别名对话框（change-repository-alias-dialog.tsx）",
   "Create Alias": "创建别名",
   "Create alias": "创建别名",
   "Change Alias": "更改别名",
   "Change alias": "更改别名",
   "Alias": "别名",
-
   "_comment_choose_fork": "Fork 用途选择对话框（choose-fork-settings-dialog.tsx）",
   "For my own purposes": "用于我自己的目的",
   "We will help you contribute to the": "我们将帮助您为以下仓库做贡献：",
   "repository": "仓库",
   "Continue": "继续",
-
   "_comment_cli_installed": "命令行工具安装成功（cli-installed.tsx）",
   "Command Line Tool Installed": "命令行工具已安装",
   "Command line tool installed": "命令行工具已安装",
   "The command line tool has been installed at": "命令行工具已安装到",
   "Ok": "确定",
-
   "_comment_dialog_common": "通用对话框按钮（dialog/ok-cancel-button-group.tsx, dialog/header.tsx）",
   "Cancel": "取消",
   "Yes": "是",
   "No": "否",
-
   "_comment_create_branch": "创建分支对话框（create-branch-dialog.tsx）",
   "Create a Branch": "创建分支",
   "Create a branch": "创建分支",
@@ -436,21 +350,17 @@
   "fork behavior settings": "Fork 行为设置",
   "Create branch based on…": "基于以下创建分支…",
   "Could not determine the default branch.": "无法确定默认分支。",
-
   "_comment_create_tutorial": "教程仓库创建对话框（no-repositories/create-tutorial-repository-dialog.tsx）",
   "Start tutorial": "开始教程",
   "This will create a repository on your local machine, and push it to your account": "这将在您的本地计算机上创建一个仓库，并将其推送到您的账户",
   "on": "，位于",
   ". This repository will only be visible to you, and not visible publicly.": "。此仓库仅对您可见，不会公开。",
-
   "_comment_discard_retry": "丢弃更改重试对话框已存在于文件前段（行 17-24），仅补充以下：",
   "Permanently Discard Changes": "永久丢弃更改",
   "Permanently discard changes": "永久丢弃更改",
   "This will discard changes and they will be unrecoverable.": "这将丢弃更改且无法恢复。",
-
   "_comment_discard_selection": "丢弃选择范围对话框（discard-selection-dialog.tsx）",
   "Confirm Discard changes": "确认丢弃更改",
-
   "_comment_create_fork_fragments": "创建 Fork 对话框 JSX 片段（forks/create-fork-dialog.tsx）",
   "It looks like you don't have write access to ": "您似乎没有写入权限：",
   ". If you should, please check with a repository administrator.": "。如果您应该有权限，请联系仓库管理员确认。",
@@ -459,13 +369,11 @@
   "Creating your fork ": "正在创建您的 Fork ",
   " failed. ": " 失败。",
   "You can try ": "您可以尝试 ",
-
   "_comment_generate_commit_message_extra": "Copilot 生成提交信息相关补充（generate-commit-message/）",
   "Copilot is powered by AI, so mistakes are possible. Review and edit the generated message carefully before use.": "Copilot 由 AI 驱动，因此可能出错。请在使用前仔细审阅并编辑生成的提交信息。",
   "The commit message you have entered will be overridden by the generated commit message.": "您已输入的提交信息将被生成的提交信息覆盖。",
   "Tip: You can use ": "提示：您可以使用 ",
   " to customize how commit messages are generated.": " 来自定义提交信息的生成方式。",
-
   "_comment_generic_git_auth": "通用 Git 身份验证对话框（generic-git-auth/generic-git-auth.tsx）",
   "Authentication Failed": "身份验证失败",
   "Authentication failed": "身份验证失败",
@@ -476,33 +384,26 @@
   " to try again.": " 后重试。",
   "Depending on your repository's hosting service, you might need to use a Personal Access Token (PAT) as your password. Learn more about creating a PAT in our ": "根据您仓库的托管服务，您可能需要使用个人访问令牌 (PAT) 作为密码。了解如何创建 PAT，请参阅 ",
   "integration docs": "集成文档",
-
   "_comment_install_git": "安装 Git 对话框（install-git/install.tsx）—— 仅补充终端片段",
   "Terminal window": "终端窗口",
   "command prompt": "命令提示符",
-
   "_comment_invalidated_token": "账户令牌失效对话框（invalidated-token/invalidated-token.tsx）",
   "Your account token has been invalidated and you have been signed out from your ": "您的账户令牌已失效，您已从以下账户登出：",
   " account. Do you want to sign in again?": " 账户。是否要重新登录？",
-
   "_comment_lfs_attribute_mismatch": "LFS 过滤器配置不匹配对话框（lfs/attribute-mismatch.tsx）—— 仅补充正文片段",
   "Git LFS filters are already configured in ": "Git LFS 过滤器已在 ",
   "your global git config": "您的全局 git 配置",
   " but are not the values it expects. Would you like to update them now?": " 中配置，但其值不是预期值。是否要立即更新它们？",
-
   "_comment_lfs_initialize": "初始化 Git LFS 对话框（lfs/initialize-lfs.tsx）—— 仅补充正文片段",
   " repositories use ": " 个仓库使用 ",
   ". To contribute to them, Git LFS must first be initialized. Would you like to do so now?": "。要参与贡献，必须先初始化 Git LFS。是否立即初始化？",
   ". To contribute to ": "。要参与贡献 ",
   ", Git LFS must first be initialized. Would you like to do so now?": "，必须先初始化 Git LFS。是否立即初始化？",
-
   "_comment_local_changes_overwritten": "本地更改将被覆盖对话框（local-changes-overwritten/local-changes-overwritten-dialog.tsx）",
   " when changes are present on your branch.": "，因为您的分支上存在未保存的更改。",
   " The following files would be overwritten:": " 以下文件将被覆盖：",
-
   "_comment_merge_conflicts_commit_warning": "提交冲突文件警告对话框（merge-conflicts/commit-conflicts-warning.tsx）—— 多数文案已覆盖",
   "If you choose to commit, you’ll be committing the following conflicted files into your repository:": "如果选择提交，您将向仓库提交以下存在冲突的文件：",
-
   "_comment_missing_repository": "丢失仓库视图（missing-repository.tsx）—— 多数文案已覆盖（Locate…/Clone Again/Trust Repository 等）",
   "Trust Repository": "信任仓库",
   "Trust repository": "信任仓库",
@@ -510,15 +411,13 @@
   " appears to be owned by another user on your machine. Adding untrusted repositories may automatically execute files in the repository.": " 的 Git 仓库似乎归本机另一用户所有。添加不受信任的仓库可能会自动执行其中的文件。",
   "If you trust the owner of the directory you can add an exception for this directory in order to continue.": "如果您信任该目录的所有者，可以为此目录添加例外以继续。",
   "It was last seen at": "上次出现的位置是",
-  "Check\u00a0again.": "重新检查。",
-
+  "Check again.": "重新检查。",
   "_comment_multi_commit_choose_branch": "选择分支对话框（multi-commit-operation/choose-branch/）—— 多数文案已覆盖",
   "Squash and ": "压合并 ",
   "Rebase ": "变基 ",
   "from": "从",
   "into": "到",
   "Merge options": "合并选项",
-
   "_comment_choose_target_branch": "拣选目标分支对话框（choose-branch/choose-target-branch.tsx）",
   "Cherry-pick to New Branch": "拣选到新分支",
   "Cherry-pick to new branch": "拣选到新分支",
@@ -527,7 +426,6 @@
   "You are not able to cherry-pick from and to the same branch": "无法在同一分支之间进行拣选",
   "Create Branch and Cherry-pick": "创建分支并拣选",
   "Create branch and cherry-pick": "创建分支并拣选",
-
   "_comment_pull_request_notifications": "PR 检查/评论/审查通知对话框（notifications/）—— 多数文案早已覆盖",
   "checks failed in your pull request": "项检查在您的拉取请求中失败",
   "check failed in your pull request": "项检查在您的拉取请求中失败",
@@ -535,12 +433,10 @@
   "approved": "已批准",
   "requested changes on": "已请求更改",
   "reviewed": "已审查",
-
   "_comment_shell_sign_in": "Shell 错误对话框 + Sign-in 凭证助手提示（shell/、sign-in/）",
   "Unable to Open Shell": "无法打开 Shell",
   "Unable to open shell": "无法打开 Shell",
   "Git requesting credentials to access": "Git 正在请求访问凭证：",
-
   "_comment_ssh_host": "SSH 主机指纹确认对话框（ssh/add-ssh-host.tsx）",
   "The authenticity of host '": "无法验证主机 '",
   ")' can't be established.": ")' 的真实性。",

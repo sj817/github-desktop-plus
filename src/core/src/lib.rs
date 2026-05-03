@@ -47,7 +47,7 @@ const NOTES: &[&str] = &[
     "Rust core only; Node.js remains optional build tooling",
     "HTTP/1 loopback only to reduce runtime overhead",
     "Tokio current-thread runtime keeps scheduler state minimal",
-    "Static HTML/CSS/JS avoids framework hydration and VDOM memory",
+    "Control UI is opened from GitHub Desktop's GDP menu",
 ];
 
 const MODULES: &[ModuleInfo] = &[
@@ -57,7 +57,7 @@ const MODULES: &[ModuleInfo] = &[
     },
     ModuleInfo {
         name: "gdp",
-        responsibility: "CLI entrypoint, inspector injection, process management and embedded WebUI server.",
+        responsibility: "CLI entrypoint, inspector injection, process management and control API server.",
     },
     ModuleInfo {
         name: "src/hooks",
@@ -65,7 +65,7 @@ const MODULES: &[ModuleInfo] = &[
     },
     ModuleInfo {
         name: "webui",
-        responsibility: "React frontend (built into webui/dist/) embedded into the binary at compile time.",
+        responsibility: "React control panel source, embedded into the GitHub Desktop GDP popup at runtime.",
     },
 ];
 
@@ -76,7 +76,7 @@ const PROJECT_TREE: &str = "github-desktop-plus/\n\
     +-- Cargo.toml\n\
     +-- src/\n\
     |   +-- core/           # platform, config, detector, runtime metadata\n\
-    |   +-- gdp/            # CLI, inspector injection, embedded WebUI server\n\
+    |   +-- gdp/            # CLI, inspector injection, control API server\n\
     |   +-- hooks/          # Electron hook/preload TypeScript sources\n\
     +-- webui/              # React frontend (built into webui/dist/)\n\
     +-- locales/\n\
@@ -89,10 +89,10 @@ const DEMO_PSEUDOCODE: &str = "// gdp-core\n\
     // gdp (cargo run -p gdp -- launch)\n\
     let plan = gdp_core::runtime_plan();\n\
     \n\
-    // embedded WebUI\n\
+    // embedded control API\n\
     cargo run -p gdp -- serve\n\
     \n\
-    // src/ui\n\
+    // webui\n\
     const s = await fetch('/api/status').then(r => r.json())";
 
 pub fn runtime_plan() -> RuntimePlan {
@@ -100,9 +100,9 @@ pub fn runtime_plan() -> RuntimePlan {
         memory_target_mb: 10,
         runtime: "hyper + tokio(current_thread)",
         cli_boundary: "in-process function calls + stdout/stderr",
-        web_boundary: "HTTP/JSON on 127.0.0.1:7788",
-        ui_strategy: "Static HTML/CSS/Vanilla JS",
-        startup_priority: "single-process, low-init, no hydration",
+        web_boundary: "HTTP/JSON on 127.0.0.1:7788, opened only through the GDP menu popup",
+        ui_strategy: "Vite + React control surface inside GitHub Desktop",
+        startup_priority: "single-process core with dev-time Vite HMR",
         notes: NOTES,
     }
 }

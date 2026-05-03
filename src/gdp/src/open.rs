@@ -1,4 +1,4 @@
-//! `gdp open` — read the auth token written at startup and open the WebUI.
+//! `gdp open` — print the authenticated local control URL.
 
 use gdp_core::platform::config_dir;
 
@@ -26,20 +26,5 @@ pub fn run() {
     let url = format!("http://127.0.0.1:7788/?t={token}");
     println!("{url}");
 
-    #[cfg(target_os = "windows")]
-    let result = std::process::Command::new("cmd")
-        .args(["/c", "start", "", &url])
-        .spawn();
-    #[cfg(target_os = "macos")]
-    let result = std::process::Command::new("open").arg(&url).spawn();
-    #[cfg(all(unix, not(target_os = "macos")))]
-    let result = std::process::Command::new("xdg-open").arg(&url).spawn();
-    #[cfg(not(any(target_os = "windows", target_os = "macos", unix)))]
-    let result: std::io::Result<std::process::Child> =
-        Err(std::io::Error::other("unsupported platform"));
-
-    if let Err(e) = result {
-        eprintln!("warning: could not launch browser: {e}");
-        eprintln!("         Open the URL manually: {url}");
-    }
+    eprintln!("Open this URL only for debugging. Normal use is through the GDP menu popup.");
 }

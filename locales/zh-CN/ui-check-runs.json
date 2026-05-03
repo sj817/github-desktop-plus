@@ -17,27 +17,20 @@
   "Some checks were not successful": "某些检查未成功",
   "Please wait": "请稍候",
   "Determining which checks can be re-run.": "正在确定哪些检查可以重新运行。",
-
   "Switch to Repository and Pull Request": "切换到仓库和拉取请求",
   "Switch to repository and pull request": "切换到仓库和拉取请求",
   "Switch to Pull Request": "切换到拉取请求",
   "Switch to pull request": "切换到拉取请求",
   "Open in Browser": "在浏览器中打开",
   "Open in browser": "在浏览器中打开",
-
-  "Re-run Checks": "重新运行检查",
   "Re-run checks": "重新运行检查",
   "Re-run check": "重新运行检查",
-
   "failed in your pull request": "在您的拉取请求中失败",
   "Do you want to switch to that Pull Request now and start fixing": "您是否要立即切换到该拉取请求并开始修复",
-
   "Pull request markdown comment": "拉取请求 Markdown 评论",
-
   ". A check run cannot be re-run if the check is more than one month old, the check or its dependent has not completed, or the check is not configured to be re-run.": "。如果检查已超过一个月、检查或其依赖项尚未完成，或检查未配置为可重新运行，则无法重新运行该检查。",
   "There are no checks that can be re-run": "没有可以重新运行的检查",
   "There are no failed checks that can be re-run": "没有可以重新运行的失败检查",
-
   "_comment_rerun_dialog": "重新运行对话框（ci-check-run-rerun-dialog.tsx）",
   "Re-run Check": "重新运行检查",
   "Re-run Checks": "重新运行检查",

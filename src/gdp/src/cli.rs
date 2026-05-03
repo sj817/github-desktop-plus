@@ -32,7 +32,7 @@ pub enum Command {
         #[arg(long)]
         no_serve: bool,
     },
-    /// Start the local config/status web UI on http://127.0.0.1:7788
+    /// Start the local control API and embedded control assets on 127.0.0.1:7788
     Serve,
     /// Stop a running GDP-launched GitHub Desktop instance
     Stop,
@@ -43,7 +43,7 @@ pub enum Command {
     },
     /// Detect the GitHub Desktop installation path
     Detect,
-    /// Open the local WebUI in the default browser
+    /// Print the authenticated local control URL
     Open,
     /// Configuration management
     Config {
@@ -86,7 +86,11 @@ mod tests {
     fn launch_flags_round_trip() {
         let cli = Cli::parse_from(["gdp", "launch", "-f", "--no-serve"]);
         match cli.command {
-            Some(Command::Launch { force, no_serve, desktop_path }) => {
+            Some(Command::Launch {
+                force,
+                no_serve,
+                desktop_path,
+            }) => {
                 assert!(force);
                 assert!(no_serve);
                 assert!(desktop_path.is_none());
@@ -99,7 +103,9 @@ mod tests {
     fn config_show_subcommand() {
         let cli = Cli::parse_from(["gdp", "config", "show", "--json"]);
         match cli.command {
-            Some(Command::Config { action: ConfigAction::Show { json } }) => assert!(json),
+            Some(Command::Config {
+                action: ConfigAction::Show { json },
+            }) => assert!(json),
             _ => panic!("expected config show --json"),
         }
     }
@@ -107,9 +113,19 @@ mod tests {
     #[test]
     fn config_path_and_reset_subcommands() {
         let p = Cli::parse_from(["gdp", "config", "path"]);
-        assert!(matches!(p.command, Some(Command::Config { action: ConfigAction::Path })));
+        assert!(matches!(
+            p.command,
+            Some(Command::Config {
+                action: ConfigAction::Path
+            })
+        ));
         let r = Cli::parse_from(["gdp", "config", "reset"]);
-        assert!(matches!(r.command, Some(Command::Config { action: ConfigAction::Reset })));
+        assert!(matches!(
+            r.command,
+            Some(Command::Config {
+                action: ConfigAction::Reset
+            })
+        ));
     }
 
     #[test]

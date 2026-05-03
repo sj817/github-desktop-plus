@@ -1,4 +1,4 @@
-//! Embedded HTTP server: routes /api/*, serves the React WebUI bundle, and
+//! Embedded HTTP server: routes /api/*, serves the embedded control panel, and
 //! enforces token-cookie authentication on all `/api/*` endpoints except a few
 //! safe-listed ones.
 
@@ -55,6 +55,7 @@ fn make_sse(b: Response<SseBody>) -> Response<AnyBody> {
 fn is_public_path(path: &str) -> bool {
     matches!(path, "/" | "/api/auth/exchange" | "/api/auth/status")
         || path.starts_with("/assets/")
+        || (std::env::var_os("GDP_DEV").is_some() && path.starts_with("/api/dev/"))
         || !path.starts_with("/api/")
 }
 
@@ -156,6 +157,16 @@ fn route(
             "authed": authed,
             "expires_in_secs": expires_in,
         }));
+    }
+
+    if method == Method::POST && path == "/api/dev/locales/reload" {
+        if std::env::var_os("GDP_DEV").is_none() {
+            return json_err(StatusCode::NOT_FOUND, "unknown_route");
+        }
+        if let Some(ref dir) = state.data_dir {
+            locale::reload_signal(dir);
+        }
+        return json_ok(&serde_json::json!({ "ok": true }));
     }
 
     // ── Locale endpoints (see locale.rs) ─────────────────────────────────────
@@ -325,7 +336,7 @@ fn _empty_body_ref() -> Empty<Bytes> {
 
 /// Build initial AppState: load config, derive data_dir, generate auth token,
 /// write the token file, print `gdp open` hint, spawn session reaper.
-pub fn build_state() -> AppState {
+pub fn build_state(auth_token: Option<String>) -> AppState {
     let cfg_dir = config_dir();
     let initial = cfg_dir
         .as_deref()
@@ -337,12 +348,12 @@ pub fn build_state() -> AppState {
         .and_then(|p| p.parent().map(|d| d.to_path_buf()))
         .map(|exe_dir| exe_dir.join("gdp-data"));
 
-    let token = auth::generate_token();
+    let token = auth_token.unwrap_or_else(auth::generate_token);
     if let Some(ref dir) = cfg_dir {
         match auth::write_token_file(dir, &token) {
             Ok(p) => {
                 eprintln!("gdp: auth token written to {}", p.display());
-                eprintln!("gdp: run `gdp open` to launch the WebUI");
+                eprintln!("gdp: open the GDP menu inside GitHub Desktop");
             }
             Err(e) => eprintln!("warning: cannot write token file: {e}"),
         }
@@ -367,14 +378,14 @@ pub fn build_state() -> AppState {
     state
 }
 
-pub async fn serve_async() {
-    let state = build_state();
+pub async fn serve_async_with_token(auth_token: Option<String>) {
+    let state = build_state(auth_token);
     let addr = SocketAddr::from(([127, 0, 0, 1], 7788));
     let listener = match TcpListener::bind(addr).await {
         Ok(l) => l,
         Err(e) => {
             eprintln!("warning: cannot bind port 7788: {e}");
-            eprintln!("         WebUI will not be available this session.");
+            eprintln!("         GDP control panel will not be available this session.");
             return;
         }
     };
@@ -396,6 +407,10 @@ pub async fn serve_async() {
             }
         });
     }
+}
+
+pub async fn serve_async() {
+    serve_async_with_token(None).await;
 }
 
 /// Blocking entry point — creates its own Tokio runtime.

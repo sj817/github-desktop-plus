@@ -1,12 +1,11 @@
-//! Seed the writable `<data_dir>/locales/` tree with the repository's bundled
-//! locales on first run so the WebUI can immediately edit them. Existing files
-//! are never overwritten — user customizations win.
+//! Seed the writable `<data_dir>/locales/` tree with aggregate locale packages.
+//! Existing files are never overwritten because imported language packs win.
 
 use std::path::Path;
 
 use include_dir::{Dir, include_dir};
 
-static BUNDLED_LOCALES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../locales");
+static BUNDLED_LOCALES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../generated/locales");
 
 /// Copy any missing locale JSON file from the embedded bundle into
 /// `<data_dir>/locales/`. Idempotent and silent on success.
@@ -21,7 +20,11 @@ pub fn seed_if_missing(data_dir: &Path) {
 
 fn extract_dir(dir: &Dir<'_>, base: &Path) {
     for sub in dir.dirs() {
-        let name = sub.path().file_name().and_then(|s| s.to_str()).unwrap_or("");
+        let name = sub
+            .path()
+            .file_name()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
         if name.is_empty() {
             continue;
         }

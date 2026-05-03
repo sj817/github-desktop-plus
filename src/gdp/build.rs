@@ -55,6 +55,44 @@ fn sync_webui_bundle(webui_dist: &Path, bundle: &Path) {
     }
 }
 
+fn bundle_locale(repo_root: &Path, locale: &str) {
+    let locale_dir = repo_root.join("locales").join(locale);
+    let out_dir = repo_root.join("generated").join("locales");
+    let out_file = out_dir.join(format!("{locale}.json"));
+
+    let mut bundle = serde_json::Map::new();
+    if locale_dir.exists() {
+        let mut files: Vec<_> = std::fs::read_dir(&locale_dir)
+            .unwrap_or_else(|e| panic!("read {}: {e}", locale_dir.display()))
+            .flatten()
+            .filter(|entry| entry.file_type().map(|ft| ft.is_file()).unwrap_or(false))
+            .filter(|entry| entry.path().extension().and_then(|s| s.to_str()) == Some("json"))
+            .collect();
+        files.sort_by_key(|entry| entry.file_name());
+
+        for entry in files {
+            let path = entry.path();
+            let Some(category) = path.file_stem().and_then(|s| s.to_str()) else {
+                continue;
+            };
+            let content = std::fs::read_to_string(&path)
+                .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
+            let value = serde_json::from_str::<serde_json::Value>(&content)
+                .unwrap_or_else(|e| panic!("parse {}: {e}", path.display()));
+            bundle.insert(category.to_string(), value);
+            println!("cargo:rerun-if-changed={}", path.display());
+        }
+    }
+
+    std::fs::create_dir_all(&out_dir)
+        .unwrap_or_else(|e| panic!("mkdir {}: {e}", out_dir.display()));
+    let content = serde_json::to_string_pretty(&serde_json::Value::Object(bundle))
+        .expect("serialize locale bundle");
+    std::fs::write(&out_file, format!("{content}\n"))
+        .unwrap_or_else(|e| panic!("write {}: {e}", out_file.display()));
+    println!("cargo:warning=Bundled locales/{locale} → generated/locales/{locale}.json");
+}
+
 fn main() {
     let out_dir_str = std::env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir_str);
@@ -71,6 +109,8 @@ fn main() {
     sync_webui_bundle(&webui_dist, &bundle);
     println!("cargo:rerun-if-changed={}", webui_dist.display());
     println!("cargo:rerun-if-changed={}", bundle.display());
+
+    bundle_locale(&repo_root, "zh-CN");
 
     // Hook bundle (main process injector)
     embed_file(
@@ -100,115 +140,9 @@ fn main() {
         "preload_update_interceptor.js",
     );
 
-    // Locale files
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/menu.json",
-        "locale_zh_CN_menu.json",
+    println!(
+        "cargo:rerun-if-changed={}",
+        repo_root.join("locales").display()
     );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui.json",
-        "locale_zh_CN_ui.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-about.json",
-        "locale_zh_CN_ui_about.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-diff.json",
-        "locale_zh_CN_ui_diff.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-navbar.json",
-        "locale_zh_CN_ui_navbar.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-repository-settings.json",
-        "locale_zh_CN_ui_repository_settings.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-settings.json",
-        "locale_zh_CN_ui_settings.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-sidebar.json",
-        "locale_zh_CN_ui_sidebar.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-toolbar.json",
-        "locale_zh_CN_ui_toolbar.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-branches.json",
-        "locale_zh_CN_ui_branches.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-changes.json",
-        "locale_zh_CN_ui_changes.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-check-runs.json",
-        "locale_zh_CN_ui_check_runs.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-clone-add.json",
-        "locale_zh_CN_ui_clone_add.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-dialogs.json",
-        "locale_zh_CN_ui_dialogs.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-history.json",
-        "locale_zh_CN_ui_history.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-lib.json",
-        "locale_zh_CN_ui_lib.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-welcome-tutorial.json",
-        "locale_zh_CN_ui_welcome_tutorial.json",
-    );
-    embed_file(
-        out_dir,
-        &repo_root,
-        "locales/zh-CN/ui-context-menus.json",
-        "locale_zh_CN_ui_context_menus.json",
-    );
-
     println!("cargo:rerun-if-changed=build.rs");
 }
