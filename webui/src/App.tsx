@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { HeroUIProvider } from '@heroui/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import Dashboard from '@/pages/Dashboard'
 import Locales from '@/pages/Locales'
 import Logs from '@/pages/Logs'
 import Settings from '@/pages/Settings'
@@ -60,7 +59,7 @@ function Unauth({ error }: { error?: string }) {
         <div className="title-grad mb-2 text-[26px] font-bold">会话未建立</div>
         <p className="mb-7 text-[13.5px] leading-relaxed text-default-500">
           {expired
-            ? '链接已失效。请回到 GitHub Desktop 菜单，重新点击「打开控制面板 (WebUI)」。'
+            ? '链接已失效。请回到 GitHub Desktop 的 GDP 菜单重新打开。'
             : '请通过 GitHub Desktop 中的 GDP 菜单（或快捷键 Ctrl+Alt+G）打开本控制台。'}
         </p>
         <div className="flex items-center justify-center gap-2.5">
@@ -73,7 +72,7 @@ function Unauth({ error }: { error?: string }) {
         </div>
         <div className="eyebrow mt-7 flex items-center justify-center gap-2 opacity-70">
           <Icons.Dot className="h-3 w-3" />
-          GDP · Aurora Glass UI
+          GitHub Desktop Plus
         </div>
       </motion.div>
     </GateShell>
@@ -96,7 +95,7 @@ export default function App() {
         <BrowserRouter>
           <Gate>
             <Routes>
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/" element={<Navigate to="/settings" replace />} />
               <Route path="/locales" element={<Locales />} />
               <Route path="/logs" element={<Logs />} />
               <Route path="/settings" element={<Settings />} />

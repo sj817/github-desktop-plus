@@ -2,7 +2,7 @@
 
 外部增强工具，在不修改 GitHub Desktop 源码的前提下扩展其功能。
 
-基于 **Rust + 0-path Inspector 注入 + 无框架 WebUI** 构建。
+基于 **Rust + 0-path Inspector 注入 + GDP 菜单内嵌控制弹窗** 构建。
 
 ## 功能
 
@@ -11,7 +11,7 @@
 - **屏蔽遥测上报** — 拦截统计数据和异常上报到 central.github.com
 - **日志过滤** — 控制日志级别，减少无用输出
 - **中文界面 (i18n)** — 通过菜单翻译和 DOM 文本替换实现 UI 中文化
-- **本地控制面板** — 由 GDP 内置的 `http://127.0.0.1:7788` WebUI 提供
+- **内嵌控制弹窗** — 通过 GitHub Desktop 的 GDP 菜单打开基本配置、日志和语言包管理
 
 ## 技术栈
 
@@ -21,7 +21,7 @@
 | Hook 注入 | V8 Inspector (`--inspect-brk`) |
 | Hook 源码 | TypeScript |
 | Hook 构建 | Node.js + esbuild |
-| 控制面板 | Static HTML + CSS + JavaScript |
+| 控制面板 | Vite + React 构建，运行时嵌入 GitHub Desktop 弹窗 |
 | 包管理 | pnpm |
 
 ## 当前结构
@@ -36,9 +36,9 @@
 当前主线拆分如下：
 
 - `gdp-core`：纯 Rust 核心逻辑库
-- `gdp`：CLI 入口 + 0-path 注入 + 内置本地 Web 控制面板
+- `gdp`：CLI 入口 + 0-path 注入 + 内嵌控制面板服务
 - `src/hooks/`：Electron hook / preload 的 TypeScript 源码
-- `src/ui/`：无框架静态前端
+- `webui/`：Vite + React 控制面板源码，运行时由 GDP 菜单弹窗承载
 
 详细设计见：[`docs/phase5-rust-architecture.md`](docs/phase5-rust-architecture.md)
 
@@ -53,7 +53,7 @@
 │  │ Inspector     │─────→│─────→│  │ • update blocker     │    │
 │  │ injector      │      │      │  │ • telemetry blocker  │    │
 │  ├───────────────┤      │      │  │ • menu i18n          │    │
-│  │ WebUI server  │      │      │  │ • renderer preload   │    │
+│  │ Control API   │      │      │  │ • renderer preload   │    │
 │  └───────────────┘      │      │  └──────────────────────┘    │
 └─────────────────────────┘      └──────────────────────────────┘
 ```
@@ -67,8 +67,8 @@ GDP 使用 `--inspect-brk=0` 启动 GitHub Desktop，连接 V8 Inspector 后在 
 # 安装依赖
 pnpm install
 
-# 开发模式（启动 GDP + GitHub Desktop）
-pnpm run gdp:dev
+# 开发模式（启动 Vite、语言包 watcher、GDP + GitHub Desktop）
+pnpm dev
 
 # 构建发布版二进制
 pnpm run build
@@ -82,16 +82,20 @@ pnpm run self-check:desktop
 ```text
 src/
 ├── core/             # Rust 核心库：配置、探测、运行时元数据
-├── gdp/              # Rust CLI：注入、启动、停止、WebUI 服务
+├── gdp/              # Rust CLI：注入、启动、停止、控制面板服务
 ├── hooks/            # Electron 注入脚本与 preload 源码 (TypeScript)
 │   └── preload/
-└── ui/               # 无框架 Web 控制面板
 scripts/
-└── build-hooks.mjs   # 使用 esbuild 生成 hook bundle
-locales/
+├── build-hooks.mjs   # 使用 esbuild 生成 hook bundle
+└── locales.mjs       # 去重并聚合构建语言包
+webui/                # Vite + React 控制面板源码
+locales/              # 开发期拆分维护
 └── zh-CN/
     ├── menu.json
-    └── ui.json
+    ├── ui.json
+    └── ...
+generated/locales/    # 运行时只认聚合包
+└── zh-CN.json        # 构建期聚合语言包，文件名作为 key
 ```
 
 ## 文档

@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import { Sidebar } from './Sidebar'
 import { TopBar } from './TopBar'
 
 interface Props {
@@ -16,7 +15,6 @@ export function AppShell({ title, subtitle, children, actions }: Props) {
       <div className="aurora-orb h-[420px] w-[420px] -left-32 top-[-120px] bg-[radial-gradient(circle,var(--brand-glow),transparent_60%)]" />
       <div className="aurora-orb h-[360px] w-[360px] right-[-100px] top-[40%] bg-[radial-gradient(circle,var(--accent-soft),transparent_60%)]" />
 
-      <Sidebar />
       <main className="relative z-10 flex-1 overflow-hidden">
         <div className="flex h-full flex-col">
           <TopBar title={title} subtitle={subtitle} />
