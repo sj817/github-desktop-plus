@@ -23,6 +23,62 @@ import { blockUpdates } from './update-blocker'
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
 
+type StoredConfig = {
+  updates?: {
+    disabled?: unknown
+    block_manual_check?: unknown
+  }
+  telemetry?: {
+    disabled?: unknown
+  }
+  logging?: {
+    level?: unknown
+  }
+  i18n?: {
+    enabled?: unknown
+    locale?: unknown
+  }
+  ui?: {
+    recent_repos_limit?: unknown
+  }
+}
+
+function boolOrCurrent(value: unknown, current: boolean): boolean {
+  return typeof value === 'boolean' ? value : current
+}
+
+function stringOrCurrent(value: unknown, current: string): string {
+  return typeof value === 'string' ? value : current
+}
+
+function positiveIntOrCurrent(value: unknown, current: number): number {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) {
+    return current
+  }
+  return Math.max(1, Math.floor(parsed))
+}
+
+function applyStoredConfig(config: HookConfig, stored: StoredConfig): boolean {
+  const before = JSON.stringify(config)
+
+  config.blockUpdates = boolOrCurrent(stored.updates?.disabled, config.blockUpdates)
+  config.blockManualUpdateCheck = boolOrCurrent(
+    stored.updates?.block_manual_check,
+    config.blockManualUpdateCheck
+  )
+  config.blockTelemetry = boolOrCurrent(stored.telemetry?.disabled, config.blockTelemetry)
+  config.logLevel = stringOrCurrent(stored.logging?.level, config.logLevel)
+  config.enableI18n = boolOrCurrent(stored.i18n?.enabled, config.enableI18n)
+  config.locale = stringOrCurrent(stored.i18n?.locale, config.locale)
+  config.recentReposLimit = positiveIntOrCurrent(
+    stored.ui?.recent_repos_limit,
+    config.recentReposLimit
+  )
+
+  return JSON.stringify(config) !== before
+}
+
 // ── Locale reload watcher (poll <dataDir>/.gdp-locale-reload) ──────────────
 // The Rust serve.rs writes to this marker file after any locale CRUD.
 // We re-read translation files when its mtime changes.
@@ -261,7 +317,7 @@ function setupRendererI18n(
     }
   } catch { /* optional */ }
 
-  const injectScript = `(function(){` +
+  const buildInjectScript = () => `(function(){` +
     `window.__GDP_TRANSLATIONS__=${JSON.stringify(uiTranslations)};` +
     `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
     `window.__GDP_LOG_FILE__=${JSON.stringify(LOG_JSON_FILE)};` +
@@ -270,7 +326,7 @@ function setupRendererI18n(
     (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
     `})();`
 
-  const earlyInjectScript = recentRepositoriesCode
+  const buildEarlyInjectScript = () => recentRepositoriesCode
     ? `(function(){window.__GDP_CONFIG__=${JSON.stringify(config)};\n${recentRepositoriesCode}\n})();`
     : ''
 
@@ -296,6 +352,7 @@ function setupRendererI18n(
 
     let earlyInjected = false
     const injectEarly = () => {
+      const earlyInjectScript = buildEarlyInjectScript()
       if (!earlyInjectScript || earlyInjected || win.webContents.isDestroyed()) {
         return
       }
@@ -310,7 +367,7 @@ function setupRendererI18n(
     win.webContents.on('did-finish-load', () => {
       gdpLog('did-finish-load — injecting scripts', 'info', 'i18n')
       injectEarly()
-      win.webContents.executeJavaScript(injectScript).catch((e: unknown) => {
+      win.webContents.executeJavaScript(buildInjectScript()).catch((e: unknown) => {
         gdpLog(`executeJavaScript failed: ${e}`, 'error', 'i18n')
       })
     })
@@ -330,9 +387,13 @@ const GDP_CONTROL_ORIGIN = 'http://127.0.0.1:7788'
 interface GDPBrowserWindow {
   loadURL(url: string): Promise<void>
   once(event: string, cb: () => void): void
+  on?(event: string, cb: (...args: unknown[]) => void): void
   show(): void
   focus(): void
   isDestroyed(): boolean
+  webContents?: {
+    on?(event: string, cb: (...args: unknown[]) => void): void
+  }
 }
 
 interface GDPBrowserWindowConstructor {
@@ -351,6 +412,68 @@ function controlPanelUrl(config: HookConfig, route: string): string {
   return url.toString()
 }
 
+function embeddedControlPanelUrl(config: HookConfig, route: string): string {
+  return controlPanelUrl({ ...config, controlOrigin: GDP_CONTROL_ORIGIN }, route)
+}
+
+function controlPanelErrorUrl(message: string): string {
+  const escaped = message
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
+  return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GitHub Desktop Plus</title>
+  <style>
+    html,body{height:100%;margin:0;background:#0f1117;color:#eef2ff;font:14px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+    body{display:grid;place-items:center}
+    main{max-width:520px;padding:32px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(20,28,44,.86);box-shadow:0 24px 70px rgba(0,0,0,.45)}
+    h1{margin:0 0 12px;font-size:20px}
+    p{margin:0;color:#aeb8cc}
+    code{color:#9cc8ff}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>GDP 控制面板暂时无法打开</h1>
+    <p>${escaped}</p>
+    <p>请确认 <code>gdp</code> 本地服务或 WebUI dev server 正在运行。</p>
+  </main>
+</body>
+</html>`)}`;
+}
+
+function loadControlPanel(
+  win: GDPBrowserWindow,
+  config: HookConfig,
+  route: string,
+  allowFallback: boolean
+): void {
+  const targetUrl = controlPanelUrl(config, route)
+  const fallbackUrl = embeddedControlPanelUrl(config, route)
+  const canFallback = allowFallback && targetUrl !== fallbackUrl
+
+  void win.loadURL(targetUrl).catch((e: unknown) => {
+    gdpLog(`Failed to open control panel at ${targetUrl}: ${e}`, 'error', 'system')
+    if (canFallback && !win.isDestroyed()) {
+      gdpLog(`Retrying control panel with embedded server: ${fallbackUrl}`, 'warn', 'system')
+      void win.loadURL(fallbackUrl).catch((fallbackError: unknown) => {
+        gdpLog(`Embedded control panel fallback failed: ${fallbackError}`, 'error', 'system')
+        if (!win.isDestroyed()) {
+          void win.loadURL(controlPanelErrorUrl(String(fallbackError))).catch(() => {})
+        }
+      })
+    } else if (!win.isDestroyed()) {
+      void win.loadURL(controlPanelErrorUrl(String(e))).catch(() => {})
+    }
+  })
+}
+
 function openControlPanel(
   BrowserWindow: GDPBrowserWindowConstructor,
   config: HookConfig,
@@ -358,7 +481,7 @@ function openControlPanel(
 ): void {
   if (gdpControlWindow && !gdpControlWindow.isDestroyed()) {
     gdpControlWindow.focus()
-    void gdpControlWindow.loadURL(controlPanelUrl(config, route))
+    loadControlPanel(gdpControlWindow, config, route, true)
     return
   }
 
@@ -381,10 +504,32 @@ function openControlPanel(
     },
   })
   gdpControlWindow = win
-  win.once('ready-to-show', () => win.show())
-  void win.loadURL(controlPanelUrl(config, route)).catch((e: unknown) => {
-    gdpLog(`Failed to open control panel: ${e}`, 'error', 'system')
+  win.on?.('closed', () => {
+    if (gdpControlWindow === win) {
+      gdpControlWindow = null
+    }
   })
+  win.webContents?.on?.('did-fail-load', (...args: unknown[]) => {
+    const errorCode = typeof args[1] === 'number' ? args[1] : 0
+    const errorDescription = typeof args[2] === 'string' ? args[2] : 'unknown'
+    const validatedURL = typeof args[3] === 'string' ? args[3] : ''
+    const isMainFrame = args[4] !== false
+    const targetUrl = controlPanelUrl(config, route)
+    const fallbackUrl = embeddedControlPanelUrl(config, route)
+
+    if (!isMainFrame || targetUrl === fallbackUrl || !validatedURL.startsWith(targetUrl)) {
+      return
+    }
+
+    gdpLog(
+      `Control panel dev server load failed (${errorCode} ${errorDescription}); falling back to ${fallbackUrl}`,
+      'warn',
+      'system'
+    )
+    loadControlPanel(win, { ...config, controlOrigin: GDP_CONTROL_ORIGIN }, route, false)
+  })
+  win.once('ready-to-show', () => win.show())
+  loadControlPanel(win, config, route, true)
 }
 
 function buildGDPMenuItems(
@@ -584,6 +729,58 @@ function setupLocaleHotReload(
   }
 }
 
+function pushRuntimeConfig(
+  config: HookConfig,
+  activeWebContents: TrackedWebContents[]
+): void {
+  const updateScript = `(function(){` +
+    `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
+    `if(typeof window.__gdpApplyRecentReposLimit==="function"){window.__gdpApplyRecentReposLimit();}` +
+    `})();`
+
+  const alive = activeWebContents.filter(wc => !wc.isDestroyed())
+  for (const wc of alive) {
+    wc.executeJavaScript(updateScript).catch((e: unknown) => {
+      gdpLog(`Runtime config push failed: ${e}`, 'error', 'system')
+    })
+  }
+}
+
+function setupConfigHotReload(
+  config: HookConfig,
+  activeWebContents: TrackedWebContents[]
+): void {
+  if (!config.configDir) {
+    return
+  }
+
+  const configPath = _path.join(config.configDir, 'config.json')
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  const reload = () => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => {
+      try {
+        const parsed = JSON.parse(_fs.readFileSync(configPath, 'utf-8')) as StoredConfig
+        if (applyStoredConfig(config, parsed)) {
+          configureLogLevel(config.logLevel)
+          pushRuntimeConfig(config, activeWebContents)
+          gdpLog(`Runtime config reloaded from ${configPath}`, 'info', 'system')
+        }
+      } catch (e) {
+        gdpLog(`Runtime config reload skipped: ${e}`, 'warn', 'system')
+      }
+    }, 250)
+  }
+
+  try {
+    _fs.watchFile(configPath, { interval: 1000 }, reload)
+    gdpLog(`Watching runtime config: ${configPath}`, 'info', 'system')
+  } catch (e) {
+    gdpLog(`Failed to watch runtime config: ${e}`, 'warn', 'system')
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -671,6 +868,8 @@ function main(): void {
       config
     ) ?? []
   }
+
+  setupConfigHotReload(config, activeWebContents)
 
   // 4. Telemetry blocking
   if (config.blockTelemetry && electron.app && electron.session) {

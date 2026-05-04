@@ -272,6 +272,9 @@ fn build_hook_config(config: &Config, hooks_dir: &Path, auth_token: &str) -> Str
         .parent()
         .map(|p| p.display().to_string())
         .unwrap_or_default();
+    let runtime_config_dir = config_dir()
+        .map(|p| p.display().to_string())
+        .unwrap_or_default();
     let control_origin =
         std::env::var("GDP_CONTROL_ORIGIN").unwrap_or_else(|_| "http://127.0.0.1:7788".to_string());
 
@@ -283,6 +286,7 @@ fn build_hook_config(config: &Config, hooks_dir: &Path, auth_token: &str) -> Str
         "enableI18n": config.i18n.enabled,
         "locale": config.i18n.locale,
         "dataDir": runtime_data_dir,
+        "configDir": runtime_config_dir,
         "authToken": auth_token,
         "controlOrigin": control_origin,
         "recentReposLimit": config.ui.recent_repos_limit,

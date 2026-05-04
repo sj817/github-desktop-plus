@@ -2,10 +2,15 @@ type GDPWindowConfig = {
   recentReposLimit?: number
 }
 
+type GDPWindow = Window & {
+  __GDP_CONFIG__?: GDPWindowConfig
+  __gdpApplyRecentReposLimit?: () => void
+}
+
 const RECENT_REPOSITORIES_KEY = 'recently-selected-repositories'
 
 function getRecentReposLimit(): number {
-  const config = (window as unknown as { __GDP_CONFIG__?: GDPWindowConfig }).__GDP_CONFIG__
+  const config = (window as unknown as GDPWindow).__GDP_CONFIG__
   const value = Number(config?.recentReposLimit ?? 3)
   if (!Number.isFinite(value)) {
     return 3
@@ -51,12 +56,19 @@ function shouldHandle(storage: Storage, key: string): boolean {
   return storage === window.localStorage && key === RECENT_REPOSITORIES_KEY
 }
 
+function normalizeRecentRepositories(): void {
+  const limit = getRecentReposLimit()
+  const current = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_KEY))
+  window.localStorage.setItem(RECENT_REPOSITORIES_KEY, JSON.stringify(uniqueRepos(current, limit)))
+}
+
 export function setupRecentRepositoriesLimit(): void {
   const storagePrototype = Storage.prototype as Storage & {
     __gdpRecentReposPatched?: boolean
   }
 
   if (storagePrototype.__gdpRecentReposPatched) {
+    normalizeRecentRepositories()
     return
   }
 
@@ -93,15 +105,12 @@ export function setupRecentRepositoriesLimit(): void {
   })
 
   try {
-    const limit = getRecentReposLimit()
-    const current = parseRecentRepos(originalGetItem.call(window.localStorage, RECENT_REPOSITORIES_KEY))
-    originalSetItem.call(
-      window.localStorage,
-      RECENT_REPOSITORIES_KEY,
-      JSON.stringify(uniqueRepos(current, limit)),
-    )
-    console.log(`[GDP] Recent repositories limit active: ${limit}`)
+    normalizeRecentRepositories()
+    console.log(`[GDP] Recent repositories limit active: ${getRecentReposLimit()}`)
   } catch (error) {
     console.warn('[GDP] Failed to normalize recent repositories:', error)
   }
 }
+
+(window as unknown as GDPWindow).__gdpApplyRecentReposLimit = setupRecentRepositoriesLimit
+setupRecentRepositoriesLimit()

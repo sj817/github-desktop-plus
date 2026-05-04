@@ -244,10 +244,12 @@ fn route_misc(
             let bytes = post_body.unwrap_or_default();
             match serde_json::from_slice::<Config>(&bytes) {
                 Ok(new_cfg) => {
-                    if let Some(ref dir) = state.config_dir {
-                        if let Err(e) = new_cfg.save(dir) {
-                            eprintln!("gdp serve: config save failed: {e}");
-                        }
+                    let Some(ref dir) = state.config_dir else {
+                        return json_err(StatusCode::SERVICE_UNAVAILABLE, "config_dir_unavailable");
+                    };
+                    if let Err(e) = new_cfg.save(dir) {
+                        eprintln!("gdp serve: config save failed: {e}");
+                        return json_err(StatusCode::INTERNAL_SERVER_ERROR, "config_save_failed");
                     }
                     *state.config.lock().unwrap() = new_cfg.clone();
                     json_ok(&new_cfg)
@@ -359,6 +361,85 @@ fn route_locale(
 #[allow(dead_code)]
 fn _empty_body_ref() -> Empty<Bytes> {
     Empty::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    fn test_state(config_dir: Option<std::path::PathBuf>) -> AppState {
+        AppState {
+            config_dir,
+            data_dir: None,
+            config: Arc::new(Mutex::new(Config::default())),
+            auth_token: Arc::new("token".to_string()),
+            sessions: Arc::new(Mutex::new(Default::default())),
+        }
+    }
+
+    fn config_body(limit: u32) -> Bytes {
+        let mut cfg = Config::default();
+        cfg.ui.recent_repos_limit = limit;
+        Bytes::from(serde_json::to_vec(&cfg).expect("serialize config"))
+    }
+
+    #[test]
+    fn post_config_persists_to_disk_before_updating_state() {
+        let dir = std::env::temp_dir().join(format!(
+            "gdp-serve-config-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        let state = test_state(Some(dir.clone()));
+
+        let resp = route_misc(
+            Method::POST,
+            "/api/config",
+            &HashMap::new(),
+            Some(config_body(8)),
+            &state,
+        );
+
+        assert_eq!(resp.status(), StatusCode::OK);
+        let saved = Config::load(&dir).expect("config saved");
+        assert_eq!(saved.ui.recent_repos_limit, 8);
+        assert_eq!(state.config.lock().unwrap().ui.recent_repos_limit, 8);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn post_config_reports_save_failure_and_keeps_state() {
+        let dir = std::env::temp_dir().join(format!(
+            "gdp-serve-config-blocker-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let blocker = dir.join("blocker");
+        std::fs::write(&blocker, b"x").unwrap();
+        let state = test_state(Some(blocker));
+
+        let resp = route_misc(
+            Method::POST,
+            "/api/config",
+            &HashMap::new(),
+            Some(config_body(8)),
+            &state,
+        );
+
+        assert_eq!(resp.status(), StatusCode::INTERNAL_SERVER_ERROR);
+        assert_eq!(state.config.lock().unwrap().ui.recent_repos_limit, 3);
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }
 
 // ── Public entry point ────────────────────────────────────────────────────────

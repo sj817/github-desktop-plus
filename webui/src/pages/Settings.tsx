@@ -13,7 +13,11 @@ export default function SettingsPage() {
 
   const save = useMutation({
     mutationFn: (c: AppConfig) => Status.saveConfig(c),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg'] }),
+    onSuccess: (saved) => {
+      qc.setQueryData(['cfg'], saved)
+      setDraft(saved)
+      void qc.invalidateQueries({ queryKey: ['cfg'] })
+    },
   })
 
   if (!draft) return <AppShell title="设置"><div /></AppShell>
@@ -105,7 +109,15 @@ export default function SettingsPage() {
           </Row>
         </GlassCard>
 
-        <div className="xl:col-span-2 flex justify-end">
+        <div className="xl:col-span-2 flex items-center justify-end gap-4">
+          {save.isSuccess && (
+            <span className="text-[12.5px] text-success-500">已保存，最近仓库数量会自动同步</span>
+          )}
+          {save.isError && (
+            <span className="text-[12.5px] text-danger-500">
+              保存失败：{save.error instanceof Error ? save.error.message : 'unknown'}
+            </span>
+          )}
           <Button
             color="primary"
             radius="full"

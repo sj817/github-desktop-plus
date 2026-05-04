@@ -6,6 +6,7 @@ export interface HookConfig {
   enableI18n: boolean
   locale: string
   dataDir: string
+  configDir: string
   authToken: string
   controlOrigin: string
   recentReposLimit: number
@@ -20,6 +21,7 @@ export function parseConfig(): HookConfig {
     enableI18n: true,
     locale: 'zh-CN',
     dataDir: '',
+    configDir: '',
     authToken: '',
     controlOrigin: 'http://127.0.0.1:7788',
     recentReposLimit: 3,

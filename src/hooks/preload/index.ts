@@ -1,4 +1,4 @@
-import { setupRecentRepositoriesLimit } from './recent-repositories'
+import './recent-repositories'
 
 /**
  * i18n Preload Script — runs inside GitHub Desktop's renderer process.
@@ -21,8 +21,6 @@ import { setupRecentRepositoriesLimit } from './recent-repositories'
   type GDPTranslatedElement = Element & {
     __gdpAttrState?: Record<string, GDPAttrState>;
   };
-
-  setupRecentRepositoriesLimit();
 
   const NON_TRANSLATABLE_SELECTOR = [
     "code",
