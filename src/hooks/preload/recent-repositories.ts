@@ -5,36 +5,49 @@ type GDPWindowConfig = {
 type GDPWindow = Window & {
   __GDP_CONFIG__?: GDPWindowConfig
   __gdpApplyRecentReposLimit?: () => void
+  __GDP_RECENT_REPOS_LIMIT?: number
+}
+
+type PatchedStoragePrototype = Storage & {
+  __gdpRecentReposStoragePatched?: boolean
+}
+
+type PatchedArrayPrototype = unknown[] & {
+  __gdpRecentReposSlicePatched?: boolean
 }
 
 const RECENT_REPOSITORIES_KEY = 'recently-selected-repositories'
+const RECENT_REPOSITORIES_BACKUP_KEY = 'gdp-recently-selected-repositories-backup'
+const DEFAULT_RECENT_REPOS_LIMIT = 3
+const MAX_BACKUP_REPOSITORIES = 250
+const NUMBER_ARRAY_DELIMITER = ','
 
 function getRecentReposLimit(): number {
   const config = (window as unknown as GDPWindow).__GDP_CONFIG__
-  const value = Number(config?.recentReposLimit ?? 3)
+  const value = Number(config?.recentReposLimit ?? DEFAULT_RECENT_REPOS_LIMIT)
   if (!Number.isFinite(value)) {
-    return 3
+    return DEFAULT_RECENT_REPOS_LIMIT
   }
   return Math.max(1, Math.floor(value))
 }
 
 function parseRecentRepos(value: string | null): number[] {
-  if (value === null) {
+  if (value === null || value === '') {
     return []
   }
 
   try {
-    const parsed = JSON.parse(value) as unknown
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-    return parsed.filter((item): item is number => Number.isInteger(item))
+    // GitHub Desktop uses comma-separated format, not JSON
+    return value
+      .split(NUMBER_ARRAY_DELIMITER)
+      .map(parseFloat)
+      .filter(n => !isNaN(n))
   } catch {
     return []
   }
 }
 
-function uniqueRepos(repositories: ReadonlyArray<number>, limit: number): number[] {
+function uniqueRepos(repositories: ReadonlyArray<number>, limit = repositories.length): number[] {
   const seen = new Set<number>()
   const result: number[] = []
 
@@ -56,59 +69,168 @@ function shouldHandle(storage: Storage, key: string): boolean {
   return storage === window.localStorage && key === RECENT_REPOSITORIES_KEY
 }
 
-function normalizeRecentRepositories(): void {
-  const limit = getRecentReposLimit()
-  const current = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_KEY))
-  window.localStorage.setItem(RECENT_REPOSITORIES_KEY, JSON.stringify(uniqueRepos(current, limit)))
+function isRepositoryIdArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every(item => Number.isInteger(item))
 }
 
-export function setupRecentRepositoriesLimit(): void {
-  const storagePrototype = Storage.prototype as Storage & {
-    __gdpRecentReposPatched?: boolean
+function isRecentRepositorySliceCall(value: unknown): value is number[] {
+  if (!isRepositoryIdArray(value)) {
+    return false
   }
 
-  if (storagePrototype.__gdpRecentReposPatched) {
-    normalizeRecentRepositories()
+  const stack = new Error().stack ?? ''
+  if (!stack.includes('updateRecentRepositories')) {
+    return false
+  }
+
+  const current = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_KEY))
+  const backup = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_BACKUP_KEY))
+  const knownRepositories = new Set([...current, ...backup])
+
+  if (knownRepositories.size === 0) {
+    return value.length > 0
+  }
+
+  const overlap = value.filter(repository => knownRepositories.has(repository)).length
+  return overlap >= Math.min(2, value.length)
+}
+
+function mergeForStorage(
+  incoming: ReadonlyArray<number>,
+  existing: ReadonlyArray<number>,
+  backup: ReadonlyArray<number>
+): number[] {
+  const stored = uniqueRepos([...incoming, ...existing, ...backup], getRecentReposLimit())
+  return stored
+}
+
+function updateBackup(
+  originalGetItem: Storage['getItem'],
+  originalSetItem: Storage['setItem'],
+  incoming: ReadonlyArray<number>,
+  existing: ReadonlyArray<number>
+): void {
+  const backup = parseRecentRepos(originalGetItem.call(window.localStorage, RECENT_REPOSITORIES_BACKUP_KEY))
+  const merged = uniqueRepos([...incoming, ...existing, ...backup], MAX_BACKUP_REPOSITORIES)
+  originalSetItem.call(window.localStorage, RECENT_REPOSITORIES_BACKUP_KEY, merged.join(NUMBER_ARRAY_DELIMITER))
+}
+
+function setupRecentRepositoriesStorageGuard(): void {
+  const storagePrototype = Storage.prototype as PatchedStoragePrototype
+
+  if (storagePrototype.__gdpRecentReposStoragePatched) {
     return
   }
 
   const originalGetItem = storagePrototype.getItem
   const originalSetItem = storagePrototype.setItem
 
-  storagePrototype.getItem = function getItem(key: string): string | null {
-    const raw = originalGetItem.call(this, key)
-    if (!shouldHandle(this, key)) {
-      return raw
-    }
-
-    const limit = getRecentReposLimit()
-    const repositories = uniqueRepos(parseRecentRepos(raw), limit)
-    return JSON.stringify(repositories)
-  }
-
   storagePrototype.setItem = function setItem(key: string, value: string): void {
     if (!shouldHandle(this, key)) {
       return originalSetItem.call(this, key, value)
     }
 
-    const limit = getRecentReposLimit()
     const incoming = parseRecentRepos(value)
     const existing = parseRecentRepos(originalGetItem.call(this, key))
-    const repositories = uniqueRepos([...incoming, ...existing], limit)
-    return originalSetItem.call(this, key, JSON.stringify(repositories))
+    const backup = parseRecentRepos(originalGetItem.call(this, RECENT_REPOSITORIES_BACKUP_KEY))
+    const repositories = mergeForStorage(incoming, existing, backup)
+
+    updateBackup(originalGetItem, originalSetItem, incoming, existing)
+    return originalSetItem.call(this, key, repositories.join(NUMBER_ARRAY_DELIMITER))
   }
 
-  Object.defineProperty(storagePrototype, '__gdpRecentReposPatched', {
+  Object.defineProperty(storagePrototype, '__gdpRecentReposStoragePatched', {
     value: true,
     enumerable: false,
     configurable: false,
   })
 
   try {
-    normalizeRecentRepositories()
-    console.log(`[GDP] Recent repositories limit active: ${getRecentReposLimit()}`)
+    const current = parseRecentRepos(originalGetItem.call(window.localStorage, RECENT_REPOSITORIES_KEY))
+    updateBackup(originalGetItem, originalSetItem, current, [])
   } catch (error) {
-    console.warn('[GDP] Failed to normalize recent repositories:', error)
+    console.warn('[GDP] Failed to back up recent repositories:', error)
+  }
+}
+
+function setupRecentRepositoriesSlicePatch(): void {
+  const arrayPrototype = Array.prototype as PatchedArrayPrototype
+
+  if (arrayPrototype.__gdpRecentReposSlicePatched) {
+    return
+  }
+
+  const originalSlice = Array.prototype.slice
+
+  Array.prototype.slice = function slice<T>(
+    this: T[],
+    start?: number,
+    end?: number
+  ): T[] {
+    try {
+      if (start === 0 && end === DEFAULT_RECENT_REPOS_LIMIT) {
+        const shouldIntercept = isRecentRepositorySliceCall(this)
+        if (shouldIntercept) {
+          const limit = getRecentReposLimit()
+          console.log(`[GDP] Intercepted slice(0, ${end}) → slice(0, ${limit})`, {
+            arrayLength: this.length,
+            original: this.slice(0, end),
+            modified: originalSlice.call(this, start, limit)
+          })
+          return originalSlice.call(this, start, limit)
+        }
+      }
+    } catch (e) {
+      console.warn('[GDP] slice patch error:', e)
+    }
+    return originalSlice.call(this, start, end)
+  }
+
+  Object.defineProperty(arrayPrototype, '__gdpRecentReposSlicePatched', {
+    value: true,
+    enumerable: false,
+    configurable: false,
+  })
+}
+
+function patchRecentRepositoriesLength(): void {
+  // Try to patch the RecentRepositoriesLength constant
+  // This is tricky because it's a const in a module, but we can try to intercept it
+  const originalDefineProperty = Object.defineProperty
+  let patched = false
+
+  Object.defineProperty = function (obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
+    // Intercept when RecentRepositoriesLength is being defined
+    if (prop === 'RecentRepositoriesLength' && !patched) {
+      patched = true
+      const limit = getRecentReposLimit()
+      console.log(`[GDP] Patching RecentRepositoriesLength: 3 → ${limit}`)
+      return originalDefineProperty.call(this, obj, prop, {
+        ...descriptor,
+        value: limit,
+      })
+    }
+    return originalDefineProperty.call(this, obj, prop, descriptor)
+  }
+
+  // Restore after a short delay
+  setTimeout(() => {
+    Object.defineProperty = originalDefineProperty
+  }, 5000)
+}
+
+export function setupRecentRepositoriesLimit(): void {
+  patchRecentRepositoriesLength()
+  setupRecentRepositoriesSlicePatch()
+  setupRecentRepositoriesStorageGuard()
+
+  // Store the limit in window for other parts to access
+  try {
+    const limit = getRecentReposLimit()
+    console.log(`[GDP] Recent repositories limit active: ${limit}`)
+    ;(window as unknown as GDPWindow).__GDP_RECENT_REPOS_LIMIT = limit
+  } catch (e) {
+    console.warn('[GDP] Failed to set recent repos limit:', e)
   }
 }
 
