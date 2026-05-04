@@ -135,11 +135,32 @@ fn route(
     cookie_header: &Option<String>,
     state: &AppState,
 ) -> Response<Body> {
-    // ── Auth endpoints ───────────────────────────────────────────────────────
+    if let Some(resp) = route_auth(&method, path, query, cookie_header, state) {
+        return resp;
+    }
+
+    if let Some(resp) = route_dev(&method, path, state) {
+        return resp;
+    }
+
+    if let Some(resp) = route_locale(&method, path, post_body.as_ref(), state) {
+        return resp;
+    }
+
+    route_misc(method, path, query, post_body, state)
+}
+
+fn route_auth(
+    method: &Method,
+    path: &str,
+    query: &std::collections::HashMap<String, String>,
+    cookie_header: &Option<String>,
+    state: &AppState,
+) -> Option<Response<Body>> {
     if method == Method::POST && path == "/api/auth/exchange" {
         let supplied = query.get("t").cloned().unwrap_or_default();
         if supplied.is_empty() || supplied != *state.auth_token {
-            return json_err(StatusCode::UNAUTHORIZED, "invalid_token");
+            return Some(json_err(StatusCode::UNAUTHORIZED, "invalid_token"));
         }
         let sid = create_session(state);
         let mut resp = json_ok(&serde_json::json!({ "ok": true }));
@@ -148,33 +169,41 @@ fn route(
             HeaderValue::from_str(&build_session_cookie(&sid))
                 .unwrap_or_else(|_| HeaderValue::from_static("")),
         );
-        return resp;
+        return Some(resp);
     }
 
     if method == Method::GET && path == "/api/auth/status" {
         let (authed, expires_in) = status_for(state, cookie_header.as_deref());
-        return json_ok(&serde_json::json!({
+        return Some(json_ok(&serde_json::json!({
             "authed": authed,
             "expires_in_secs": expires_in,
-        }));
+        })));
     }
 
-    if method == Method::POST && path == "/api/dev/locales/reload" {
-        if std::env::var_os("GDP_DEV").is_none() {
-            return json_err(StatusCode::NOT_FOUND, "unknown_route");
-        }
-        if let Some(ref dir) = state.data_dir {
-            locale::reload_signal(dir);
-        }
-        return json_ok(&serde_json::json!({ "ok": true }));
+    None
+}
+
+fn route_dev(method: &Method, path: &str, state: &AppState) -> Option<Response<Body>> {
+    if method != Method::POST || path != "/api/dev/locales/reload" {
+        return None;
     }
 
-    // ── Locale endpoints (see locale.rs) ─────────────────────────────────────
-    if let Some(resp) = route_locale(&method, path, post_body.as_ref(), state) {
-        return resp;
+    if std::env::var_os("GDP_DEV").is_none() {
+        return Some(json_err(StatusCode::NOT_FOUND, "unknown_route"));
     }
+    if let Some(ref dir) = state.data_dir {
+        locale::reload_signal(dir);
+    }
+    Some(json_ok(&serde_json::json!({ "ok": true })))
+}
 
-    // ── Misc API ─────────────────────────────────────────────────────────────
+fn route_misc(
+    method: Method,
+    path: &str,
+    query: &std::collections::HashMap<String, String>,
+    post_body: Option<Bytes>,
+    state: &AppState,
+) -> Response<Body> {
     match (method, path) {
         // Legacy compat: /api/locale?locale=&category=
         (Method::GET, "/api/locale") => {

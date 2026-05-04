@@ -8,7 +8,8 @@
 //!     inject the GDP hook bundle, then watch its PID and exit when it dies.
 
 use std::io::{self, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::{Child, Stdio};
 use std::time::Duration;
 
 use gdp_core::{
@@ -25,6 +26,10 @@ use crate::proc::{
 use crate::{auth, injector, serve};
 
 const SINGLE_INSTANCE_PORT: u16 = 7788;
+
+struct DesktopTarget {
+    real_exe: PathBuf,
+}
 
 pub fn load_config() -> (Config, Option<PathBuf>) {
     let dir = config_dir();
@@ -190,36 +195,29 @@ fn watch_pid_and_exit(pid: u32) {
     });
 }
 
-/// Implementation of `gdp launch`.
-pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foreground: bool) {
-    let already_daemon = std::env::var("GDP_DAEMON").is_ok();
-    let (mut config, cfg_dir) = load_config();
+fn apply_desktop_override(config: &mut Config, desktop_path: Option<PathBuf>) {
+    if let Some(path) = desktop_path {
+        config.desktop.path = Some(path);
+    }
+}
 
-    if let Some(p) = desktop_path {
-        config.desktop.path = Some(p);
+fn maybe_prompt_desktop(config: &mut Config, cfg_dir: Option<&PathBuf>, force: bool) {
+    if !(force || !config_has_desktop(config)) {
+        return;
     }
 
-    let needs_interactive = force || !config_has_desktop(&config);
-
-    if needs_interactive && !already_daemon {
-        let chosen = interactive_select_desktop();
-        config.desktop.path = Some(chosen);
-        if let Some(ref dir) = cfg_dir {
-            match config.save(dir) {
-                Ok(()) => println!("✓ Config saved to {}", dir.join("config.json").display()),
-                Err(e) => eprintln!("warning: could not save config: {e}"),
-            }
+    let chosen = interactive_select_desktop();
+    config.desktop.path = Some(chosen);
+    if let Some(dir) = cfg_dir {
+        match config.save(dir) {
+            Ok(()) => println!("✓ Config saved to {}", dir.join("config.json").display()),
+            Err(e) => eprintln!("warning: could not save config: {e}"),
         }
-        println!();
     }
+    println!();
+}
 
-    // Single-instance check (foreground only — the daemon child will rebind).
-    if !already_daemon {
-        ensure_single_instance(cfg_dir.as_ref());
-    }
-
-    let hooks_dir = extract_hook_to_disk();
-
+fn resolve_desktop_target(config: &Config) -> DesktopTarget {
     let exe = config
         .desktop
         .path
@@ -240,32 +238,36 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foregroun
     });
     let real_exe = find_real_electron_exe(&main_js).unwrap_or_else(|| exe.clone());
 
-    if !already_daemon {
-        println!(
-            "GitHub Desktop Plus  |  desktop: {}  |  control: {}",
-            real_exe.display(),
-            if no_serve {
-                "(disabled)"
-            } else {
-                "GDP menu popup"
-            }
-        );
-        if !foreground {
-            daemonize_and_exit(no_serve);
-            // Windows: parent exits here. Unix: daemon child falls through.
+    DesktopTarget { real_exe }
+}
+
+fn announce_and_maybe_daemonize(target: &DesktopTarget, no_serve: bool, foreground: bool) {
+    println!(
+        "GitHub Desktop Plus  |  desktop: {}  |  control: {}",
+        target.real_exe.display(),
+        if no_serve {
+            "(disabled)"
+        } else {
+            "GDP menu popup"
         }
+    );
+
+    if !foreground {
+        daemonize_and_exit(no_serve);
     }
+}
 
-    // ── Daemon process ───────────────────────────────────────────────────────
-    kill_github_desktop_if_running();
-
+fn write_auth_token(cfg_dir: Option<&PathBuf>) -> String {
     let auth_token = auth::generate_token();
-    if let Some(ref dir) = cfg_dir {
+    if let Some(dir) = cfg_dir {
         if let Err(e) = auth::write_token_file(dir, &auth_token) {
             eprintln!("warning: cannot write token file: {e}");
         }
     }
+    auth_token
+}
 
+fn build_hook_config(config: &Config, hooks_dir: &Path, auth_token: &str) -> String {
     let runtime_data_dir = hooks_dir
         .parent()
         .map(|p| p.display().to_string())
@@ -273,7 +275,7 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foregroun
     let control_origin =
         std::env::var("GDP_CONTROL_ORIGIN").unwrap_or_else(|_| "http://127.0.0.1:7788".to_string());
 
-    let hook_config = serde_json::json!({
+    serde_json::json!({
         "blockUpdates": config.updates.disabled,
         "blockManualUpdateCheck": config.updates.block_manual_check,
         "blockTelemetry": config.telemetry.disabled,
@@ -281,44 +283,41 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foregroun
         "enableI18n": config.i18n.enabled,
         "locale": config.i18n.locale,
         "dataDir": runtime_data_dir,
-        "authToken": auth_token.clone(),
+        "authToken": auth_token,
         "controlOrigin": control_origin,
         "recentReposLimit": config.ui.recent_repos_limit,
-    });
-    let config_json = hook_config.to_string();
+    })
+    .to_string()
+}
 
-    let child = std::process::Command::new(&real_exe)
+fn spawn_desktop(target: &DesktopTarget, hooks_dir: &Path, config_json: &str) -> Child {
+    std::process::Command::new(&target.real_exe)
         .arg("--inspect-brk=0")
-        .env("GDP_CONFIG", &config_json)
+        .env("GDP_CONFIG", config_json)
         .env("GDP_HOOK_DIR", hooks_dir.to_str().unwrap_or_default())
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::piped())
-        .spawn();
-
-    let mut c = match child {
-        Ok(c) => c,
-        Err(e) => {
+        .stdout(Stdio::null())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap_or_else(|e| {
             eprintln!("error: failed to launch GitHub Desktop: {e}");
             std::process::exit(1);
-        }
-    };
+        })
+}
 
-    let pid = c.id();
-    let daemon_pid = std::process::id();
-    if let Some(ref dir) = cfg_dir {
-        let _ = std::fs::write(dir.join("gdp.pid"), pid.to_string());
-        let _ = std::fs::write(dir.join("gdp-daemon.pid"), daemon_pid.to_string());
+fn write_pid_files(cfg_dir: Option<&PathBuf>, desktop_pid: u32) {
+    if let Some(dir) = cfg_dir {
+        let _ = std::fs::write(dir.join("gdp.pid"), desktop_pid.to_string());
+        let _ = std::fs::write(dir.join("gdp-daemon.pid"), std::process::id().to_string());
     }
+}
 
-    let ws_url = c
+fn inject_hooks(child: &mut Child) {
+    let ws_url = child
         .stderr
         .take()
         .and_then(|stderr| read_inspect_ws_url_sync(stderr, Duration::from_secs(20)));
-    // Keep `c` alive (so the OS handle stays open), but we no longer need direct stdio.
-    // We track the PID instead of the Child handle from here on.
-    std::mem::forget(c);
-
     let hook_code = std::str::from_utf8(HOOK_JS).unwrap_or("");
+
     match ws_url {
         Some(ref url) => match injector::inject(url, hook_code, Duration::from_secs(30)) {
             Ok(()) => {}
@@ -332,8 +331,9 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foregroun
             eprintln!("         GitHub Desktop will run without GDP hooks.");
         }
     }
+}
 
-    // Build runtime, register PID watcher, then run server (or block on watcher).
+fn run_daemon_loop(pid: u32, no_serve: bool, auth_token: String) {
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -344,10 +344,44 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foregroun
         if !no_serve {
             serve::serve_async_with_token(Some(auth_token)).await;
         } else {
-            // Without serve, just sleep forever — the watcher will exit() when GD dies.
             loop {
                 tokio::time::sleep(Duration::from_secs(3600)).await;
             }
         }
     });
+}
+
+/// Implementation of `gdp launch`.
+pub fn run(force: bool, desktop_path: Option<PathBuf>, no_serve: bool, foreground: bool) {
+    let already_daemon = std::env::var("GDP_DAEMON").is_ok();
+    let (mut config, cfg_dir) = load_config();
+
+    apply_desktop_override(&mut config, desktop_path);
+
+    if !already_daemon {
+        maybe_prompt_desktop(&mut config, cfg_dir.as_ref(), force);
+        ensure_single_instance(cfg_dir.as_ref());
+    }
+
+    let hooks_dir = extract_hook_to_disk();
+    let target = resolve_desktop_target(&config);
+
+    if !already_daemon {
+        announce_and_maybe_daemonize(&target, no_serve, foreground);
+    }
+
+    kill_github_desktop_if_running();
+
+    let auth_token = write_auth_token(cfg_dir.as_ref());
+    let config_json = build_hook_config(&config, &hooks_dir, &auth_token);
+    let mut child = spawn_desktop(&target, &hooks_dir, &config_json);
+    let pid = child.id();
+    write_pid_files(cfg_dir.as_ref(), pid);
+    inject_hooks(&mut child);
+
+    // Keep `child` alive (so the OS handle stays open), but we no longer need direct stdio.
+    // We track the PID instead of the Child handle from here on.
+    std::mem::forget(child);
+
+    run_daemon_loop(pid, no_serve, auth_token);
 }
