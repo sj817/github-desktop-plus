@@ -94,7 +94,7 @@ async function watchForRestart(dir, label) {
 }
 
 async function main() {
-  const vite = command('pnpm', ['--dir', 'webui', 'run', 'dev', '--', '--host', '127.0.0.1'])
+  const vite = command('pnpm', ['--dir', 'webui', 'run', 'dev', '--host', '127.0.0.1'])
   const locales = command('node', ['scripts/locales.mjs', 'watch', 'zh-CN'], {
     env: { GDP_NOTIFY_RUNTIME: '1' },
   })
