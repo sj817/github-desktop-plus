@@ -1,3 +1,5 @@
+import { setupRecentRepositoriesLimit } from './recent-repositories'
+
 /**
  * i18n Preload Script — runs inside GitHub Desktop's renderer process.
  * Uses MutationObserver to replace English text with translations.
@@ -19,6 +21,25 @@
   type GDPTranslatedElement = Element & {
     __gdpAttrState?: Record<string, GDPAttrState>;
   };
+
+  setupRecentRepositoriesLimit();
+
+  const NON_TRANSLATABLE_SELECTOR = [
+    "code",
+    "pre",
+    "kbd",
+    "samp",
+    ".CodeMirror-code",
+    ".CodeMirror-line",
+    ".CodeMirror-line-like",
+    ".cm-content",
+    ".cm-line",
+    ".side-by-side-diff .content-wrapper",
+    ".side-by-side-diff-container .content-wrapper",
+    ".blob-code",
+    ".blob-code-inner",
+    "[data-gdp-no-translate]",
+  ].join(",");
 
   function getTranslations(): Record<string, string> {
     return ((window as unknown as Record<string, unknown>).__GDP_TRANSLATIONS__ as Record<string, string> | undefined) ?? {};
@@ -113,9 +134,36 @@
     return text;
   }
 
+  function hasSyntaxTokenClass(el: Element): boolean {
+    return Array.from(el.classList).some(
+      (className) => className.startsWith("cm-") && !className.startsWith("cm-s-"),
+    );
+  }
+
+  function isInsideNonTranslatableContent(el: Element | null): boolean {
+    let current = el;
+    while (current !== null) {
+      if (current.matches(NON_TRANSLATABLE_SELECTOR) || hasSyntaxTokenClass(current)) {
+        return true;
+      }
+      current = current.parentElement;
+    }
+    return false;
+  }
+
   function translateNode(node: Node) {
     if (node.nodeType === Node.TEXT_NODE && node.textContent) {
       const textNode = node as GDPTextNode;
+      if (isInsideNonTranslatableContent(textNode.parentElement)) {
+        if (
+          textNode.__gdpSourceText !== undefined &&
+          textNode.textContent === textNode.__gdpTranslatedText
+        ) {
+          textNode.textContent = textNode.__gdpSourceText;
+        }
+        return;
+      }
+
       const current = textNode.textContent;
       const source =
         textNode.__gdpSourceText !== undefined &&
@@ -134,6 +182,15 @@
   }
 
   function translateAttribute(el: Element, attr: string) {
+    if (isInsideNonTranslatableContent(el)) {
+      const translatedElement = el as GDPTranslatedElement;
+      const prev = translatedElement.__gdpAttrState?.[attr];
+      if (prev !== undefined && el.getAttribute(attr) === prev.translated) {
+        el.setAttribute(attr, prev.source);
+      }
+      return;
+    }
+
     const current = el.getAttribute(attr);
     if (!current) return;
 
@@ -205,52 +262,6 @@
   });
 
   console.log("[GDP i18n] MutationObserver active");
-
-  // ---------------------------------------------------------------------------
-  // Intercept localStorage for "recently-selected-repositories" to enforce
-  // the configurable recent repos limit (window.__GDP_CONFIG__.recentReposLimit).
-  // GitHub Desktop stores recent repo IDs as a JSON array under this key.
-  // ---------------------------------------------------------------------------
-  try {
-    const gdpConfig = (window as unknown as Record<string, unknown>).__GDP_CONFIG__ as
-      | { recentReposLimit?: number }
-      | undefined;
-    const recentLimit = gdpConfig?.recentReposLimit ?? 3;
-    const RECENT_KEY = "recently-selected-repositories";
-
-    const originalSetItem = localStorage.setItem.bind(localStorage);
-    const originalGetItem = localStorage.getItem.bind(localStorage);
-
-    localStorage.setItem = (key: string, value: string) => {
-      if (key === RECENT_KEY) {
-        try {
-          const arr = JSON.parse(value) as unknown;
-          if (Array.isArray(arr)) {
-            const trimmed = arr.slice(0, recentLimit);
-            return originalSetItem(key, JSON.stringify(trimmed));
-          }
-        } catch { /* fall through to default */ }
-      }
-      return originalSetItem(key, value);
-    };
-
-    localStorage.getItem = (key: string): string | null => {
-      const raw = originalGetItem(key);
-      if (key === RECENT_KEY && raw !== null) {
-        try {
-          const arr = JSON.parse(raw) as unknown;
-          if (Array.isArray(arr)) {
-            return JSON.stringify(arr.slice(0, recentLimit));
-          }
-        } catch { /* fall through */ }
-      }
-      return raw;
-    };
-
-    console.log(`[GDP] Recent repos limit set to ${recentLimit}`);
-  } catch (e) {
-    console.warn("[GDP] Failed to intercept localStorage for recent repos:", e);
-  }
 
   // ---------------------------------------------------------------------------
   // Intercept show-contextual-menu IPC to translate context menu labels.
