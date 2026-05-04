@@ -3,7 +3,7 @@ import { setupRecentRepositoriesLimit } from './recent-repositories'
 /**
  * i18n Preload Script — runs inside GitHub Desktop's renderer process.
  * Uses MutationObserver to replace English text with translations.
- * Injected via preload-injector.ts using executeJavaScript.
+ * Injected from the main-process hook using executeJavaScript.
  * Translations are pre-embedded by the injector as window.__GDP_TRANSLATIONS__.
  */
 

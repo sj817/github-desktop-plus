@@ -30,6 +30,13 @@ const jobs = [
 		target: 'chrome120',
 	},
 	{
+		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'recent-repositories.ts'),
+		outfile: resolve(outDir, 'preload', 'recent-repositories.js'),
+		platform: 'browser',
+		format: 'iife',
+		target: 'chrome120',
+	},
+	{
 		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'update-interceptor.ts'),
 		outfile: resolve(outDir, 'preload', 'update-interceptor.js'),
 		platform: 'browser',

@@ -184,82 +184,35 @@
     return button.closest('.dialog-footer') === null
   }
 
-  function interceptButton(button: HTMLButtonElement) {
-    if (button.dataset.gdpIntercepted === '1') return
-
+  function isUpdateButton(button: HTMLButtonElement): boolean {
     const text = button.textContent?.trim() ?? ''
     const matchesText = UPDATE_BUTTON_TEXTS.some(t => text.includes(t))
-    if (!matchesText && !isAboutDialogUpdateButton(button)) return
+    return matchesText || isAboutDialogUpdateButton(button)
+  }
 
-    button.dataset.gdpIntercepted = '1'
+  function recordInterception(button: HTMLButtonElement) {
+    const text = button.textContent?.trim() ?? ''
     interceptorState.interceptions ??= []
     interceptorState.interceptions.push(text)
     interceptorState.interceptions = interceptorState.interceptions.slice(-10)
-
-    // Insert our handler at the capturing phase to prevent the original click
-    button.addEventListener('click', (e) => {
-      e.preventDefault()
-      e.stopPropagation()
-      e.stopImmediatePropagation()
-      showGDPModal()
-      console.log('[GDP] Update button click intercepted — showing GDP modal')
-    }, true)
-
-    console.log(`[GDP] Intercepted update button: "${text}"`)
   }
 
-  function scanForUpdateButtons(root: Element | Document) {
+  document.addEventListener('click', (event) => {
     interceptorState.scans = (interceptorState.scans ?? 0) + 1
 
-    if (root instanceof HTMLButtonElement) {
-      interceptButton(root)
+    const target = event.target
+    const button = target instanceof Element ? target.closest('button') : null
+    if (!(button instanceof HTMLButtonElement) || !isUpdateButton(button)) {
+      return
     }
 
-    const buttons = root.querySelectorAll('button')
-    buttons.forEach(btn => interceptButton(btn as HTMLButtonElement))
-  }
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation()
+    recordInterception(button)
+    showGDPModal()
+    console.log('[GDP] Update button click intercepted — showing GDP modal')
+  }, true)
 
-  // Initial scan
-  if (document.body) {
-    scanForUpdateButtons(document)
-  }
-
-  // Watch for About dialog appearing (React renders it dynamically)
-  const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-      if (mutation.type === 'childList') {
-        if (mutation.target instanceof Element) {
-          scanForUpdateButtons(mutation.target)
-        }
-
-        mutation.addedNodes.forEach(node => {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            scanForUpdateButtons(node as Element)
-          } else if (node.nodeType === Node.TEXT_NODE && node.parentElement) {
-            scanForUpdateButtons(node.parentElement)
-          }
-        })
-      } else if (mutation.type === 'characterData' && mutation.target.parentElement) {
-        scanForUpdateButtons(mutation.target.parentElement)
-      }
-    }
-  })
-
-  observer.observe(document.body || document.documentElement, {
-    childList: true,
-    subtree: true,
-    characterData: true,
-  })
-
-  // Fallback polling: some React update sequences can temporarily expose the
-  // About dialog button before its final structure/text settles, which may
-  // evade a single mutation callback path. A lightweight periodic rescan keeps
-  // the interception robust without depending on exact render timing.
-  window.setInterval(() => {
-    if (document.body) {
-      scanForUpdateButtons(document)
-    }
-  }, 400)
-
-  console.log('[GDP] Update interceptor active — monitoring for update buttons')
+  console.log('[GDP] Update interceptor active')
 })()

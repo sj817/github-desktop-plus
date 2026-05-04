@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { spawn, type ChildProcessByStdio } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
+
+type GDPChildProcess = ChildProcessByStdio<null, Readable, Readable>;
 
 interface HookLogEntry {
   ts: string;
@@ -137,7 +140,7 @@ function spawnCommand(
   command: string,
   args: string[],
   cwd = rootDir
-): ChildProcessWithoutNullStreams {
+): GDPChildProcess {
   return spawn(command, args, {
     cwd,
     env: process.env,
@@ -428,7 +431,7 @@ async function findInjectedWindowId(client: InspectorClient) {
   throw new Error(`Timed out waiting for renderer hook globals. Last window snapshot: ${lastSnapshot}`);
 }
 
-async function stopGDPDev(child: ChildProcessWithoutNullStreams) {
+async function stopGDPDev(child: GDPChildProcess) {
   log("Stopping GDP dev session...");
   const cargoResult = await runCommand("cargo", [
     "run",
@@ -475,7 +478,7 @@ async function main() {
 
   writeFileSync(userUiFile, baselineUserFile, "utf8");
 
-  let devChild: ChildProcessWithoutNullStreams | null = null;
+  let devChild: GDPChildProcess | null = null;
   const inspector = new InspectorClient();
   const importantOutput: string[] = [];
   let wsUrl: string | null = null;
@@ -549,6 +552,7 @@ async function main() {
     );
 
     const hookConfig = rendererHookState.config;
+    assert.ok(hookConfig, "renderer config should be available");
     assert.equal(
       hookConfig.blockManualUpdateCheck,
       true,

@@ -15,67 +15,18 @@
  * Directory: GDP_HOOK_DIR env var set by the Rust launcher.
  */
 
-interface HookConfig {
-  blockUpdates: boolean
-  blockManualUpdateCheck: boolean
-  blockTelemetry: boolean
-  logLevel: string
-  enableI18n: boolean
-  locale: string
-  dataDir: string
-  authToken: string
-  controlOrigin: string
-  /** Max number of repos to keep in the "Recent" group (default: 3) */
-  recentReposLimit: number
-}
-
-interface LogEntry {
-  ts: string
-  level: 'info' | 'warn' | 'error' | 'block'
-  category: 'update' | 'telemetry' | 'i18n' | 'menu' | 'system' | 'navbar'
-  message: string
-}
-
-function parseConfig(): HookConfig {
-  const defaults: HookConfig = {
-    blockUpdates: true,
-    blockManualUpdateCheck: true,
-    blockTelemetry: true,
-    logLevel: '',
-    enableI18n: true,
-    locale: 'zh-CN',
-    dataDir: '',
-    authToken: '',
-    controlOrigin: 'http://127.0.0.1:7788',
-    recentReposLimit: 3,
-  }
-
-  try {
-    const raw = process.env.GDP_CONFIG
-    if (raw) {
-      const parsed = JSON.parse(raw) as Partial<HookConfig> | null
-      if (parsed && typeof parsed === 'object') {
-        return { ...defaults, ...parsed }
-      }
-    }
-  } catch { /* ignore */ }
-  return defaults
-}
+import { parseConfig, type HookConfig } from './config'
+import { configureLogLevel, gdpLog, LOG_JSON_FILE, resetLogStream } from './logger'
+import { setupTelemetryBlocker } from './telemetry-blocker'
+import { blockUpdates } from './update-blocker'
 
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
-const _os: typeof import('os') = require('os')
-
-const LOG_FILE = _path.join(_os.tmpdir(), 'gdp-hooks.log')
-const LOG_JSON_FILE = _path.join(_os.tmpdir(), 'gdp-hooks-stream.jsonl')
 
 // ── Locale reload watcher (poll <dataDir>/.gdp-locale-reload) ──────────────
 // The Rust serve.rs writes to this marker file after any locale CRUD.
 // We re-read translation files when its mtime changes.
 let _reloadCallbacks: Array<() => void> = []
-function _registerReload(cb: () => void): void {
-  _reloadCallbacks.push(cb)
-}
 function _watchLocaleReload(dataDir: string): void {
   if (!dataDir) return
   const marker = _path.join(dataDir, '.gdp-locale-reload')
@@ -86,75 +37,6 @@ function _watchLocaleReload(dataDir: string): void {
       }
     })
   } catch { /* best-effort */ }
-}
-
-// Sliding 1-second dedup window for repeated log lines.
-const _logLevelOrder: Record<string, number> = { debug: 0, info: 1, warn: 2, warning: 2, error: 3, block: 3 }
-let _lastLogKey: string | null = null
-let _lastLogTs: number = 0
-let _lastLogCount: number = 0
-
-/** Structured log — written as JSONL for streaming to frontend */
-function gdpLog(msg: string, level: LogEntry['level'] = 'info', category: LogEntry['category'] = 'system'): void {
-  const entry: LogEntry = {
-    ts: new Date().toISOString(),
-    level,
-    category,
-    message: msg,
-  }
-  const key = `${level}|${category}|${msg}`
-  const now = Date.now()
-  if (_lastLogKey === key && now - _lastLogTs < 1000) {
-    _lastLogCount += 1
-    // JSONL stream gets every event so the WebUI can show full history.
-    try { _fs.appendFileSync(LOG_JSON_FILE, JSON.stringify(entry) + '\n') } catch { /* best-effort */ }
-    return
-  }
-  // Flush prior dedup tail, if any.
-  if (_lastLogKey && _lastLogCount > 0) {
-    const tail = ` (repeated ${_lastLogCount}x in 1s)`
-    console.log(tail)
-    try { _fs.appendFileSync(LOG_FILE, tail + '\n') } catch { /* best-effort */ }
-  }
-  _lastLogKey = key
-  _lastLogTs = now
-  _lastLogCount = 0
-
-  const line = `${entry.ts} [${entry.level.toUpperCase()}][${entry.category}] ${msg}`
-  // console.log filter: drop entries below `warn` unless the configured
-  // logLevel allows them. The JSONL stream always retains every entry.
-  const cfgLvl = (_currentLogLevel || 'warn').toLowerCase()
-  const minOrder = _logLevelOrder[cfgLvl] ?? 2
-  if ((_logLevelOrder[level] ?? 1) >= minOrder) {
-    console.log(line)
-  }
-  try {
-    _fs.appendFileSync(LOG_FILE, line + '\n')
-    _fs.appendFileSync(LOG_JSON_FILE, JSON.stringify(entry) + '\n')
-  } catch { /* best-effort */ }
-}
-
-// Resolved on first hook config parse so gdpLog can read it.
-let _currentLogLevel: string = ''
-
-// ---------------------------------------------------------------------------
-// 1. Update Blocker — monkey-patch autoUpdater methods (they are writable)
-// ---------------------------------------------------------------------------
-function blockUpdates(autoUpdater: Record<string, unknown>): void {
-  try {
-    autoUpdater.checkForUpdates = () => {
-      gdpLog('autoUpdater.checkForUpdates() blocked', 'block', 'update')
-    }
-    autoUpdater.quitAndInstall = () => {
-      gdpLog('autoUpdater.quitAndInstall() blocked', 'block', 'update')
-    }
-    autoUpdater.setFeedURL = (..._args: unknown[]) => {
-      gdpLog('autoUpdater.setFeedURL() blocked', 'block', 'update')
-    }
-    gdpLog('autoUpdater methods overridden — updates blocked', 'info', 'update')
-  } catch (e) {
-    gdpLog(`autoUpdater patch failed: ${e}`, 'error', 'update')
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -351,6 +233,15 @@ function setupRendererI18n(
   }
 
   // Build injection script — navbar injection is included as a separate module
+  const recentRepositoriesPath = _path.join(dir, 'preload', 'recent-repositories.js')
+  let recentRepositoriesCode = ''
+  try {
+    if (_fs.existsSync(recentRepositoriesPath)) {
+      recentRepositoriesCode = _fs.readFileSync(recentRepositoriesPath, 'utf-8')
+      gdpLog('Recent repositories script loaded', 'info', 'system')
+    }
+  } catch { /* optional */ }
+
   const navbarPath = _path.join(dir, 'preload', 'navbar.js')
   let navbarCode = ''
   try {
@@ -379,6 +270,10 @@ function setupRendererI18n(
     (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
     `})();`
 
+  const earlyInjectScript = recentRepositoriesCode
+    ? `(function(){window.__GDP_CONFIG__=${JSON.stringify(config)};\n${recentRepositoriesCode}\n})();`
+    : ''
+
   // Track active webContents for hot-reload push
   const activeWebContents: TrackedWebContents[] = []
 
@@ -399,8 +294,22 @@ function setupRendererI18n(
       if (idx >= 0) activeWebContents.splice(idx, 1)
     })
 
+    let earlyInjected = false
+    const injectEarly = () => {
+      if (!earlyInjectScript || earlyInjected || win.webContents.isDestroyed()) {
+        return
+      }
+      win.webContents.executeJavaScript(earlyInjectScript)
+        .then(() => { earlyInjected = true })
+        .catch(() => {})
+    }
+
+    win.webContents.on('did-start-loading', injectEarly)
+    win.webContents.on('dom-ready', injectEarly)
+
     win.webContents.on('did-finish-load', () => {
       gdpLog('did-finish-load — injecting scripts', 'info', 'i18n')
+      injectEarly()
       win.webContents.executeJavaScript(injectScript).catch((e: unknown) => {
         gdpLog(`executeJavaScript failed: ${e}`, 'error', 'i18n')
       })
@@ -410,50 +319,6 @@ function setupRendererI18n(
 
   // Return activeWebContents so hot-reload watcher can push translation updates
   return activeWebContents
-}
-
-// ---------------------------------------------------------------------------
-// 4. Telemetry Blocker — use session.webRequest after app ready
-// ---------------------------------------------------------------------------
-function setupTelemetryBlocker(
-  app: {
-    on(event: string, cb: () => void): void
-    isReady(): boolean
-    whenReady(): Promise<void>
-  },
-  session: { defaultSession: { webRequest: {
-    onBeforeRequest(
-      filter: { urls: string[] },
-      cb: (details: { url: string }, callback: (resp: { cancel: boolean }) => void) => void
-    ): void
-  } } }
-): void {
-  const BLOCKED_PATTERNS = [
-    '*://central.github.com/*',
-    '*://usage.github.com/*',
-    '*://stats.github.com/*',
-  ]
-
-  const handler = () => {
-    try {
-      session.defaultSession.webRequest.onBeforeRequest(
-        { urls: BLOCKED_PATTERNS },
-        (details: { url: string }, callback: (resp: { cancel: boolean }) => void) => {
-          gdpLog(`Telemetry blocked: ${details.url}`, 'block', 'telemetry')
-          callback({ cancel: true })
-        }
-      )
-      gdpLog('Telemetry blocker active via session.webRequest', 'info', 'telemetry')
-    } catch (e) {
-      gdpLog(`Telemetry blocker failed: ${e}`, 'error', 'telemetry')
-    }
-  }
-
-  if (app.isReady()) {
-    handler()
-  } else {
-    app.on('ready', handler)
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -738,11 +603,8 @@ function main(): void {
   const config = parseConfig()
   const dir = process.env.GDP_HOOK_DIR || __dirname
 
-  // Make logging.level visible to gdpLog's console-filter.
-  _currentLogLevel = config.logLevel || 'warn'
-
-  // Clear previous log stream
-  try { _fs.writeFileSync(LOG_JSON_FILE, '') } catch { /* ignore */ }
+  configureLogLevel(config.logLevel)
+  resetLogStream()
 
   gdpLog('====== GitHub Desktop Plus hooks loading ======')
   gdpLog(`Config: ${JSON.stringify(config)}`)

@@ -11,6 +11,8 @@ use include_dir::{Dir, include_dir};
 pub const HOOK_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook_bundle.js"));
 pub const PRELOAD_INDEX_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_index.js"));
 pub const PRELOAD_NAVBAR_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/preload_navbar.js"));
+pub const PRELOAD_RECENT_REPOSITORIES_JS: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/preload_recent_repositories.js"));
 pub const PRELOAD_UPDATE_INTERCEPTOR_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_update_interceptor.js"));
 
@@ -61,6 +63,10 @@ pub fn extract_hook_to_disk() -> PathBuf {
     write_if_changed(&hooks_dir.join("index.js"), HOOK_JS);
     write_if_changed(&preload_dir.join("index.js"), PRELOAD_INDEX_JS);
     write_if_changed(&preload_dir.join("navbar.js"), PRELOAD_NAVBAR_JS);
+    write_if_changed(
+        &preload_dir.join("recent-repositories.js"),
+        PRELOAD_RECENT_REPOSITORIES_JS,
+    );
     write_if_changed(
         &preload_dir.join("update-interceptor.js"),
         PRELOAD_UPDATE_INTERCEPTOR_JS,

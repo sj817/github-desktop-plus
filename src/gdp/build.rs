@@ -136,6 +136,12 @@ fn main() {
     embed_file(
         out_dir,
         &repo_root,
+        "generated/hooks/preload/recent-repositories.js",
+        "preload_recent_repositories.js",
+    );
+    embed_file(
+        out_dir,
+        &repo_root,
         "generated/hooks/preload/update-interceptor.js",
         "preload_update_interceptor.js",
     );
