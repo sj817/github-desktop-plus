@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "drag-elements 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "drag-elements"
+  },
+  "Squash": "压缩合并"
+}

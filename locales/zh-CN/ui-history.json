@@ -98,5 +98,8 @@
   "Expand": "展开",
   " not included.": " 未包含。",
   "_comment_merge_cta": "合并行动号召（history/merge-call-to-action*.tsx）",
-  " on top of ": " 之上，基于 "
+  " on top of ": " 之上，基于 ",
+  "Checking for ability to": "正在检查是否可以",
+  "Showing changes from": "显示以下来源的更改：",
+  "You will": "您将"
 }

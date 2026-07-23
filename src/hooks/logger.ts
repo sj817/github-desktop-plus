@@ -26,6 +26,13 @@ let lastLogKey: string | null = null
 let lastLogTs = 0
 let lastLogCount = 0
 
+// Broadcast hook: set by index.ts after activeWebContents is available
+let _logBroadcast: ((entry: LogEntry) => void) | null = null
+
+export function setLogBroadcast(fn: (entry: LogEntry) => void): void {
+  _logBroadcast = fn
+}
+
 export function configureLogLevel(level: string): void {
   currentLogLevel = level || 'warn'
 }
@@ -59,6 +66,7 @@ export function gdpLog(
     } catch {
       // best effort
     }
+    _logBroadcast?.(entry)
     return
   }
 
@@ -88,4 +96,6 @@ export function gdpLog(
   } catch {
     // best effort
   }
+
+  _logBroadcast?.(entry)
 }

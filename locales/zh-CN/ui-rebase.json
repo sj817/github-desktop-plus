@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "rebase 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "rebase"
+  },
+  "A force push will rewrite history on": "强制推送将重写以下分支的历史："
+}

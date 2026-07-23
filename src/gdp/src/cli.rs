@@ -1,7 +1,4 @@
 //! Command-line interface definitions for the `gdp` binary.
-//!
-//! The `Cli` struct is the top-level clap parser; subcommands are dispatched
-//! from `main.rs` to handler functions in the relevant modules.
 
 use std::path::PathBuf;
 
@@ -28,12 +25,7 @@ pub enum Command {
         /// Override the GitHub Desktop executable path
         #[arg(long)]
         desktop_path: Option<PathBuf>,
-        /// Do not start the background web config server
-        #[arg(long)]
-        no_serve: bool,
     },
-    /// Start the local control API and embedded control assets on 127.0.0.1:7788
-    Serve,
     /// Stop a running GDP-launched GitHub Desktop instance
     Stop,
     /// Show the current runtime plan and architecture overview
@@ -43,8 +35,6 @@ pub enum Command {
     },
     /// Detect the GitHub Desktop installation path
     Detect,
-    /// Print the authenticated local control URL
-    Open,
     /// Configuration management
     Config {
         #[command(subcommand)]
@@ -84,15 +74,10 @@ mod tests {
 
     #[test]
     fn launch_flags_round_trip() {
-        let cli = Cli::parse_from(["gdp", "launch", "-f", "--no-serve"]);
+        let cli = Cli::parse_from(["gdp", "launch", "-f"]);
         match cli.command {
-            Some(Command::Launch {
-                force,
-                no_serve,
-                desktop_path,
-            }) => {
+            Some(Command::Launch { force, desktop_path }) => {
                 assert!(force);
-                assert!(no_serve);
                 assert!(desktop_path.is_none());
             }
             _ => panic!("expected Launch"),
@@ -129,8 +114,8 @@ mod tests {
     }
 
     #[test]
-    fn detect_serve_stop_open_dev_parse() {
-        for sub in ["detect", "serve", "stop", "open"] {
+    fn detect_stop_dev_parse() {
+        for sub in ["detect", "stop"] {
             let cli = Cli::parse_from(["gdp", sub]);
             assert!(cli.command.is_some(), "{sub} should parse");
         }

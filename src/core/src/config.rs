@@ -16,6 +16,59 @@ pub struct Config {
     pub desktop: DesktopConfig,
     #[serde(default)]
     pub ui: UiConfig,
+    #[serde(default)]
+    pub ai: AiConfig,
+}
+
+/// AI commit-message generation.
+///
+/// Note: `temperature` and `max_tokens` are intentionally NOT configurable — for
+/// commit messages you want consistency, not creativity, and a short output;
+/// they are fixed internally in the hook that builds the request. `timeout_secs`
+/// is kept as a file-only escape hatch (not surfaced in the settings UI).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AiConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default = "default_ai_base_url")]
+    pub base_url: String,
+    #[serde(default)]
+    pub api_key: String,
+    #[serde(default = "default_ai_model")]
+    pub model: String,
+    #[serde(default = "default_ai_system_prompt")]
+    pub system_prompt: String,
+    #[serde(default = "default_ai_timeout_secs")]
+    pub timeout_secs: u32,
+    #[serde(default = "default_true")]
+    pub fallback_to_copilot: bool,
+}
+
+fn default_ai_base_url() -> String {
+    "https://api.openai.com/v1".to_string()
+}
+fn default_ai_model() -> String {
+    "gpt-4o-mini".to_string()
+}
+fn default_ai_system_prompt() -> String {
+    "请用 `<type>: <中文描述>` 格式生成单行提交信息，type 取自 feat/fix/docs/refactor/test/chore/style/perf/build/ci。只输出提交信息本身，不要有任何解释。".to_string()
+}
+fn default_ai_timeout_secs() -> u32 {
+    30
+}
+
+impl Default for AiConfig {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            base_url: default_ai_base_url(),
+            api_key: String::new(),
+            model: default_ai_model(),
+            system_prompt: default_ai_system_prompt(),
+            timeout_secs: default_ai_timeout_secs(),
+            fallback_to_copilot: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -41,29 +94,23 @@ impl Default for UpdatesConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TelemetryConfig {
     pub disabled: bool,
-    pub block_exceptions: bool,
 }
 
 impl Default for TelemetryConfig {
     fn default() -> Self {
-        Self {
-            disabled: true,
-            block_exceptions: true,
-        }
+        Self { disabled: true }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LoggingConfig {
     pub level: String,
-    pub disable_file_log: bool,
 }
 
 impl Default for LoggingConfig {
     fn default() -> Self {
         Self {
             level: "warn".to_string(),
-            disable_file_log: false,
         }
     }
 }
@@ -117,6 +164,7 @@ impl Default for Config {
             i18n: I18nConfig::default(),
             desktop: DesktopConfig::default(),
             ui: UiConfig::default(),
+            ai: AiConfig::default(),
         }
     }
 }
@@ -183,13 +231,18 @@ mod tests {
         assert!(c.updates.disabled);
         assert!(c.updates.block_manual_check);
         assert!(c.telemetry.disabled);
-        assert!(c.telemetry.block_exceptions);
         assert!(c.i18n.enabled);
         assert_eq!(c.i18n.locale, "zh-CN");
         assert_eq!(c.logging.level, "warn");
-        assert!(!c.logging.disable_file_log);
         assert_eq!(c.ui.recent_repos_limit, 3);
         assert!(c.desktop.path.is_none());
+        // AI defaults: disabled, sensible defaults
+        assert!(!c.ai.enabled);
+        assert_eq!(c.ai.base_url, "https://api.openai.com/v1");
+        assert_eq!(c.ai.model, "gpt-4o-mini");
+        assert!(c.ai.api_key.is_empty());
+        assert!(c.ai.fallback_to_copilot);
+        assert_eq!(c.ai.timeout_secs, 30);
     }
 
     #[test]
@@ -219,10 +272,29 @@ mod tests {
 
     #[test]
     fn missing_optional_fields_use_defaults() {
-        // Empty JSON object should still produce valid defaults via serde(default).
         let c: Config = serde_json::from_str("{}").expect("parse {}");
         assert_eq!(c.ui.recent_repos_limit, 3);
         assert!(c.updates.block_manual_check);
+        assert!(!c.ai.enabled);
+        assert_eq!(c.ai.base_url, "https://api.openai.com/v1");
+    }
+
+    #[test]
+    fn ai_config_roundtrip() {
+        let dir = std::env::temp_dir().join(format!("gdp-ai-cfg-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let mut c = Config::default();
+        c.ai.enabled = true;
+        c.ai.api_key = "sk-test".to_string();
+        c.ai.model = "gpt-4o".to_string();
+        c.ai.timeout_secs = 45;
+        c.save(&dir).expect("save");
+        let loaded = Config::load(&dir).expect("load");
+        assert!(loaded.ai.enabled);
+        assert_eq!(loaded.ai.api_key, "sk-test");
+        assert_eq!(loaded.ai.model, "gpt-4o");
+        assert_eq!(loaded.ai.timeout_secs, 45);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "create-tag 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "create-tag"
+  },
+  "The tag name cannot be longer than": "标签名称的长度不能超过"
+}

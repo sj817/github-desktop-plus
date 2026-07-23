@@ -39,5 +39,7 @@
 
   "Pull request markdown body": "拉取请求 Markdown 内容",
   "Draft": "草稿",
-  "Review requested": "已请求审查"
+  "Review requested": "已请求审查",
+  "Checking mergeability&hellip;": "正在检查可合并性&hellip;",
+  "Don’t worry, you can still create the pull request.": "别担心，您仍然可以创建拉取请求。"
 }

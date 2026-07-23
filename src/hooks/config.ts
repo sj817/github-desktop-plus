@@ -1,3 +1,12 @@
+export interface AiHookConfig {
+  enabled: boolean
+  baseUrl: string
+  model: string
+  systemPrompt: string
+  timeoutSecs: number
+  fallbackToCopilot: boolean
+}
+
 export interface HookConfig {
   blockUpdates: boolean
   blockManualUpdateCheck: boolean
@@ -7,9 +16,8 @@ export interface HookConfig {
   locale: string
   dataDir: string
   configDir: string
-  authToken: string
-  controlOrigin: string
   recentReposLimit: number
+  ai: AiHookConfig
 }
 
 export function parseConfig(): HookConfig {
@@ -22,9 +30,15 @@ export function parseConfig(): HookConfig {
     locale: 'zh-CN',
     dataDir: '',
     configDir: '',
-    authToken: '',
-    controlOrigin: 'http://127.0.0.1:7788',
     recentReposLimit: 3,
+    ai: {
+      enabled: false,
+      baseUrl: 'https://api.openai.com/v1',
+      model: 'gpt-4o-mini',
+      systemPrompt: '',
+      timeoutSecs: 30,
+      fallbackToCopilot: true,
+    },
   }
 
   try {
@@ -32,7 +46,11 @@ export function parseConfig(): HookConfig {
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<HookConfig> | null
       if (parsed && typeof parsed === 'object') {
-        return { ...defaults, ...parsed }
+        return {
+          ...defaults,
+          ...parsed,
+          ai: { ...defaults.ai, ...(parsed.ai ?? {}) },
+        }
       }
     }
   } catch {

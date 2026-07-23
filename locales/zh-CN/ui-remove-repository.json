@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "remove-repository 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "remove-repository"
+  },
+  "Are you sure you want to remove the repository \"": "确定要移除仓库 \""
+}

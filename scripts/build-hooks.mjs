@@ -43,6 +43,21 @@ const jobs = [
 		format: 'iife',
 		target: 'chrome120',
 	},
+	{
+		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'copilot-hijack.ts'),
+		outfile: resolve(outDir, 'preload', 'copilot-hijack.js'),
+		platform: 'browser',
+		format: 'iife',
+		target: 'chrome120',
+	},
+	{
+		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'gdp-dialog', 'index.ts'),
+		outfile: resolve(outDir, 'preload', 'gdp-dialog.js'),
+		platform: 'browser',
+		format: 'iife',
+		target: 'chrome120',
+		external: ['electron'],
+	},
 ]
 
 async function run() {

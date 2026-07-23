@@ -1,21 +1,10 @@
-//! GDP — single binary: CLI + embedded web server + interactive launcher.
-//!
-//! See `cli.rs` for the command surface; each subcommand has its own module.
+//! GDP — single binary: CLI launcher + V8 Inspector hook injection.
 
-mod auth;
 mod cli;
 mod hook_assets;
-mod http_helpers;
 mod injector;
 mod launch;
-mod locale;
-mod locale_seed;
-mod open;
 mod proc;
-mod serve;
-mod sse;
-mod state;
-mod static_assets;
 
 use clap::Parser;
 use gdp_core::{config::Config, detector::find_github_desktop, platform::config_dir};
@@ -30,33 +19,21 @@ fn main() {
     let cmd = cli.command.unwrap_or(Command::Launch {
         force: false,
         desktop_path: None,
-        no_serve: false,
     });
 
     match cmd {
-        Command::Launch {
-            force,
-            desktop_path,
-            no_serve,
-        } => {
-            launch::run(force, desktop_path, no_serve, false);
-        }
-        Command::Serve => {
-            serve::run();
-        }
-        Command::Open => {
-            open::run();
+        Command::Launch { force, desktop_path } => {
+            launch::run(force, desktop_path, false);
         }
         Command::Stop => stop(),
         Command::Status { json } => status(json),
         Command::Detect => detect(),
         Command::Config { action } => config(action),
         Command::Dev { desktop_path } => {
-            // Backwards-compatible alias for `launch` that runs in the foreground.
             unsafe {
                 std::env::set_var("GDP_VERBOSE", "1");
             }
-            launch::run(false, desktop_path, false, true);
+            launch::run(false, desktop_path, true);
         }
     }
 }
@@ -140,6 +117,9 @@ fn config(action: ConfigAction) {
                         .as_deref()
                         .map_or_else(|| "auto".to_string(), |p| p.display().to_string())
                 );
+                println!("ai.enabled                 : {}", config.ai.enabled);
+                println!("ai.base_url                : {}", config.ai.base_url);
+                println!("ai.model                   : {}", config.ai.model);
             }
         }
         ConfigAction::Reset => {

@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "saml-reauth-required 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "saml-reauth-required"
+  },
+  "The \"": "该 \""
+}

@@ -28,8 +28,6 @@
 
   interceptorState.active = true
 
-  const WEBUI_URL = 'http://127.0.0.1:7788'
-
   let modalShown = false
 
   /** Read a CSS variable from the body element (falls back to a sensible default). */
@@ -104,7 +102,7 @@
       </div>
       <p style="font-size:12px;color:${c.textDim};line-height:1.6;margin:0 0 16px">
         GitHub Desktop Plus 已拦截更新检查功能。<br><br>
-        如需修改更新设置，请打开 GDP 控制面板进行配置。
+        如需修改更新设置，请打开 GDP 设置进行配置。
       </p>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="gdp-modal-cancel" style="
@@ -117,7 +115,7 @@
           font-size:12px;
           font-family:${FF};
         ">关闭</button>
-        <button id="gdp-modal-open-webui" style="
+        <button id="gdp-modal-open-settings" style="
           padding:7px 16px;
           border:1px solid ${c.accent};
           background:${c.accent};
@@ -127,7 +125,7 @@
           font-size:12px;
           font-weight:500;
           font-family:${FF};
-        ">打开控制面板</button>
+        ">打开设置</button>
       </div>
     `
 
@@ -149,8 +147,14 @@
 
     modal.querySelector<HTMLButtonElement>('#gdp-modal-cancel')?.addEventListener('click', closeModal)
 
-    modal.querySelector<HTMLButtonElement>('#gdp-modal-open-webui')?.addEventListener('click', () => {
-      window.open(WEBUI_URL, '_blank')
+    modal.querySelector<HTMLButtonElement>('#gdp-modal-open-settings')?.addEventListener('click', () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const ipcRenderer = (require as NodeRequire)('electron').ipcRenderer as {
+          invoke(channel: string, ...args: unknown[]): Promise<unknown>
+        }
+        ipcRenderer.invoke('gdp:open-settings', 'general').catch(() => { /* ignore */ })
+      } catch { /* ignore if ipc unavailable */ }
       closeModal()
     })
 

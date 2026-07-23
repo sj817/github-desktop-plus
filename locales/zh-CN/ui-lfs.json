@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "description": "lfs 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "lfs"
+  },
+  "Git LFS": "Git LFS",
+  "Git LFS filters are already configured in": "Git LFS 过滤器已配置在"
+}

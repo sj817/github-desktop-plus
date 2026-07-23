@@ -121,5 +121,6 @@
   "Refresh the list of pull requests": "刷新拉取请求列表",
   "Hang Tight. Loading pull requests as fast as I can!": "请稍候，正在尽快加载拉取请求！",
   "{n} pull request found": "找到 {n} 个拉取请求",
-  "{n} pull requests found": "找到 {n} 个拉取请求"
+  "{n} pull requests found": "找到 {n} 个拉取请求",
+  "Pull requests in": "拉取请求于"
 }

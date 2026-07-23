@@ -64,8 +64,8 @@ const MODULES: &[ModuleInfo] = &[
         responsibility: "TypeScript hook and preload sources compiled into injected JavaScript bundles.",
     },
     ModuleInfo {
-        name: "webui",
-        responsibility: "React control panel source, embedded into the GitHub Desktop GDP popup at runtime.",
+        name: "src/hooks/preload/gdp-dialog",
+        responsibility: "Native DOM settings dialog injected into GitHub Desktop renderer, replaces the former WebUI.",
     },
 ];
 
@@ -76,9 +76,8 @@ const PROJECT_TREE: &str = "github-desktop-plus/\n\
     +-- Cargo.toml\n\
     +-- src/\n\
     |   +-- core/           # platform, config, detector, runtime metadata\n\
-    |   +-- gdp/            # CLI, inspector injection, control API server\n\
+    |   +-- gdp/            # CLI, inspector injection, process management\n\
     |   +-- hooks/          # Electron hook/preload TypeScript sources\n\
-    +-- webui/              # React frontend (built into webui/dist/)\n\
     +-- locales/\n\
     +-- scripts/\n\
     +-- package.json        # Node.js build tooling only";
@@ -89,20 +88,17 @@ const DEMO_PSEUDOCODE: &str = "// gdp-core\n\
     // gdp (cargo run -p gdp -- launch)\n\
     let plan = gdp_core::runtime_plan();\n\
     \n\
-    // embedded control API\n\
-    cargo run -p gdp -- serve\n\
-    \n\
-    // webui\n\
-    const s = await fetch('/api/status').then(r => r.json())";
+    // settings dialog (IPC)\n\
+    ipcRenderer.invoke('gdp:get-config').then(cfg => { ... })";
 
 pub fn runtime_plan() -> RuntimePlan {
     RuntimePlan {
         memory_target_mb: 10,
-        runtime: "hyper + tokio(current_thread)",
+        runtime: "tungstenite (CDP injection only)",
         cli_boundary: "in-process function calls + stdout/stderr",
-        web_boundary: "HTTP/JSON on 127.0.0.1:7788, opened only through the GDP menu popup",
-        ui_strategy: "Vite + React control surface inside GitHub Desktop",
-        startup_priority: "single-process core with dev-time Vite HMR",
+        web_boundary: "Electron IPC (ipcMain/ipcRenderer), no HTTP server",
+        ui_strategy: "Native DOM dialog injected into GitHub Desktop renderer",
+        startup_priority: "single-process, no Tokio, no HTTP server",
         notes: NOTES,
     }
 }

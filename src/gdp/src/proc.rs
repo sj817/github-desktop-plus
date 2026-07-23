@@ -154,17 +154,14 @@ pub fn is_process_alive(_pid: u32) -> bool {
 }
 
 #[cfg(windows)]
-pub fn daemonize_and_exit(no_serve: bool) {
+pub fn daemonize_and_exit() {
     use std::os::windows::process::CommandExt;
     const DETACHED_PROCESS: u32 = 0x00000008;
     const CREATE_NEW_PROCESS_GROUP: u32 = 0x00000200;
     const CREATE_NO_WINDOW: u32 = 0x08000000;
 
     let exe = std::env::current_exe().expect("current_exe");
-    let mut args: Vec<String> = std::env::args().skip(1).collect();
-    if no_serve && !args.iter().any(|a| a == "--no-serve") {
-        args.push("--no-serve".to_string());
-    }
+    let args: Vec<String> = std::env::args().skip(1).collect();
 
     std::process::Command::new(&exe)
         .args(&args)
@@ -177,7 +174,7 @@ pub fn daemonize_and_exit(no_serve: bool) {
 }
 
 #[cfg(unix)]
-pub fn daemonize_and_exit(_no_serve: bool) {
+pub fn daemonize_and_exit() {
     unsafe {
         let pid = libc::fork();
         if pid < 0 {
@@ -199,7 +196,7 @@ pub fn daemonize_and_exit(_no_serve: bool) {
 }
 
 #[cfg(not(any(windows, unix)))]
-pub fn daemonize_and_exit(_no_serve: bool) {}
+pub fn daemonize_and_exit() {}
 
 /// Kill any running instances of GitHub Desktop before launching a new one.
 /// Prevents port conflicts when `--inspect-brk=0` is used.

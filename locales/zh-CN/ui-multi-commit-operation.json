@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "description": "multi-commit-operation 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "multi-commit-operation"
+  },
+  "Are you sure you want to": "确定要",
+  "Are you sure you want to abort this": "确定要中止此",
+  "At the end of the": "在结束时",
+  "Back to manual": "返回手动",
+  "File options": "文件选项",
+  "Resolving conflicts with Copilot…": "正在使用 Copilot 解决冲突…"
+}

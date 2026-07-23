@@ -1,5 +1,13 @@
 ﻿#!/usr/bin/env python3
 """
+[已弃用 / DEPRECATED] 请改用 scripts/extract-strings.mjs（源码映射驱动）。
+
+本脚本用正则扫描一份*另行 checkout* 的 GitHub Desktop 源码，抽取有损、且输出
+仅为人类可读文本报告，不可回灌。新的 extract-strings.mjs 直接解析已安装应用
+自带的 renderer.js.map（内嵌原始 TSX），用 TypeScript AST 精确抽取，产出可
+版本对比的机器目录，并按区域合并进 locales/<locale>/*.json。保留此文件仅供参考。
+
+原说明：
 全面扫描 GitHub Desktop 源码中所有用户可见的英文字符串。
 翻译机制拦截：
   1. 所有文本节点（JSX 标签间的文本）

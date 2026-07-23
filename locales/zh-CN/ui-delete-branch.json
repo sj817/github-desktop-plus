@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "delete-branch 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "delete-branch"
+  },
+  "If": "如果"
+}

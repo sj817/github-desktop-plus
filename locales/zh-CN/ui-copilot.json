@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "description": "copilot 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "copilot"
+  },
+  "Anthropic": "Anthropic",
+  "API key": "API 密钥",
+  "Are you sure you want to remove the custom provider": "确定要移除自定义提供方",
+  "Authentication": "身份验证",
+  "Azure": "Azure",
+  "Bearer token": "Bearer 令牌",
+  "Default": "默认",
+  "GPT-4o": "GPT-4o",
+  "My provider": "我的提供方",
+  "No credentials will be sent with requests to this provider.": "向该提供方发送请求时不会附带任何凭据。",
+  "No models yet. Add at least one to use this provider.": "尚无模型。请至少添加一个以使用该提供方。",
+  "OpenAI / OpenAI-compatible": "OpenAI / OpenAI 兼容",
+  "Provider": "提供方",
+  "The friendly name shown in the Copilot model picker.": "在 Copilot 模型选择器中显示的友好名称。",
+  "Type": "类型"
+}

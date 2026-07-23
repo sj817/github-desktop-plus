@@ -37,5 +37,6 @@
   "_comment_acknowledgements": "开源声明对话框（acknowledgements.tsx）",
   "is an open source project published under the MIT License. You can view the source code and contribute to this project on": "是一个在 MIT 许可证下发布的开源项目。您可以在以下位置查看源代码并为本项目贡献：",
   "GitHub Desktop also distributes these libraries:": "GitHub Desktop 还分发以下库：",
-  "Unknown license": "未知许可证"
+  "Unknown license": "未知许可证",
+  "About": "关于"
 }

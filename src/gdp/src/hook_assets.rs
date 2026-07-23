@@ -15,6 +15,10 @@ pub const PRELOAD_RECENT_REPOSITORIES_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_recent_repositories.js"));
 pub const PRELOAD_UPDATE_INTERCEPTOR_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_update_interceptor.js"));
+pub const PRELOAD_COPILOT_HIJACK_JS: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/preload_copilot_hijack.js"));
+pub const PRELOAD_GDP_DIALOG_JS: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/preload_gdp_dialog.js"));
 
 pub static LOCALES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../generated/locales");
 
@@ -70,6 +74,14 @@ pub fn extract_hook_to_disk() -> PathBuf {
     write_if_changed(
         &preload_dir.join("update-interceptor.js"),
         PRELOAD_UPDATE_INTERCEPTOR_JS,
+    );
+    write_if_changed(
+        &preload_dir.join("copilot-hijack.js"),
+        PRELOAD_COPILOT_HIJACK_JS,
+    );
+    write_if_changed(
+        &preload_dir.join("gdp-dialog.js"),
+        PRELOAD_GDP_DIALOG_JS,
     );
 
     extract_dir(&LOCALES, &locales_dir);

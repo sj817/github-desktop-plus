@@ -48,5 +48,6 @@
   "No repositories": "无仓库",
   "Current Repository": "当前仓库",
   "Current repository": "当前仓库",
-  "No repository selected": "未选择仓库"
+  "No repository selected": "未选择仓库",
+  "Overwrite any changes on": "覆盖以下位置的任何更改："
 }

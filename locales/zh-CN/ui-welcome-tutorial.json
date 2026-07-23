@@ -84,5 +84,7 @@
   "is the version control system.": "是版本控制系统。",
   "is where you store your code and collaborate with others.": "是您存放代码并与他人协作的地方。",
   "helps you work with GitHub locally.": "帮助您在本地与 GitHub 协作。",
-  "Use this tutorial to get comfortable with Git, GitHub, and GitHub Desktop.": "使用本教程来熟悉 Git、GitHub 和 GitHub Desktop。"
+  "Use this tutorial to get comfortable with Git, GitHub, and GitHub Desktop.": "使用本教程来熟悉 Git、GitHub 和 GitHub Desktop。",
+  "Atom": "Atom",
+  "README.md": "README.md"
 }

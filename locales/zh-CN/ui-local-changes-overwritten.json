@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "local-changes-overwritten 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "local-changes-overwritten"
+  },
+  "Unable to": "无法"
+}

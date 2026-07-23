@@ -264,7 +264,7 @@
   "Make sure notifications are enabled for GitHub Desktop in the Notifications Settings.": "请确保在通知设置中为 GitHub Desktop 启用了通知。",
   "_comment_notification_fragments": "以下为通知提示句子的分片翻译（JSX 将句子分割为多个文本节点）",
   "Make sure notifications are": "请确保通知",
-  "for GitHub Desktop in the": "",
+  "for GitHub Desktop in the": "适用于 GitHub Desktop，位于",
   "to display these notifications from GitHub Desktop.": "以在 GitHub Desktop 中显示通知。",
   "_comment_integrations": "--- 集成设置 ---",
   "Applications": "应用程序",
@@ -413,5 +413,8 @@
   "Maximize": "最大化",
   "to exit fullscreen": "退出全屏",
   "Trash": "废纸篓",
-  "Recycle Bin": "回收站"
+  "Recycle Bin": "回收站",
+  "Can't find \"": "找不到 \"",
+  "Check&nbsp;again.": "重新&nbsp;检查。",
+  "See": "参见"
 }

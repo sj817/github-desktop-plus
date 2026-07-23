@@ -1,0 +1,8 @@
+{
+  "_meta": {
+    "description": "test-notifications 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "test-notifications"
+  },
+  "Pull requests for": "拉取请求（针对"
+}

@@ -95,5 +95,7 @@
   "_comment_lib_author_input": "lib/author-input/* —— 共同作者输入",
   "Co-Authors": "共同作者",
   "Co-Authors ": "共同作者 ",
-  "@username": "@用户名"
+  "@username": "@用户名",
+  "Co-Authors&nbsp;": "共同作者&nbsp;",
+  "Will be": "将会"
 }

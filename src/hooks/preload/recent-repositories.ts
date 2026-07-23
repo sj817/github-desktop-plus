@@ -193,36 +193,33 @@ function setupRecentRepositoriesSlicePatch(): void {
   })
 }
 
-function patchRecentRepositoriesLength(): void {
-  // Try to patch the RecentRepositoriesLength constant
-  // This is tricky because it's a const in a module, but we can try to intercept it
-  const originalDefineProperty = Object.defineProperty
-  let patched = false
-
-  Object.defineProperty = function (obj: any, prop: string | symbol, descriptor: PropertyDescriptor) {
-    // Intercept when RecentRepositoriesLength is being defined
-    if (prop === 'RecentRepositoriesLength' && !patched) {
-      patched = true
-      const limit = getRecentReposLimit()
-      console.log(`[GDP] Patching RecentRepositoriesLength: 3 → ${limit}`)
-      return originalDefineProperty.call(this, obj, prop, {
-        ...descriptor,
-        value: limit,
-      })
+// Official GHD truncates the localStorage key to 3 entries on every repo
+// switch (and on boot).  When the app runs WITHOUT hooks in between, entries
+// beyond 3 are lost from the real key — but our backup key survives.  Merge
+// the backup back into the real key so the restored list (capped at the
+// configured limit) is what the app reads at boot.  Relies on the patched
+// setItem, which re-merges with the backup and refreshes it.
+function restoreRecentRepositoriesFromBackup(): void {
+  try {
+    const current = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_KEY))
+    const backup = parseRecentRepos(window.localStorage.getItem(RECENT_REPOSITORIES_BACKUP_KEY))
+    if (backup.length === 0) {
+      return
     }
-    return originalDefineProperty.call(this, obj, prop, descriptor)
+    const restored = uniqueRepos([...current, ...backup], getRecentReposLimit())
+    if (restored.length > current.length) {
+      window.localStorage.setItem(RECENT_REPOSITORIES_KEY, restored.join(NUMBER_ARRAY_DELIMITER))
+      console.log(`[GDP] Restored recent repositories from backup: ${current.length} → ${restored.length}`)
+    }
+  } catch (error) {
+    console.warn('[GDP] Failed to restore recent repositories from backup:', error)
   }
-
-  // Restore after a short delay
-  setTimeout(() => {
-    Object.defineProperty = originalDefineProperty
-  }, 5000)
 }
 
 export function setupRecentRepositoriesLimit(): void {
-  patchRecentRepositoriesLength()
   setupRecentRepositoriesSlicePatch()
   setupRecentRepositoriesStorageGuard()
+  restoreRecentRepositoriesFromBackup()
 
   // Store the limit in window for other parts to access
   try {

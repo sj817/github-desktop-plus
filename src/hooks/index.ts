@@ -19,6 +19,7 @@ import { parseConfig, type HookConfig } from './config'
 import { configureLogLevel, gdpLog, LOG_JSON_FILE, resetLogStream } from './logger'
 import { setupTelemetryBlocker } from './telemetry-blocker'
 import { blockUpdates } from './update-blocker'
+import { setupGdpIpc } from './ipc'
 
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
@@ -40,6 +41,15 @@ type StoredConfig = {
   }
   ui?: {
     recent_repos_limit?: unknown
+  }
+  ai?: {
+    enabled?: unknown
+    base_url?: unknown
+    api_key?: unknown
+    model?: unknown
+    system_prompt?: unknown
+    timeout_secs?: unknown
+    fallback_to_copilot?: unknown
   }
 }
 
@@ -75,6 +85,16 @@ function applyStoredConfig(config: HookConfig, stored: StoredConfig): boolean {
     stored.ui?.recent_repos_limit,
     config.recentReposLimit
   )
+  if (stored.ai && typeof stored.ai === 'object') {
+    config.ai = {
+      enabled: boolOrCurrent(stored.ai.enabled, config.ai.enabled),
+      baseUrl: stringOrCurrent(stored.ai.base_url, config.ai.baseUrl),
+      model: stringOrCurrent(stored.ai.model, config.ai.model),
+      systemPrompt: stringOrCurrent(stored.ai.system_prompt, config.ai.systemPrompt),
+      timeoutSecs: typeof stored.ai.timeout_secs === 'number' ? stored.ai.timeout_secs : config.ai.timeoutSecs,
+      fallbackToCopilot: boolOrCurrent(stored.ai.fallback_to_copilot, config.ai.fallbackToCopilot),
+    }
+  }
 
   return JSON.stringify(config) !== before
 }
@@ -113,6 +133,7 @@ interface MenuItem {
 
 interface TrackedWebContents {
   executeJavaScript(code: string): Promise<unknown>
+  send(channel: string, ...args: unknown[]): void
   isDestroyed(): boolean
 }
 
@@ -265,9 +286,58 @@ function loadUiTranslations(dir: string, locale: string, dataDir: string): Recor
   return translations
 }
 
+// Anchor-based disambiguation overrides. Each category may carry an `_overrides`
+// map { englishKey: [{ anchor, value }] } that lets the same English string
+// resolve to different translations depending on the DOM subtree it appears in.
+// Collected here (menu excluded, like translations) and pushed to the renderer
+// as window.__GDP_OVERRIDES__.
+type OverrideEntry = { anchor: string; value: string }
+
+function collectOverrides(
+  bundle: LocaleBundle,
+  excludedCategories: ReadonlySet<string>
+): Record<string, OverrideEntry[]> {
+  const overrides: Record<string, OverrideEntry[]> = {}
+  for (const [category, entries] of Object.entries(bundle)) {
+    if (excludedCategories.has(category) || !entries || typeof entries !== 'object') {
+      continue
+    }
+    const raw = (entries as Record<string, unknown>)._overrides
+    if (!raw || typeof raw !== 'object') {
+      continue
+    }
+    for (const [key, list] of Object.entries(raw as Record<string, unknown>)) {
+      if (!Array.isArray(list)) {
+        continue
+      }
+      const valid = list.filter(
+        (entry): entry is OverrideEntry =>
+          !!entry &&
+          typeof entry === 'object' &&
+          typeof (entry as OverrideEntry).anchor === 'string' &&
+          typeof (entry as OverrideEntry).value === 'string'
+      )
+      if (valid.length > 0) {
+        overrides[key] = (overrides[key] ?? []).concat(valid)
+      }
+    }
+  }
+  return overrides
+}
+
+function loadUiOverrides(dir: string, locale: string, dataDir: string): Record<string, OverrideEntry[]> {
+  const overrides = collectOverrides(loadLocaleBundle(dir, locale, dataDir), new Set(['menu']))
+  const count = Object.keys(overrides).length
+  if (count > 0) {
+    gdpLog(`Loaded ${count} anchor override keys`, 'info', 'i18n')
+  }
+  return overrides
+}
+
 function setupRendererI18n(
   app: { on(event: string, cb: (...args: unknown[]) => void): void },
   uiTranslations: Record<string, string>,
+  uiOverrides: Record<string, OverrideEntry[]>,
   dir: string,
   config: HookConfig
 ): TrackedWebContents[] {
@@ -317,13 +387,36 @@ function setupRendererI18n(
     }
   } catch { /* optional */ }
 
+  // Copilot button hijack — redirects AI commit generation to user-configured endpoint
+  const copilotHijackPath = _path.join(dir, 'preload', 'copilot-hijack.js')
+  let copilotHijackCode = ''
+  try {
+    if (_fs.existsSync(copilotHijackPath)) {
+      copilotHijackCode = _fs.readFileSync(copilotHijackPath, 'utf-8')
+      gdpLog('Copilot hijack script loaded', 'info', 'system')
+    }
+  } catch { /* optional */ }
+
+  // GDP settings dialog — native DOM dialog with 4 tabs
+  const gdpDialogPath = _path.join(dir, 'preload', 'gdp-dialog.js')
+  let gdpDialogCode = ''
+  try {
+    if (_fs.existsSync(gdpDialogPath)) {
+      gdpDialogCode = _fs.readFileSync(gdpDialogPath, 'utf-8')
+      gdpLog('GDP dialog script loaded', 'info', 'system')
+    }
+  } catch { /* optional */ }
+
   const buildInjectScript = () => `(function(){` +
     `window.__GDP_TRANSLATIONS__=${JSON.stringify(uiTranslations)};` +
+    `window.__GDP_OVERRIDES__=${JSON.stringify(uiOverrides)};` +
     `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
     `window.__GDP_LOG_FILE__=${JSON.stringify(LOG_JSON_FILE)};` +
     `${preloadCode}` +
     (navbarCode ? `\n${navbarCode}` : '') +
     (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
+    (copilotHijackCode ? `\n${copilotHijackCode}` : '') +
+    (gdpDialogCode ? `\n${gdpDialogCode}` : '') +
     `})();`
 
   const buildEarlyInjectScript = () => recentRepositoriesCode
@@ -339,6 +432,7 @@ function setupRendererI18n(
         on(event: string, cb: () => void): void
         once(event: string, cb: () => void): void
         executeJavaScript(code: string): Promise<unknown>
+        send(channel: string, ...args: unknown[]): void
         isDestroyed(): boolean
       }
     }
@@ -382,154 +476,23 @@ function setupRendererI18n(
 // 5. GDP Menu — inject a "GDP" top-level menu into the menu bar
 //    Independent of i18n toggle — always injected when hooks are active.
 // ---------------------------------------------------------------------------
-const GDP_CONTROL_ORIGIN = 'http://127.0.0.1:7788'
-
-interface GDPBrowserWindow {
-  loadURL(url: string): Promise<void>
-  once(event: string, cb: () => void): void
-  on?(event: string, cb: (...args: unknown[]) => void): void
-  show(): void
-  focus(): void
-  isDestroyed(): boolean
-  webContents?: {
-    on?(event: string, cb: (...args: unknown[]) => void): void
-  }
-}
 
 interface GDPBrowserWindowConstructor {
-  new(options: Record<string, unknown>): GDPBrowserWindow
-  getFocusedWindow?: () => GDPBrowserWindow | null
+  new(options: Record<string, unknown>): unknown
+  getFocusedWindow?: () => { webContents: { send(ch: string, ...args: unknown[]): void; isDestroyed(): boolean } } | null
+  getAllWindows?: () => Array<{ webContents: { send(ch: string, ...args: unknown[]): void; isDestroyed(): boolean } }>
 }
 
-let gdpControlWindow: GDPBrowserWindow | null = null
-
-function controlPanelUrl(config: HookConfig, route: string): string {
-  const origin = config.controlOrigin || GDP_CONTROL_ORIGIN
-  const url = new URL(route, origin)
-  if (config.authToken) {
-    url.searchParams.set('t', config.authToken)
-  }
-  return url.toString()
-}
-
-function embeddedControlPanelUrl(config: HookConfig, route: string): string {
-  return controlPanelUrl({ ...config, controlOrigin: GDP_CONTROL_ORIGIN }, route)
-}
-
-function controlPanelErrorUrl(message: string): string {
-  const escaped = message
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-
-  return `data:text/html;charset=utf-8,${encodeURIComponent(`<!doctype html>
-<html lang="zh-CN">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GitHub Desktop Plus</title>
-  <style>
-    html,body{height:100%;margin:0;background:#0f1117;color:#eef2ff;font:14px/1.6 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
-    body{display:grid;place-items:center}
-    main{max-width:520px;padding:32px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(20,28,44,.86);box-shadow:0 24px 70px rgba(0,0,0,.45)}
-    h1{margin:0 0 12px;font-size:20px}
-    p{margin:0;color:#aeb8cc}
-    code{color:#9cc8ff}
-  </style>
-</head>
-<body>
-  <main>
-    <h1>GDP 控制面板暂时无法打开</h1>
-    <p>${escaped}</p>
-    <p>请确认 <code>gdp</code> 本地服务或 WebUI dev server 正在运行。</p>
-  </main>
-</body>
-</html>`)}`;
-}
-
-function loadControlPanel(
-  win: GDPBrowserWindow,
-  config: HookConfig,
-  route: string,
-  allowFallback: boolean
-): void {
-  const targetUrl = controlPanelUrl(config, route)
-  const fallbackUrl = embeddedControlPanelUrl(config, route)
-  const canFallback = allowFallback && targetUrl !== fallbackUrl
-
-  void win.loadURL(targetUrl).catch((e: unknown) => {
-    gdpLog(`Failed to open control panel at ${targetUrl}: ${e}`, 'error', 'system')
-    if (canFallback && !win.isDestroyed()) {
-      gdpLog(`Retrying control panel with embedded server: ${fallbackUrl}`, 'warn', 'system')
-      void win.loadURL(fallbackUrl).catch((fallbackError: unknown) => {
-        gdpLog(`Embedded control panel fallback failed: ${fallbackError}`, 'error', 'system')
-        if (!win.isDestroyed()) {
-          void win.loadURL(controlPanelErrorUrl(String(fallbackError))).catch(() => {})
-        }
-      })
-    } else if (!win.isDestroyed()) {
-      void win.loadURL(controlPanelErrorUrl(String(e))).catch(() => {})
-    }
-  })
-}
-
-function openControlPanel(
+function sendToFocusedWindow(
   BrowserWindow: GDPBrowserWindowConstructor,
-  config: HookConfig,
-  route: string
+  channel: string,
+  ...args: unknown[]
 ): void {
-  if (gdpControlWindow && !gdpControlWindow.isDestroyed()) {
-    gdpControlWindow.focus()
-    loadControlPanel(gdpControlWindow, config, route, true)
-    return
+  const wins = BrowserWindow.getAllWindows?.() ?? []
+  const win = BrowserWindow.getFocusedWindow?.() ?? wins[0] ?? null
+  if (win && !win.webContents.isDestroyed()) {
+    win.webContents.send(channel, ...args)
   }
-
-  const parent = BrowserWindow.getFocusedWindow?.() ?? undefined
-  const win = new BrowserWindow({
-    width: 1080,
-    height: 760,
-    minWidth: 900,
-    minHeight: 620,
-    parent,
-    modal: Boolean(parent),
-    show: false,
-    title: 'GitHub Desktop Plus',
-    backgroundColor: '#0f1117',
-    autoHideMenuBar: true,
-    webPreferences: {
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-    },
-  })
-  gdpControlWindow = win
-  win.on?.('closed', () => {
-    if (gdpControlWindow === win) {
-      gdpControlWindow = null
-    }
-  })
-  win.webContents?.on?.('did-fail-load', (...args: unknown[]) => {
-    const errorCode = typeof args[1] === 'number' ? args[1] : 0
-    const errorDescription = typeof args[2] === 'string' ? args[2] : 'unknown'
-    const validatedURL = typeof args[3] === 'string' ? args[3] : ''
-    const isMainFrame = args[4] !== false
-    const targetUrl = controlPanelUrl(config, route)
-    const fallbackUrl = embeddedControlPanelUrl(config, route)
-
-    if (!isMainFrame || targetUrl === fallbackUrl || !validatedURL.startsWith(targetUrl)) {
-      return
-    }
-
-    gdpLog(
-      `Control panel dev server load failed (${errorCode} ${errorDescription}); falling back to ${fallbackUrl}`,
-      'warn',
-      'system'
-    )
-    loadControlPanel(win, { ...config, controlOrigin: GDP_CONTROL_ORIGIN }, route, false)
-  })
-  win.once('ready-to-show', () => win.show())
-  loadControlPanel(win, config, route, true)
 }
 
 function buildGDPMenuItems(
@@ -541,19 +504,24 @@ function buildGDPMenuItems(
   return [
     {
       id: 'gdp.settings',
-      label: '基本配置',
+      label: '设置',
       accelerator: 'CmdOrCtrl+Alt+G',
-      click: () => { openControlPanel(BrowserWindow, config, '/settings') },
+      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'general' }) },
+    },
+    {
+      id: 'gdp.ai',
+      label: 'AI 配置',
+      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'ai' }) },
     },
     {
       id: 'gdp.logs',
       label: '日志',
-      click: () => { openControlPanel(BrowserWindow, config, '/logs') },
+      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'logs' }) },
     },
     {
       id: 'gdp.locales',
       label: '语言包管理',
-      click: () => { openControlPanel(BrowserWindow, config, '/locales') },
+      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'locales' }) },
     },
     { id: 'gdp.separator.1', type: 'separator' },
     {
@@ -626,8 +594,7 @@ function setupGDPMenu(
 }
 
 // ---------------------------------------------------------------------------
-// 5b. Global Shortcut — register Ctrl/Cmd+Alt+G to open the WebUI from
-//     anywhere, even when GitHub Desktop is not the focused window.
+// 5b. Global Shortcut — Ctrl/Cmd+Alt+G sends gdp:show-dialog to focused window
 // ---------------------------------------------------------------------------
 function setupGDPShortcut(
   app: { isReady(): boolean; whenReady(): Promise<void> },
@@ -636,33 +603,26 @@ function setupGDPShortcut(
     isRegistered(accelerator: string): boolean
   },
   BrowserWindow: GDPBrowserWindowConstructor,
-  config: HookConfig
 ): void {
   const ACCELERATOR = 'CommandOrControl+Alt+G'
   const register = () => {
     try {
-      if (globalShortcut.isRegistered(ACCELERATOR)) {
-        gdpLog(`Global shortcut already registered: ${ACCELERATOR}`, 'info', 'system')
-        return
-      }
+      if (globalShortcut.isRegistered(ACCELERATOR)) return
       const ok = globalShortcut.register(ACCELERATOR, () => {
-        gdpLog('Global shortcut triggered — opening GDP control panel', 'info', 'system')
-        openControlPanel(BrowserWindow, config, '/settings')
+        gdpLog('Global shortcut triggered — opening GDP settings dialog', 'info', 'system')
+        sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'general' })
       })
-      if (ok) {
-        gdpLog(`Global shortcut registered: ${ACCELERATOR}`, 'info', 'system')
-      } else {
-        gdpLog(`Global shortcut registration failed: ${ACCELERATOR}`, 'warn', 'system')
-      }
+      gdpLog(
+        ok ? `Global shortcut registered: ${ACCELERATOR}` : `Global shortcut failed: ${ACCELERATOR}`,
+        ok ? 'info' : 'warn',
+        'system'
+      )
     } catch (e) {
       gdpLog(`Global shortcut error: ${e}`, 'error', 'system')
     }
   }
-  if (app.isReady()) {
-    register()
-  } else {
-    app.whenReady().then(register).catch(() => {})
-  }
+  if (app.isReady()) { register() }
+  else { app.whenReady().then(register).catch(() => {}) }
 }
 
 // ---------------------------------------------------------------------------
@@ -692,16 +652,21 @@ function setupLocaleHotReload(
     debounceTimer = setTimeout(() => {
       gdpLog(`Locale package changed: ${localeFile} — hot-reloading translations`, 'info', 'i18n')
 
-      // Reload UI translations
+      // Reload UI translations + anchor overrides
       const newUiTranslations = loadUiTranslations(dir, config.locale, config.dataDir)
+      const newUiOverrides = loadUiOverrides(dir, config.locale, config.dataDir)
       const updateScript = `(function(){` +
         `var newT=${JSON.stringify(newUiTranslations)};` +
+        `var newO=${JSON.stringify(newUiOverrides)};` +
         `var oldT=window.__GDP_TRANSLATIONS__||{};` +
         `var changed=false;` +
         `for(var k in newT){if(oldT[k]!==newT[k]){changed=true;break;}}` +
         `if(!changed){for(var k in oldT){if(!(k in newT)){changed=true;break;}}}` +
+        // Overrides are compared structurally — any diff forces a re-translate.
+        `if(!changed){changed=JSON.stringify(window.__GDP_OVERRIDES__||{})!==JSON.stringify(newO);}` +
         `if(changed){` +
         `window.__GDP_TRANSLATIONS__=newT;` +
+        `window.__GDP_OVERRIDES__=newO;` +
         `console.log("[GDP i18n] Hot-reload: "+Object.keys(newT).length+" entries updated");` +
         // Re-translate the entire document body
         `if(window.__gdpTranslateTree&&document.body){window.__gdpTranslateTree(document.body);}` +
@@ -729,6 +694,90 @@ function setupLocaleHotReload(
   }
 }
 
+// ---------------------------------------------------------------------------
+// 5c. Early preload — register recent-repositories.js as a REAL Electron
+//     preload script so it runs before any page script.  The previous
+//     executeJavaScript("did-start-loading") approach raced against the app:
+//     GHD reads + truncates the recently-selected-repositories key during
+//     boot, before executeJavaScript ever runs, so the storage/slice patches
+//     landed too late and the configured limit never applied.
+//     GHD windows use nodeIntegration + no sandbox, so the preload shares the
+//     page's window object.
+// ---------------------------------------------------------------------------
+interface GDPSessionModule {
+  defaultSession?: {
+    registerPreloadScript?(script: { type: string; filePath: string }): unknown
+    setPreloads?(paths: string[]): void
+    getPreloads?(): string[]
+  }
+}
+
+interface GDPAppModule {
+  isReady(): boolean
+  on(event: string, cb: (...args: unknown[]) => void): void
+}
+
+function setupEarlyPreload(
+  app: GDPAppModule,
+  session: GDPSessionModule,
+  dir: string,
+  config: HookConfig
+): (() => void) | null {
+  const sourcePath = _path.join(dir, 'preload', 'recent-repositories.js')
+  const earlyPath = _path.join(dir, 'preload', 'gdp-early.js')
+
+  const writeEarlyPreload = (): boolean => {
+    try {
+      const code = _fs.readFileSync(sourcePath, 'utf-8')
+      const content =
+        `try{window.__GDP_CONFIG__=${JSON.stringify(config)};\n` +
+        `${code}\n` +
+        `}catch(e){console.warn('[GDP] early preload failed',e)}`
+      _fs.writeFileSync(earlyPath, content)
+      return true
+    } catch (e) {
+      gdpLog(`Early preload write failed: ${e}`, 'warn', 'system')
+      return false
+    }
+  }
+
+  if (!writeEarlyPreload()) {
+    return null
+  }
+
+  const register = () => {
+    try {
+      const ses = session.defaultSession
+      if (!ses) {
+        gdpLog('defaultSession unavailable — early preload not registered', 'warn', 'system')
+        return
+      }
+      if (typeof ses.registerPreloadScript === 'function') {
+        ses.registerPreloadScript({ type: 'frame', filePath: earlyPath })
+        gdpLog(`Early preload registered (registerPreloadScript): ${earlyPath}`, 'info', 'system')
+      } else if (typeof ses.setPreloads === 'function') {
+        const existing = typeof ses.getPreloads === 'function' ? ses.getPreloads() : []
+        ses.setPreloads([...existing, earlyPath])
+        gdpLog(`Early preload registered (setPreloads): ${earlyPath}`, 'info', 'system')
+      } else {
+        gdpLog('No preload registration API — early patches degrade to late injection', 'warn', 'system')
+      }
+    } catch (e) {
+      gdpLog(`Early preload registration failed: ${e}`, 'error', 'system')
+    }
+  }
+
+  // Our 'ready' listener is attached before GHD's main.js runs, so it fires
+  // ahead of GHD's own ready handler — i.e. before any BrowserWindow exists.
+  if (app.isReady()) {
+    register()
+  } else {
+    app.on('ready', register)
+  }
+
+  return writeEarlyPreload
+}
+
 function pushRuntimeConfig(
   config: HookConfig,
   activeWebContents: TrackedWebContents[]
@@ -736,6 +785,9 @@ function pushRuntimeConfig(
   const updateScript = `(function(){` +
     `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
     `if(typeof window.__gdpApplyRecentReposLimit==="function"){window.__gdpApplyRecentReposLimit();}` +
+    // Notify renderer features (e.g. the Copilot-button hijack) that config
+    // changed, so an AI toggle takes effect without an app relaunch.
+    `try{window.dispatchEvent(new Event('gdp:config-updated'));}catch(e){}` +
     `})();`
 
   const alive = activeWebContents.filter(wc => !wc.isDestroyed())
@@ -748,7 +800,8 @@ function pushRuntimeConfig(
 
 function setupConfigHotReload(
   config: HookConfig,
-  activeWebContents: TrackedWebContents[]
+  activeWebContents: TrackedWebContents[],
+  onConfigChanged?: () => void
 ): void {
   if (!config.configDir) {
     return
@@ -765,6 +818,7 @@ function setupConfigHotReload(
         if (applyStoredConfig(config, parsed)) {
           configureLogLevel(config.logLevel)
           pushRuntimeConfig(config, activeWebContents)
+          onConfigChanged?.()
           gdpLog(`Runtime config reloaded from ${configPath}`, 'info', 'system')
         }
       } catch (e) {
@@ -838,7 +892,7 @@ function main(): void {
     )
   }
 
-  // 2b. Global keyboard shortcut for opening the GDP control panel
+  // 2b. Global keyboard shortcut — Ctrl/Cmd+Alt+G opens GDP settings dialog in renderer
   if (electron.app && electron.globalShortcut && electron.BrowserWindow) {
     setupGDPShortcut(
       electron.app as { isReady(): boolean; whenReady(): Promise<void> },
@@ -847,6 +901,17 @@ function main(): void {
         isRegistered(accelerator: string): boolean
       },
       electron.BrowserWindow as GDPBrowserWindowConstructor,
+    )
+  }
+
+  // 2c. Early preload — recent-repositories patches must run before page
+  //     scripts (GHD truncates the recent-repos key during boot).
+  let regenerateEarlyPreload: (() => void) | null = null
+  if (electron.app && electron.session) {
+    regenerateEarlyPreload = setupEarlyPreload(
+      electron.app as unknown as GDPAppModule,
+      electron.session as GDPSessionModule,
+      dir,
       config
     )
   }
@@ -854,6 +919,7 @@ function main(): void {
   // 3. Renderer i18n + navbar + update-interceptor injection
   let activeWebContents: Array<{
     executeJavaScript(code: string): Promise<unknown>
+    send(channel: string, ...args: unknown[]): void
     isDestroyed(): boolean
   }> = []
 
@@ -861,15 +927,36 @@ function main(): void {
     const uiTranslations = config.enableI18n
       ? loadUiTranslations(dir, config.locale, config.dataDir)
       : {}
+    const uiOverrides = config.enableI18n
+      ? loadUiOverrides(dir, config.locale, config.dataDir)
+      : {}
     activeWebContents = setupRendererI18n(
       electron.app as { on(event: string, cb: (...args: unknown[]) => void): void },
       uiTranslations,
+      uiOverrides,
       dir,
       config
     ) ?? []
   }
 
-  setupConfigHotReload(config, activeWebContents)
+  // Apply a stored (snake_case) config into the live HookConfig and push it to
+  // renderers. Used by both the file-watch (best-effort) and the IPC save path
+  // (reliable — fs.watchFile can silently miss same-process writes on Windows).
+  const applyConfigAndPush = (parsed: StoredConfig): void => {
+    try {
+      const changed = applyStoredConfig(config, parsed)
+      gdpLog(`applyConfigAndPush: changed=${changed} ai.enabled=${config.ai.enabled} renderers=${activeWebContents.length}`, 'info', 'system')
+      // Always push (even if our snake_case diff saw no change) so the renderer's
+      // __GDP_CONFIG__ and the gdp:config-updated event are guaranteed fresh.
+      configureLogLevel(config.logLevel)
+      pushRuntimeConfig(config, activeWebContents)
+      if (changed) regenerateEarlyPreload?.()
+    } catch (e) {
+      gdpLog(`applyConfigAndPush failed: ${e}`, 'error', 'system')
+    }
+  }
+
+  setupConfigHotReload(config, activeWebContents, () => regenerateEarlyPreload?.())
 
   // 4. Telemetry blocking
   if (config.blockTelemetry && electron.app && electron.session) {
@@ -890,10 +977,19 @@ function main(): void {
 
   // 5. Dev-mode hot-reload for locale files
   if (config.enableI18n && activeWebContents) {
-    setupLocaleHotReload(
-      dir,
-      config,
-      activeWebContents
+    setupLocaleHotReload(dir, config, activeWebContents)
+  }
+
+  // 6. GDP IPC bridge — config read/write, locale CRUD, logs, AI
+  if (electron.ipcMain && electron.shell && electron.BrowserWindow) {
+    setupGdpIpc(
+      _path.join(config.configDir, 'config.json'),
+      config.dataDir,
+      electron.ipcMain as { handle(ch: string, fn: (...a: unknown[]) => unknown): void },
+      electron.shell as { openPath(p: string): Promise<string> },
+      electron.BrowserWindow as GDPBrowserWindowConstructor,
+      activeWebContents,
+      applyConfigAndPush,
     )
   }
 

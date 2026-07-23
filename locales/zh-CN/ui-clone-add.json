@@ -95,5 +95,8 @@
   "Choose…": "选择…",
   "Repository URL or GitHub username and repository": "仓库 URL 或 GitHub 用户名/仓库名",
   "Clone As:": "克隆为：",
-  "GitHub.com": "GitHub.com"
+  "GitHub.com": "GitHub.com",
+  "Looks like there are no repositories for": "似乎没有属于以下账户的仓库：",
+  "The Git repository": "该 Git 仓库",
+  "Will be created as": "将被创建为"
 }

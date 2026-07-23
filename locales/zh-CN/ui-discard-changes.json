@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "description": "discard-changes 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "discard-changes"
+  },
+  "Are you sure you want to discard all": "确定要放弃所有",
+  "The": "该"
+}

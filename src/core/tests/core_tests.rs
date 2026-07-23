@@ -9,8 +9,8 @@ use gdp_core::{
 fn runtime_plan_metadata_is_sane() {
     let p = runtime_plan();
     assert!(p.memory_target_mb > 0 && p.memory_target_mb <= 64);
-    assert!(p.runtime.contains("hyper"));
-    assert!(p.web_boundary.contains("127.0.0.1"));
+    assert!(p.runtime.contains("tungstenite"));
+    assert!(p.web_boundary.contains("IPC"));
     assert!(!p.notes.is_empty());
     // Notes are non-trivial human-readable strings.
     for n in p.notes {
@@ -24,7 +24,7 @@ fn modules_inventory_lists_all_crates() {
     let names: Vec<&str> = m.iter().map(|x| x.name).collect();
     assert!(names.contains(&"gdp-core"));
     assert!(names.contains(&"gdp"));
-    assert!(names.contains(&"webui"));
+    assert!(names.contains(&"src/hooks/preload/gdp-dialog"));
     assert!(names.contains(&"src/hooks"));
 }
 

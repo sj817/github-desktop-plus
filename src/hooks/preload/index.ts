@@ -43,6 +43,39 @@ import './recent-repositories'
     return ((window as unknown as Record<string, unknown>).__GDP_TRANSLATIONS__ as Record<string, string> | undefined) ?? {};
   }
 
+  type GDPOverride = { anchor: string; value: string };
+
+  function getOverrides(): Record<string, GDPOverride[]> {
+    return (
+      ((window as unknown as Record<string, unknown>).__GDP_OVERRIDES__ as
+        | Record<string, GDPOverride[]>
+        | undefined) ?? {}
+    );
+  }
+
+  // Anchor-based disambiguation: the same English key may need different
+  // translations in different UI areas. An override applies only when the
+  // element being translated is inside a DOM subtree matching its anchor
+  // selector. Absent any override for `key`, this returns `defaultValue`
+  // unchanged (the common fast path — no closest() cost).
+  function resolveOverride(
+    key: string,
+    defaultValue: string,
+    contextEl: Element | null,
+  ): string {
+    if (!contextEl) return defaultValue;
+    const list = getOverrides()[key];
+    if (!list || list.length === 0) return defaultValue;
+    for (const override of list) {
+      try {
+        if (contextEl.closest(override.anchor)) return override.value;
+      } catch {
+        // Invalid selector — ignore this override, keep scanning.
+      }
+    }
+    return defaultValue;
+  }
+
   // Prefer translations embedded by the injector (avoids __dirname uncertainty
   // in the renderer context entirely).
   const initialTranslations = getTranslations();
@@ -80,7 +113,10 @@ import './recent-repositories'
     return { regex: new RegExp(`^${regexStr}$`), names };
   }
 
-  function translateText(text: string): string {
+  // `contextEl` is the element the text belongs to (a text node's parent, or the
+  // attribute's element). It is used only to resolve anchor-based overrides; when
+  // omitted (e.g. context-menu labels with no DOM node) the flat translation is used.
+  function translateText(text: string, contextEl: Element | null = null): string {
     const translations = getTranslations();
     const entries = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
     const trimmed = text.trim();
@@ -88,13 +124,15 @@ import './recent-repositories'
 
     // Exact match first
     const exact = translations[trimmed];
-    if (exact !== undefined) return text.replace(trimmed, exact);
+    if (exact !== undefined) return text.replace(trimmed, resolveOverride(trimmed, exact, contextEl));
 
     // Whitespace-normalized match: collapse internal whitespace (handles multiline JSX text nodes)
     const normalized = trimmed.replace(/\s+/g, ' ');
     if (normalized !== trimmed) {
       const normalizedExact = translations[normalized];
-      if (normalizedExact !== undefined) return text.replace(trimmed, normalizedExact);
+      if (normalizedExact !== undefined) {
+        return text.replace(trimmed, resolveOverride(normalized, normalizedExact, contextEl));
+      }
 
       // Also try pattern match with normalized text
       for (const [pattern, replacement] of entries) {
@@ -102,7 +140,7 @@ import './recent-repositories'
         if (compiled === null) continue;
         const normalizedMatch = normalized.match(compiled.regex);
         if (normalizedMatch) {
-          let result = replacement;
+          let result = resolveOverride(pattern, replacement, contextEl);
           compiled.names.forEach((name, i) => {
             result = result.replace(`{{${name}}}`, normalizedMatch[i + 1]);
             result = result.replace(`{${name}}`, normalizedMatch[i + 1]);
@@ -120,7 +158,7 @@ import './recent-repositories'
       const match = trimmed.match(compiled.regex);
 
       if (match) {
-        let result = replacement;
+        let result = resolveOverride(pattern, replacement, contextEl);
         compiled.names.forEach((name, i) => {
           result = result.replace(`{{${name}}}`, match[i + 1]);
           result = result.replace(`{${name}}`, match[i + 1]);
@@ -169,7 +207,7 @@ import './recent-repositories'
           ? textNode.__gdpSourceText
           : current;
 
-      const translated = translateText(source);
+      const translated = translateText(source, textNode.parentElement);
       textNode.__gdpSourceText = source;
       textNode.__gdpTranslatedText = translated;
 
@@ -199,7 +237,7 @@ import './recent-repositories'
         ? prev.source
         : current;
 
-    const translated = translateText(source);
+    const translated = translateText(source, el);
     translatedElement.__gdpAttrState ??= {};
     translatedElement.__gdpAttrState[attr] = { source, translated };
 

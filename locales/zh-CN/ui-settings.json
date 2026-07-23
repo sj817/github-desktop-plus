@@ -119,5 +119,17 @@
 
   "(default)": "（默认）",
 
-  "Arguments must include the target path placeholder (%TARGET_PATH%).": "参数必须包含目标路径占位符 (%TARGET_PATH%)。"
+  "Arguments must include the target path placeholder (%TARGET_PATH%).": "参数必须包含目标路径占位符 (%TARGET_PATH%)。",
+  "Copilot": "Copilot",
+  "Formatting": "格式",
+  "Git Credential Manager": "Git 凭据管理器",
+  "Install": "安装",
+  "Learn more about generating commit messages.": "详细了解如何生成提交消息。",
+  "Loading available models…": "正在加载可用模型…",
+  "Local": "本地",
+  "Models": "模型",
+  "No models available. Check your Copilot subscription.": "没有可用的模型。请检查您的 Copilot 订阅。",
+  "Prefer absolute dates over relative": "优先使用绝对日期而非相对日期",
+  "Providers": "提供方",
+  "Tailor how Copilot behaves by using": "通过以下方式定制 Copilot 的行为："
 }
