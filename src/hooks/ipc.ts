@@ -17,11 +17,13 @@ import { gdpLog, LOG_JSON_FILE, setLogBroadcast, type LogEntry } from './logger'
 // ── Electron types (used as any in main-process hooks) ─────────────────────
 
 interface IpcMain {
-  handle(channel: string, listener: (event: unknown, ...args: unknown[]) => unknown): void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handle(channel: string, listener: (event: unknown, ...args: any[]) => unknown): void
 }
 
 interface Shell {
   openPath(path: string): Promise<string>
+  showItemInFolder(fullPath: string): void
 }
 
 interface TrackedWebContents {
@@ -92,18 +94,18 @@ async function getPendingDiff(repoPath: string, timeoutMs: number): Promise<stri
   return ''
 }
 
-function callOpenAiApi(cfg: AiConfig, diff: string): Promise<{
-  ok: boolean; summary?: string; description?: string; reason?: string
-}> {
+// Generic OpenAI-compatible chat call — shared by commit generation and the
+// connectivity test.
+function callChatCompletion(
+  cfg: AiConfig,
+  systemPrompt: string,
+  userPrompt: string,
+): Promise<{ ok: boolean; content?: string; reason?: string }> {
   return new Promise((resolve) => {
-    const userPrompt = diff
-      ? `以下是 git diff --cached 输出，请根据变更内容生成提交消息：\n\`\`\`\n${diff.slice(0, 8000)}\n\`\`\``
-      : '暂无已暂存的变更，请生成一条通用提交消息。'
-
     const body = JSON.stringify({
       model: cfg.model,
       messages: [
-        { role: 'system', content: cfg.system_prompt },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
       temperature: AI_TEMPERATURE,
@@ -154,10 +156,7 @@ function callOpenAiApi(cfg: AiConfig, diff: string): Promise<{
         if (status < 200 || status >= 300) { resolve({ ok: false, reason: `HTTP ${status}` }); return }
         const content = parsed.choices?.[0]?.message?.content?.trim() ?? ''
         if (!content) { resolve({ ok: false, reason: 'empty_response' }); return }
-        const lines = content.split('\n')
-        const summary = lines[0].trim()
-        const description = lines.slice(1).join('\n').trim()
-        resolve({ ok: true, summary, description: description || undefined })
+        resolve({ ok: true, content })
       })
     })
 
@@ -166,6 +165,23 @@ function callOpenAiApi(cfg: AiConfig, diff: string): Promise<{
     req.write(body)
     req.end()
   })
+}
+
+async function callOpenAiApi(cfg: AiConfig, diff: string): Promise<{
+  ok: boolean; summary?: string; description?: string; reason?: string
+}> {
+  const userPrompt = diff
+    ? `以下是 git diff --cached 输出，请根据变更内容生成提交消息：\n\`\`\`\n${diff.slice(0, 8000)}\n\`\`\``
+    : '暂无已暂存的变更，请生成一条通用提交消息。'
+
+  const result = await callChatCompletion(cfg, cfg.system_prompt, userPrompt)
+  if (!result.ok || !result.content) {
+    return { ok: false, reason: result.reason }
+  }
+  const lines = result.content.split('\n')
+  const summary = lines[0].trim()
+  const description = lines.slice(1).join('\n').trim()
+  return { ok: true, summary, description: description || undefined }
 }
 
 // ── Public setup ──────────────────────────────────────────────────────────────
@@ -263,6 +279,31 @@ export function setupGdpIpc(
     } catch (e) { return { ok: false, reason: String(e) } }
   })
 
+  // Export straight to the user's Downloads folder and reveal it in Explorer.
+  // (Renderer-side blob downloads are silently swallowed by GHD's session, so
+  // the file must be written from the main process.)
+  ipcMain.handle('gdp:export-locale-file', (_event, locale: string) => {
+    try {
+      const data = fs.readFileSync(path.join(dataDir, 'locales', `${locale}.json`), 'utf-8')
+      let outDir = path.join(os.homedir(), 'Downloads')
+      try { fs.mkdirSync(outDir, { recursive: true }) } catch { outDir = dataDir }
+      // Collision-safe name: zh-CN.json, zh-CN (1).json, …
+      let outPath = path.join(outDir, `${locale}.json`)
+      for (let i = 1; fs.existsSync(outPath); i++) {
+        outPath = path.join(outDir, `${locale} (${i}).json`)
+      }
+      fs.writeFileSync(outPath, data, 'utf-8')
+      try { shell.showItemInFolder(outPath) } catch { /* best effort */ }
+      return { ok: true, path: outPath }
+    } catch (e) { return { ok: false, reason: String(e) } }
+  })
+
+  ipcMain.handle('gdp:open-locales-dir', () => {
+    const dir = path.join(dataDir, 'locales')
+    try { fs.mkdirSync(dir, { recursive: true }) } catch { /* best effort */ }
+    return shell.openPath(dir)
+  })
+
   ipcMain.handle('gdp:import-locale', (_event, locale: string, data: unknown) => {
     const filePath = path.join(dataDir, 'locales', `${locale}.json`)
     try {
@@ -318,6 +359,34 @@ export function setupGdpIpc(
       gdpLog(`AI commit error: ${e}`, 'error', 'system')
       return { ok: false, reason: String(e) }
     }
+  })
+
+  // ── AI Connectivity Test ──────────────────────────────────────────────────
+  // Called with the dialog's CURRENT form values (unsaved), so users can
+  // verify credentials before persisting them.
+  ipcMain.handle('gdp:ai-test', async (_event, payload?: {
+    base_url?: string; api_key?: string; model?: string; timeout_secs?: number
+  }) => {
+    const p = payload ?? {}
+    if (!p.api_key) return { ok: false, reason: '请先填写 API Key' }
+
+    const cfg: AiConfig = {
+      enabled: true,
+      base_url: p.base_url || 'https://api.openai.com/v1',
+      api_key: p.api_key,
+      model: p.model || 'gpt-4o-mini',
+      system_prompt: '你是连通性测试助手。',
+      timeout_secs: typeof p.timeout_secs === 'number' && p.timeout_secs > 0 ? p.timeout_secs : 15,
+      fallback_to_copilot: false,
+    }
+
+    const started = Date.now()
+    const result = await callChatCompletion(cfg, cfg.system_prompt, '收到请求后仅回复「pong」。')
+    const latencyMs = Date.now() - started
+    gdpLog(`AI connectivity test: ok=${result.ok} ${latencyMs}ms ${result.reason ?? ''}`, 'info', 'system')
+    return result.ok
+      ? { ok: true, latency_ms: latencyMs, reply: (result.content ?? '').slice(0, 60) }
+      : { ok: false, latency_ms: latencyMs, reason: result.reason }
   })
 
   // ── Open Settings Dialog ──────────────────────────────────────────────────

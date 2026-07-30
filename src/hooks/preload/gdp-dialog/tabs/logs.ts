@@ -1,4 +1,5 @@
 import type { IpcRenderer } from '../types'
+import { icon } from '../components'
 
 interface LogEntry {
   ts: string
@@ -9,42 +10,88 @@ interface LogEntry {
 
 export function buildLogsTab(): HTMLElement {
   const div = document.createElement('div')
+  div.className = 'gdp-tab-panel'
   div.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <p class="gdp-section-heading" style="margin:0">运行日志</p>
-      <div style="display:flex;gap:6px">
-        <button class="gdp-btn gdp-btn-sm" id="gdp-logs-clear">清空</button>
-        <button class="gdp-btn gdp-btn-sm" id="gdp-logs-open-file">打开日志文件</button>
+    <div class="gdp-toolbar">
+      <span class="gdp-live">实时</span>
+      <span class="gdp-grow"></span>
+      <div class="gdp-search">
+        ${icon('search', 13)}
+        <input class="gdp-input" id="gdp-logs-filter" type="text" placeholder="过滤日志…" spellcheck="false">
       </div>
+      <button type="button" class="gdp-btn gdp-btn-sm" id="gdp-logs-clear">${icon('trash', 12)}清空</button>
+      <button type="button" class="gdp-btn gdp-btn-sm" id="gdp-logs-open-file">${icon('file-text', 12)}日志文件</button>
     </div>
-    <div class="gdp-log-container" id="gdp-log-container"></div>
+    <div class="gdp-log-view" id="gdp-log-container">
+      <div class="gdp-empty" id="gdp-logs-empty">${icon('logs', 26)}<span>暂无日志输出</span></div>
+    </div>
   `
   return div
 }
 
-function formatEntry(entry: LogEntry): string {
-  const time = entry.ts ? entry.ts.replace('T', ' ').replace(/\.\d+Z$/, '') : ''
-  return `${time} [${entry.level.toUpperCase()}][${entry.category}] ${entry.message}`
+function formatTime(ts: string): string {
+  if (!ts) return ''
+  // "2026-07-31T02:14:05.123Z" → "02:14:05"
+  const m = ts.match(/T(\d{2}:\d{2}:\d{2})/)
+  return m ? m[1] : ts
+}
+
+function renderEntry(entry: LogEntry): HTMLElement {
+  const row = document.createElement('div')
+  row.className = `gdp-log-entry level-${entry.level}`
+
+  const time = document.createElement('span')
+  time.className = 'gdp-log-time'
+  time.textContent = formatTime(entry.ts)
+
+  const badge = document.createElement('span')
+  badge.className = 'gdp-log-badge'
+  badge.textContent = entry.level.toUpperCase()
+
+  const cat = document.createElement('span')
+  cat.className = 'gdp-log-cat'
+  cat.textContent = entry.category
+
+  const msg = document.createElement('span')
+  msg.className = 'gdp-log-msg'
+  msg.textContent = entry.message
+
+  row.append(time, badge, cat, msg)
+  return row
+}
+
+function currentFilter(container: HTMLElement): string {
+  return container.querySelector<HTMLInputElement>('#gdp-logs-filter')?.value.trim().toLowerCase() ?? ''
+}
+
+function applyFilterTo(row: HTMLElement, query: string): void {
+  const match = !query || (row.textContent ?? '').toLowerCase().includes(query)
+  row.classList.toggle('gdp-hide', !match)
+}
+
+function hideEmpty(container: HTMLElement, hidden: boolean): void {
+  container.querySelector<HTMLElement>('#gdp-logs-empty')?.classList.toggle('gdp-hide', hidden)
 }
 
 export function appendLogEntry(container: HTMLElement, entry: LogEntry): void {
   const logContainer = container.querySelector<HTMLElement>('#gdp-log-container')
   if (!logContainer) return
 
-  const p = document.createElement('p')
-  p.className = `gdp-log-entry level-${entry.level}`
-  p.textContent = formatEntry(entry)
-  logContainer.appendChild(p)
+  hideEmpty(container, true)
+
+  const row = renderEntry(entry)
+  applyFilterTo(row, currentFilter(container))
+  logContainer.appendChild(row)
 
   // Auto-scroll if near bottom
   const { scrollTop, scrollHeight, clientHeight } = logContainer
-  if (scrollHeight - scrollTop - clientHeight < 60) {
-    logContainer.scrollTop = scrollHeight
+  if (scrollHeight - scrollTop - clientHeight < 80) {
+    logContainer.scrollTop = logContainer.scrollHeight
   }
 
-  // Cap at 500 entries
-  while (logContainer.children.length > 500) {
-    logContainer.firstElementChild?.remove()
+  // Cap at 500 entries (skip the empty-state placeholder)
+  while (logContainer.querySelectorAll('.gdp-log-entry').length > 500) {
+    logContainer.querySelector('.gdp-log-entry')?.remove()
   }
 }
 
@@ -58,13 +105,11 @@ export async function initLogsTab(
 
   // Load last 200 log entries
   try {
-    const entries = await ipc.invoke('gdp:tail-log', 200) as LogEntry[]
-    if (logContainer) {
+    const entries = (await ipc.invoke('gdp:tail-log', 200)) as LogEntry[]
+    if (logContainer && entries.length > 0) {
+      hideEmpty(container, true)
       for (const entry of entries) {
-        const p = document.createElement('p')
-        p.className = `gdp-log-entry level-${entry.level}`
-        p.textContent = formatEntry(entry)
-        logContainer.appendChild(p)
+        logContainer.appendChild(renderEntry(entry))
       }
       logContainer.scrollTop = logContainer.scrollHeight
     }
@@ -75,9 +120,18 @@ export async function initLogsTab(
     appendLogEntry(container, entry)
   })
 
+  // Text filter
+  container.querySelector<HTMLInputElement>('#gdp-logs-filter')?.addEventListener('input', () => {
+    const query = currentFilter(container)
+    logContainer?.querySelectorAll<HTMLElement>('.gdp-log-entry').forEach((row) => {
+      applyFilterTo(row, query)
+    })
+  })
+
   // Clear button
   container.querySelector<HTMLButtonElement>('#gdp-logs-clear')?.addEventListener('click', () => {
-    if (logContainer) logContainer.innerHTML = ''
+    logContainer?.querySelectorAll('.gdp-log-entry').forEach((row) => row.remove())
+    hideEmpty(container, false)
   })
 
   // Open file button

@@ -2,7 +2,7 @@
 
 use gdp_core::{
     config::{Config, ConfigError, UpdatesConfig},
-    runtime_plan, modules, project_tree, demo_pseudocode,
+    demo_pseudocode, modules, project_tree, runtime_plan,
 };
 
 #[test]

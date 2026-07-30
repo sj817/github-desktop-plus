@@ -22,7 +22,10 @@ fn main() {
     });
 
     match cmd {
-        Command::Launch { force, desktop_path } => {
+        Command::Launch {
+            force,
+            desktop_path,
+        } => {
             launch::run(force, desktop_path, false);
         }
         Command::Stop => stop(),

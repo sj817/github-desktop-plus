@@ -16,4 +16,6 @@ output.js
 *.log
 /src/ui-app
 *.tsbuildinfo
-/.github
+
+# Local AI-assistant instructions (not part of the project)
+/.github/copilot-instructions.md

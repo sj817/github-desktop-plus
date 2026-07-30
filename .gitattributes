@@ -1,2 +1,23 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Force LF for source files so `cargo fmt --check` and the toolchain behave
+# identically across platforms (Windows CI runners default to autocrlf=true).
+*.rs   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.mjs  text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+
+# Binaries
+*.exe  binary
+*.msi  binary
+*.dmg  binary
+*.png  binary
+*.ico  binary

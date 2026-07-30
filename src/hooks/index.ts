@@ -61,6 +61,14 @@ function stringOrCurrent(value: unknown, current: string): string {
   return typeof value === 'string' ? value : current
 }
 
+// Swap a shared record's contents in place — consumers hold the reference.
+function replaceRecordContents<T>(target: Record<string, T>, next: Record<string, T>): void {
+  for (const key of Object.keys(target)) {
+    delete target[key]
+  }
+  Object.assign(target, next)
+}
+
 function positiveIntOrCurrent(value: unknown, current: number): number {
   const parsed = Number(value)
   if (!Number.isFinite(parsed)) {
@@ -479,8 +487,8 @@ function setupRendererI18n(
 
 interface GDPBrowserWindowConstructor {
   new(options: Record<string, unknown>): unknown
-  getFocusedWindow?: () => { webContents: { send(ch: string, ...args: unknown[]): void; isDestroyed(): boolean } } | null
-  getAllWindows?: () => Array<{ webContents: { send(ch: string, ...args: unknown[]): void; isDestroyed(): boolean } }>
+  getFocusedWindow?: () => { webContents: TrackedWebContents } | null
+  getAllWindows?: () => Array<{ webContents: TrackedWebContents }>
 }
 
 function sendToFocusedWindow(
@@ -495,45 +503,18 @@ function sendToFocusedWindow(
   }
 }
 
-function buildGDPMenuItems(
-  BrowserWindow: GDPBrowserWindowConstructor,
-  shell: { openExternal(url: string): Promise<void> },
-  config: HookConfig
-): MenuItem[] {
-  const check = (v: boolean) => v ? '✓' : '✗'
+// Single item — GHD's Windows menu bar only renders top-level *submenus*, so the
+// "GDP" entry must be a dropdown; clicking its one item opens the dialog. The
+// dialog's own sidebar covers AI / logs / locales, so no submenu clutter is
+// needed. The Ctrl+Alt+G accelerator is shown on the item and registered by
+// Electron (the global shortcut in setupGDPShortcut gives one-key open too).
+function buildGDPMenuItems(BrowserWindow: GDPBrowserWindowConstructor): MenuItem[] {
   return [
     {
-      id: 'gdp.settings',
-      label: '设置',
+      id: 'gdp.open',
+      label: 'GDP 设置',
       accelerator: 'CmdOrCtrl+Alt+G',
       click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'general' }) },
-    },
-    {
-      id: 'gdp.ai',
-      label: 'AI 配置',
-      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'ai' }) },
-    },
-    {
-      id: 'gdp.logs',
-      label: '日志',
-      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'logs' }) },
-    },
-    {
-      id: 'gdp.locales',
-      label: '语言包管理',
-      click: () => { sendToFocusedWindow(BrowserWindow, 'gdp:show-dialog', { tab: 'locales' }) },
-    },
-    { id: 'gdp.separator.1', type: 'separator' },
-    {
-      id: 'gdp.status',
-      label: `更新 ${check(config.blockUpdates)} / 遥测 ${check(config.blockTelemetry)} / 中文 ${check(config.enableI18n)}`,
-      enabled: false,
-    },
-    { id: 'gdp.separator.2', type: 'separator' },
-    {
-      id: 'gdp.about',
-      label: '关于 GitHub Desktop Plus',
-      click: () => { shell.openExternal('https://github.com/nicexipi/github-desktop-plus').catch(() => {}) },
     },
   ]
 }
@@ -541,9 +522,7 @@ function buildGDPMenuItems(
 function setupGDPMenu(
   Menu: { buildFromTemplate(template: MenuItem[]): unknown },
   BrowserWindow: GDPBrowserWindowConstructor,
-  shell: { openExternal(url: string): Promise<void> },
-  config: HookConfig,
-  menuTranslations: Record<string, string> | null
+  menuTranslationsRef: { current: Record<string, string> }
 ): void {
   const originalBuild = Menu.buildFromTemplate.bind(Menu)
   let isBuildingMenu = false
@@ -555,9 +534,11 @@ function setupGDPMenu(
 
     isBuildingMenu = true
 
-    // Translate menu labels if i18n is enabled
+    // Translate menu labels if i18n is enabled — read the ref LIVE so a
+    // runtime language switch applies on the next menu rebuild.
     try {
-      if (menuTranslations && Object.keys(menuTranslations).length > 0) {
+      const menuTranslations = menuTranslationsRef.current
+      if (Object.keys(menuTranslations).length > 0) {
         for (const item of template) {
           translateMenuItem(item, menuTranslations)
         }
@@ -570,7 +551,7 @@ function setupGDPMenu(
         const gdpMenu: MenuItem = {
           id: 'gdp',
           label: 'GDP',
-          submenu: buildGDPMenuItems(BrowserWindow, shell, config),
+          submenu: buildGDPMenuItems(BrowserWindow),
         }
 
         // Insert before Help when present, otherwise append to end.
@@ -632,11 +613,14 @@ function setupGDPShortcut(
 function setupLocaleHotReload(
   dir: string,
   config: HookConfig,
-  activeWebContents: TrackedWebContents[]
+  activeWebContents: TrackedWebContents[],
+  holders: {
+    uiTranslations: Record<string, string>
+    uiOverrides: Record<string, OverrideEntry[]>
+    menuTranslationsRef: { current: Record<string, string> }
+  }
 ): void {
-  const localeFile = localeBundlePath(dir, config.locale, config.dataDir)
-  const watchDir = _path.dirname(localeFile)
-  const watchName = _path.basename(localeFile)
+  const watchDir = _path.dirname(localeBundlePath(dir, config.locale, config.dataDir))
 
   if (!_fs.existsSync(watchDir)) {
     gdpLog(`No locale package directory to watch: ${watchDir}`, 'warn', 'i18n')
@@ -646,15 +630,22 @@ function setupLocaleHotReload(
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   const onFileChange = (_eventType: string, filename: string | null) => {
+    // config.locale can change at runtime — resolve the watched name per event.
+    if (!config.enableI18n) return
+    const watchName = _path.basename(localeBundlePath(dir, config.locale, config.dataDir))
     if (filename && filename !== watchName) return
     // Debounce — coalesce rapid changes
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
+      const localeFile = localeBundlePath(dir, config.locale, config.dataDir)
       gdpLog(`Locale package changed: ${localeFile} — hot-reloading translations`, 'info', 'i18n')
 
-      // Reload UI translations + anchor overrides
+      // Reload UI translations + anchor overrides; keep the injection holders
+      // in sync so later renderer reloads see the same data.
       const newUiTranslations = loadUiTranslations(dir, config.locale, config.dataDir)
       const newUiOverrides = loadUiOverrides(dir, config.locale, config.dataDir)
+      replaceRecordContents(holders.uiTranslations, newUiTranslations)
+      replaceRecordContents(holders.uiOverrides, newUiOverrides)
       const updateScript = `(function(){` +
         `var newT=${JSON.stringify(newUiTranslations)};` +
         `var newO=${JSON.stringify(newUiOverrides)};` +
@@ -682,13 +673,14 @@ function setupLocaleHotReload(
       }
 
       const newMenuTranslations = loadMenuTranslations(dir, config.locale, config.dataDir)
+      holders.menuTranslationsRef.current = newMenuTranslations
       gdpLog(`Menu translations reloaded (${Object.keys(newMenuTranslations).length} entries)`, 'info', 'menu')
     }, 300)
   }
 
   try {
     _fs.watch(watchDir, { persistent: false }, onFileChange)
-    gdpLog(`Watching aggregate locale package: ${localeFile}`, 'info', 'i18n')
+    gdpLog(`Watching locale package directory: ${watchDir}`, 'info', 'i18n')
   } catch (e) {
     gdpLog(`Failed to watch ${watchDir}: ${e}`, 'warn', 'i18n')
   }
@@ -872,23 +864,24 @@ function main(): void {
     return
   }
 
-  // 1. Block auto-updates
-  if (config.blockUpdates && electron.autoUpdater) {
-    blockUpdates(electron.autoUpdater as Record<string, unknown>)
+  // 1. Auto-update blocking — always patched; each call consults live config,
+  //    so the settings toggle applies at runtime without a relaunch.
+  if (electron.autoUpdater) {
+    blockUpdates(electron.autoUpdater as Record<string, unknown>, () => config.blockUpdates)
   }
 
-  // 2. Menu patching — always inject GDP menu, optionally translate labels
-  const menuTranslations = config.enableI18n
-    ? loadMenuTranslations(dir, config.locale, config.dataDir)
-    : null
+  // 2. Menu patching — always inject GDP menu, optionally translate labels.
+  //    Translations live in a mutable ref so a runtime language switch applies
+  //    on the next menu rebuild.
+  const menuTranslationsRef = {
+    current: config.enableI18n ? loadMenuTranslations(dir, config.locale, config.dataDir) : {},
+  }
 
-  if (electron.Menu && electron.BrowserWindow && electron.shell) {
+  if (electron.Menu && electron.BrowserWindow) {
     setupGDPMenu(
       electron.Menu as { buildFromTemplate(template: MenuItem[]): unknown },
       electron.BrowserWindow as GDPBrowserWindowConstructor,
-      electron.shell as { openExternal(url: string): Promise<void> },
-      config,
-      menuTranslations
+      menuTranslationsRef
     )
   }
 
@@ -923,13 +916,17 @@ function main(): void {
     isDestroyed(): boolean
   }> = []
 
+  // Mutable holders — buildInjectScript() serializes these at injection time,
+  // so replacing their CONTENTS lets a renderer reload pick up new
+  // translations (i18n toggle / locale switch) without an app relaunch.
+  const uiTranslations: Record<string, string> = {}
+  const uiOverrides: Record<string, OverrideEntry[]> = {}
+  if (config.enableI18n) {
+    Object.assign(uiTranslations, loadUiTranslations(dir, config.locale, config.dataDir))
+    Object.assign(uiOverrides, loadUiOverrides(dir, config.locale, config.dataDir))
+  }
+
   if (electron.app) {
-    const uiTranslations = config.enableI18n
-      ? loadUiTranslations(dir, config.locale, config.dataDir)
-      : {}
-    const uiOverrides = config.enableI18n
-      ? loadUiOverrides(dir, config.locale, config.dataDir)
-      : {}
     activeWebContents = setupRendererI18n(
       electron.app as { on(event: string, cb: (...args: unknown[]) => void): void },
       uiTranslations,
@@ -944,6 +941,8 @@ function main(): void {
   // (reliable — fs.watchFile can silently miss same-process writes on Windows).
   const applyConfigAndPush = (parsed: StoredConfig): void => {
     try {
+      const prevEnableI18n = config.enableI18n
+      const prevLocale = config.locale
       const changed = applyStoredConfig(config, parsed)
       gdpLog(`applyConfigAndPush: changed=${changed} ai.enabled=${config.ai.enabled} renderers=${activeWebContents.length}`, 'info', 'system')
       // Always push (even if our snake_case diff saw no change) so the renderer's
@@ -951,6 +950,49 @@ function main(): void {
       configureLogLevel(config.logLevel)
       pushRuntimeConfig(config, activeWebContents)
       if (changed) regenerateEarlyPreload?.()
+
+      // i18n toggled or locale switched: swap the translation holders and
+      // soft-reload the renderers. did-finish-load re-injects everything with
+      // the fresh data, so the language applies without an app relaunch.
+      if (config.enableI18n !== prevEnableI18n || config.locale !== prevLocale) {
+        replaceRecordContents(
+          uiTranslations,
+          config.enableI18n ? loadUiTranslations(dir, config.locale, config.dataDir) : {}
+        )
+        replaceRecordContents(
+          uiOverrides,
+          config.enableI18n ? loadUiOverrides(dir, config.locale, config.dataDir) : {}
+        )
+        menuTranslationsRef.current = config.enableI18n
+          ? loadMenuTranslations(dir, config.locale, config.dataDir)
+          : {}
+        gdpLog(
+          `i18n hot-apply: enabled=${config.enableI18n} locale=${config.locale} — reloading renderers`,
+          'info', 'i18n'
+        )
+        // Slight delay so the settings dialog's "saved" feedback can render
+        // before the page reloads. GHD registers a beforeunload guard that
+        // silently cancels reloads, so allow the unload via
+        // 'will-prevent-unload' and reload from the main process.
+        setTimeout(() => {
+          for (const wc of activeWebContents.filter(w => !w.isDestroyed())) {
+            const full = wc as unknown as {
+              reload?: () => void
+              once?: (event: string, cb: (e: { preventDefault(): void }) => void) => void
+            }
+            try {
+              full.once?.('will-prevent-unload', e => e.preventDefault())
+              if (typeof full.reload === 'function') {
+                full.reload()
+              } else {
+                wc.executeJavaScript('window.location.reload()').catch(() => {})
+              }
+            } catch (e) {
+              gdpLog(`Renderer reload failed: ${e}`, 'error', 'i18n')
+            }
+          }
+        }, 600)
+      }
     } catch (e) {
       gdpLog(`applyConfigAndPush failed: ${e}`, 'error', 'system')
     }
@@ -958,8 +1000,9 @@ function main(): void {
 
   setupConfigHotReload(config, activeWebContents, () => regenerateEarlyPreload?.())
 
-  // 4. Telemetry blocking
-  if (config.blockTelemetry && electron.app && electron.session) {
+  // 4. Telemetry interceptor — always installed; each request consults live
+  //    config, so the toggle applies at runtime without a relaunch.
+  if (electron.app && electron.session) {
     setupTelemetryBlocker(
       electron.app as {
         on(event: string, cb: () => void): void
@@ -971,14 +1014,18 @@ function main(): void {
           filter: { urls: string[] },
           cb: (details: { url: string }, callback: (resp: { cancel: boolean }) => void) => void
         ): void
-      } } }
+      } } },
+      () => config.blockTelemetry
     )
   }
 
-  // 5. Dev-mode hot-reload for locale files
-  if (config.enableI18n && activeWebContents) {
-    setupLocaleHotReload(dir, config, activeWebContents)
-  }
+  // 5. Hot-reload for locale files — installed regardless of the current i18n
+  //    state so enabling i18n at runtime still gets live locale edits.
+  setupLocaleHotReload(dir, config, activeWebContents, {
+    uiTranslations,
+    uiOverrides,
+    menuTranslationsRef,
+  })
 
   // 6. GDP IPC bridge — config read/write, locale CRUD, logs, AI
   if (electron.ipcMain && electron.shell && electron.BrowserWindow) {
@@ -986,7 +1033,7 @@ function main(): void {
       _path.join(config.configDir, 'config.json'),
       config.dataDir,
       electron.ipcMain as { handle(ch: string, fn: (...a: unknown[]) => unknown): void },
-      electron.shell as { openPath(p: string): Promise<string> },
+      electron.shell as { openPath(p: string): Promise<string>; showItemInFolder(p: string): void },
       electron.BrowserWindow as GDPBrowserWindowConstructor,
       activeWebContents,
       applyConfigAndPush,

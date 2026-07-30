@@ -7,10 +7,14 @@
  * When false, this script does nothing (manual check is allowed through).
  */
 (function () {
-  const gdpConfig = (window as unknown as Record<string, unknown>).__GDP_CONFIG__ as {
-    blockManualUpdateCheck?: boolean
-    blockUpdates?: boolean
-  } | undefined
+  // Read the flag LIVE on every click (not once at injection) so toggling the
+  // setting in the GDP dialog takes effect immediately, no relaunch needed.
+  function isBlockingEnabled(): boolean {
+    const cfg = (window as unknown as Record<string, unknown>).__GDP_CONFIG__ as {
+      blockManualUpdateCheck?: boolean
+    } | undefined
+    return cfg?.blockManualUpdateCheck === true
+  }
 
   const interceptorState = ((window as unknown as Record<string, unknown>).__GDP_UPDATE_INTERCEPTOR_STATE__ as {
     active?: boolean
@@ -22,9 +26,6 @@
     interceptions: [],
   }
   ;(window as unknown as Record<string, unknown>).__GDP_UPDATE_INTERCEPTOR_STATE__ = interceptorState
-
-  // Only intercept if blockManualUpdateCheck is explicitly enabled
-  if (!gdpConfig?.blockManualUpdateCheck) return
 
   interceptorState.active = true
 
@@ -202,6 +203,7 @@
   }
 
   document.addEventListener('click', (event) => {
+    if (!isBlockingEnabled()) return
     interceptorState.scans = (interceptorState.scans ?? 0) + 1
 
     const target = event.target

@@ -1,29 +1,32 @@
 import type { StoredConfig, IpcRenderer } from './types'
+import { icon, toast } from './components'
 import { buildGeneralTab, saveGeneralTab } from './tabs/general'
 import { buildAiTab, saveAiTab } from './tabs/ai'
 import { buildLogsTab, initLogsTab } from './tabs/logs'
 import { buildLocalesTab, initLocalesTab } from './tabs/locales'
 
+const PROJECT_URL = 'https://github.com/sj817/github-desktop-plus'
+
 const TABS = ['general', 'ai', 'locales', 'logs'] as const
 type TabId = (typeof TABS)[number]
 
-const TAB_META: Record<TabId, { label: string; icon: string; subtitle: string }> = {
-  general: { label: '常规', icon: '⚙️', subtitle: '界面语言、最近仓库与隐私' },
-  ai: { label: 'AI 提交', icon: '✨', subtitle: '用自定义模型生成提交信息' },
-  locales: { label: '语言包', icon: '🌐', subtitle: '导入、导出与管理翻译' },
-  logs: { label: '日志', icon: '📋', subtitle: '运行时诊断输出' },
+const TAB_META: Record<TabId, { label: string; iconName: string; subtitle: string }> = {
+  general: { label: '常规', iconName: 'general', subtitle: '界面语言、更新与隐私偏好' },
+  ai: { label: 'AI 提交', iconName: 'ai', subtitle: '用自定义模型生成提交信息' },
+  locales: { label: '语言包', iconName: 'locales', subtitle: '导入、导出与管理翻译' },
+  logs: { label: '日志', iconName: 'logs', subtitle: '实时运行诊断输出' },
 }
 
 interface DialogState {
   activeTab: TabId
   tabContents: Partial<Record<TabId, HTMLElement>>
   logLineHandler: ((entry: unknown) => void) | null
+  ipcLogListener: ((event: unknown, ...args: unknown[]) => void) | null
   ipc: IpcRenderer
   nav: HTMLElement
   content: HTMLElement
   titleEl: HTMLElement
   subtitleEl: HTMLElement
-  savedHint: HTMLElement
 }
 
 function getIpc(): IpcRenderer {
@@ -40,17 +43,33 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
   const container = document.createElement('div')
   container.className = 'gdp-dialog-container'
 
-  // ── Sidebar nav ──
+  // ── Sidebar ──
   const nav = document.createElement('nav')
   nav.className = 'gdp-nav'
-  nav.innerHTML = `<div class="gdp-nav-brand"><span class="gdp-nav-logo">G</span>GDP 设置</div>`
+  nav.innerHTML = `
+    <div class="gdp-brand">
+      <span class="gdp-brand-logo">G+</span>
+      <span class="gdp-brand-text">
+        <span class="gdp-brand-name">GDP 设置</span>
+        <span class="gdp-brand-sub">GitHub Desktop Plus</span>
+      </span>
+    </div>
+  `
   for (const tab of TABS) {
     const btn = document.createElement('button')
+    btn.type = 'button'
     btn.className = 'gdp-nav-item'
     btn.dataset.tab = tab
-    btn.innerHTML = `<span class="gdp-nav-icon">${TAB_META[tab].icon}</span>${TAB_META[tab].label}`
+    btn.innerHTML = `${icon(TAB_META[tab].iconName, 15)}<span class="gdp-nav-label">${TAB_META[tab].label}</span>`
     nav.appendChild(btn)
   }
+  const spacer = document.createElement('div')
+  spacer.className = 'gdp-nav-spacer'
+  nav.appendChild(spacer)
+  const hint = document.createElement('div')
+  hint.className = 'gdp-nav-hint'
+  hint.innerHTML = `<kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>G</kbd>`
+  nav.appendChild(hint)
 
   // ── Main pane ──
   const main = document.createElement('div')
@@ -59,8 +78,11 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
   const mainHeader = document.createElement('div')
   mainHeader.className = 'gdp-main-header'
   mainHeader.innerHTML = `
-    <h2 class="gdp-main-title"></h2>
-    <p class="gdp-main-subtitle"></p>
+    <div class="gdp-head-text">
+      <h2 class="gdp-main-title"></h2>
+      <p class="gdp-main-subtitle"></p>
+    </div>
+    <button type="button" class="gdp-icon-btn" id="gdp-dialog-close" title="关闭">${icon('x', 16)}</button>
   `
 
   const content = document.createElement('div')
@@ -69,10 +91,13 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
   const footer = document.createElement('div')
   footer.className = 'gdp-footer'
   footer.innerHTML = `
-    <span class="gdp-saved-hint">已保存 ✓</span>
-    <button class="gdp-btn" id="gdp-dialog-cancel">取消</button>
-    <button class="gdp-btn gdp-btn-primary" id="gdp-dialog-save">保存</button>
+    <a class="gdp-footer-link" id="gdp-dialog-about">${icon('external-link', 13)}关于 GDP</a>
+    <button type="button" class="gdp-btn gdp-btn-ghost" id="gdp-dialog-cancel">取消</button>
+    <button type="button" class="gdp-btn gdp-btn-primary" id="gdp-dialog-save">保存更改</button>
   `
+
+  const toastRegion = document.createElement('div')
+  toastRegion.className = 'gdp-toast-region'
 
   main.appendChild(mainHeader)
   main.appendChild(content)
@@ -80,6 +105,7 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
 
   container.appendChild(nav)
   container.appendChild(main)
+  container.appendChild(toastRegion)
   dialog.appendChild(container)
   document.body.appendChild(dialog)
 
@@ -87,12 +113,12 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
     activeTab: 'general',
     tabContents: {},
     logLineHandler: null,
+    ipcLogListener: null,
     ipc,
     nav,
     content,
     titleEl: mainHeader.querySelector('.gdp-main-title')!,
     subtitleEl: mainHeader.querySelector('.gdp-main-subtitle')!,
-    savedHint: footer.querySelector('.gdp-saved-hint')!,
   }
 
   // Nav switching
@@ -100,7 +126,7 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
     const btn = (ev.target as Element).closest<HTMLButtonElement>('[data-tab]')
     if (!btn) return
     const tab = btn.dataset.tab as TabId
-    if (tab) switchTab(tab, state)
+    if (tab && tab !== state.activeTab) switchTab(tab, state).catch(() => {})
   })
 
   // Close on backdrop click
@@ -108,21 +134,56 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
     if (ev.target === dialog) closeDialog(dialog, state)
   })
 
+  // One cleanup path for every close route (backdrop, Esc, cancel, ×).
+  // Dropping cached form tabs makes "取消" actually discard unsaved edits.
+  dialog.addEventListener('close', () => cleanup(state))
+
+  // Ctrl+S saves while the dialog is open
+  dialog.addEventListener('keydown', (ev) => {
+    if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') {
+      ev.preventDefault()
+      saveAll(state).catch(() => {})
+    }
+  })
+
+  mainHeader.querySelector<HTMLButtonElement>('#gdp-dialog-close')?.addEventListener('click', () => {
+    closeDialog(dialog, state)
+  })
   footer.querySelector<HTMLButtonElement>('#gdp-dialog-cancel')?.addEventListener('click', () => {
     closeDialog(dialog, state)
   })
 
-  footer.querySelector<HTMLButtonElement>('#gdp-dialog-save')?.addEventListener('click', async () => {
-    await saveCurrentTab(state)
-    flashSaved(state)
+  const saveBtn = footer.querySelector<HTMLButtonElement>('#gdp-dialog-save')
+  saveBtn?.addEventListener('click', () => {
+    saveAll(state, saveBtn).catch(() => {})
+  })
+
+  footer.querySelector<HTMLAnchorElement>('#gdp-dialog-about')?.addEventListener('click', () => {
+    try {
+      ;(require as NodeRequire)('electron').shell.openExternal(PROJECT_URL).catch(() => {})
+    } catch { /* ignore */ }
   })
 
   return { dialog, state }
 }
 
-function flashSaved(state: DialogState): void {
-  state.savedHint.classList.add('show')
-  setTimeout(() => state.savedHint.classList.remove('show'), 1600)
+// Persist every built form tab (general + ai), not just the visible one, so
+// edits made before switching tabs are never silently dropped. All settings
+// hot-apply; an i18n change additionally soft-reloads the window (main
+// process schedules it right after the save).
+async function saveAll(state: DialogState, saveBtn?: HTMLButtonElement | null): Promise<void> {
+  if (saveBtn) saveBtn.disabled = true
+  try {
+    const general = state.tabContents.general
+    if (general) await saveGeneralTab(general, state.ipc)
+    const ai = state.tabContents.ai
+    if (ai) await saveAiTab(ai, state.ipc)
+    toast('设置已保存')
+  } catch (e) {
+    toast(`保存失败：${e}`, 'error')
+  } finally {
+    if (saveBtn) saveBtn.disabled = false
+  }
 }
 
 async function switchTab(tab: TabId, state: DialogState): Promise<void> {
@@ -138,7 +199,7 @@ async function switchTab(tab: TabId, state: DialogState): Promise<void> {
     const cfg = (await state.ipc.invoke('gdp:get-config')) as StoredConfig
 
     if (tab === 'general') {
-      state.tabContents[tab] = buildGeneralTab(cfg)
+      state.tabContents[tab] = buildGeneralTab(cfg, state.ipc)
     } else if (tab === 'ai') {
       state.tabContents[tab] = buildAiTab(cfg)
     } else if (tab === 'logs') {
@@ -167,28 +228,34 @@ async function switchTab(tab: TabId, state: DialogState): Promise<void> {
 
   state.content.innerHTML = ''
   const built = state.tabContents[tab]
-  if (built) state.content.appendChild(built)
+  if (built) {
+    built.classList.remove('gdp-tab-in')
+    state.content.appendChild(built)
+    state.content.scrollTop = 0
+    // restart the enter animation
+    void built.offsetWidth
+    built.classList.add('gdp-tab-in')
+  }
 }
 
-async function saveCurrentTab(state: DialogState): Promise<void> {
-  const { activeTab, tabContents, ipc } = state
-  const container = tabContents[activeTab]
-  if (!container) return
-
-  if (activeTab === 'general') {
-    await saveGeneralTab(container, ipc)
-  } else if (activeTab === 'ai') {
-    await saveAiTab(container, ipc)
+function cleanup(state: DialogState): void {
+  if (state.ipcLogListener) {
+    state.ipc.removeListener('gdp:log-line', state.ipcLogListener)
+    state.ipcLogListener = null
   }
-  // logs and locales act immediately; no batch save.
+  state.logLineHandler = null
+  // Drop cached tabs: forms rebuild from persisted config on next open.
+  state.tabContents = {}
 }
 
 export function openDialog(dialog: HTMLDialogElement, state: DialogState, tab: TabId): void {
-  const logHandler = (_event: unknown, entry: unknown) => {
-    if (state.logLineHandler) state.logLineHandler(entry)
+  if (!state.ipcLogListener) {
+    const listener = (_event: unknown, entry: unknown) => {
+      if (state.logLineHandler) state.logLineHandler(entry)
+    }
+    state.ipcLogListener = listener
+    state.ipc.on('gdp:log-line', listener)
   }
-  state.ipc.on('gdp:log-line', logHandler)
-  ;(dialog as unknown as { _gdpLogHandler: typeof logHandler })._gdpLogHandler = logHandler
 
   switchTab(tab, state).catch(() => {})
 
@@ -196,10 +263,9 @@ export function openDialog(dialog: HTMLDialogElement, state: DialogState, tab: T
 }
 
 export function closeDialog(dialog: HTMLDialogElement, state: DialogState): void {
-  const logHandler = (dialog as unknown as { _gdpLogHandler?: (e: unknown, entry: unknown) => void })._gdpLogHandler
-  if (logHandler) {
-    state.ipc.removeListener('gdp:log-line', logHandler)
-    delete (dialog as unknown as { _gdpLogHandler?: unknown })._gdpLogHandler
+  if (dialog.open) {
+    dialog.close() // 'close' event runs cleanup(state)
+  } else {
+    cleanup(state)
   }
-  if (dialog.open) dialog.close()
 }

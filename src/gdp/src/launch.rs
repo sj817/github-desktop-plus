@@ -12,11 +12,11 @@ use gdp_core::{
 };
 
 use crate::hook_assets::{HOOK_JS, extract_hook_to_disk};
+use crate::injector;
 use crate::proc::{
     daemonize_and_exit, find_main_js, find_real_electron_exe, is_process_alive,
     kill_github_desktop_if_running, kill_process, read_inspect_ws_url_sync,
 };
-use crate::injector;
 
 struct DesktopTarget {
     real_exe: PathBuf,
@@ -243,8 +243,16 @@ fn build_hook_config(config: &Config, hooks_dir: &Path) -> String {
 }
 
 fn spawn_desktop(target: &DesktopTarget, hooks_dir: &Path, config_json: &str) -> Child {
-    std::process::Command::new(&target.real_exe)
-        .arg("--inspect-brk=0")
+    let mut command = std::process::Command::new(&target.real_exe);
+    command.arg("--inspect-brk=0");
+
+    // Opt-in renderer DevTools endpoint, for debugging hooks that patch the
+    // page (the main-process inspector above cannot reach the renderer).
+    if let Ok(port) = std::env::var("GDP_REMOTE_DEBUG_PORT") {
+        command.arg(format!("--remote-debugging-port={port}"));
+    }
+
+    command
         .env("GDP_CONFIG", config_json)
         .env("GDP_HOOK_DIR", hooks_dir.to_str().unwrap_or_default())
         .stdout(Stdio::null())

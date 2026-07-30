@@ -76,7 +76,10 @@ mod tests {
     fn launch_flags_round_trip() {
         let cli = Cli::parse_from(["gdp", "launch", "-f"]);
         match cli.command {
-            Some(Command::Launch { force, desktop_path }) => {
+            Some(Command::Launch {
+                force,
+                desktop_path,
+            }) => {
                 assert!(force);
                 assert!(desktop_path.is_none());
             }

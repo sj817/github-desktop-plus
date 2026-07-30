@@ -79,10 +79,7 @@ pub fn extract_hook_to_disk() -> PathBuf {
         &preload_dir.join("copilot-hijack.js"),
         PRELOAD_COPILOT_HIJACK_JS,
     );
-    write_if_changed(
-        &preload_dir.join("gdp-dialog.js"),
-        PRELOAD_GDP_DIALOG_JS,
-    );
+    write_if_changed(&preload_dir.join("gdp-dialog.js"), PRELOAD_GDP_DIALOG_JS);
 
     extract_dir(&LOCALES, &locales_dir);
 
