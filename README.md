@@ -1,166 +1,223 @@
-# GitHub Desktop Plus
+# GitHub Desktop Plus 🚀
 
-外部增强工具，在不修改 GitHub Desktop 源码的前提下扩展其功能。
+<div align="center">
 
-基于 **Rust + 0-path Inspector 注入 + React 内嵌设置弹窗** 构建。
+<p align="center">
+  <img src="https://raw.githubusercontent.com/sj817/github-desktop-plus/main/apps/site/public/favicon.svg" width="84" height="84" alt="GitHub Desktop Plus Logo" />
+</p>
 
-## 功能
+<h3>The Ultimate 0-Patch Enhancement Suite for GitHub Desktop</h3>
 
-- **禁用自动更新** — 阻止 autoUpdater 检查和安装更新，并接管 About 对话框中的"检查更新"入口
-- **屏蔽遥测上报** — 拦截发往 central / usage / stats.github.com 的统计与异常上报
-- **中文界面 (i18n)** — 通过菜单翻译和 DOM 文本替换实现 UI 中文化，语言包可导入 / 导出 / 切换
-- **AI 提交信息** — 接管提交框的 Copilot 按钮，用任意 OpenAI 兼容接口生成提交信息（含连通性测试）
-- **最近仓库增强** — 自定义"最近"列表条数（官方固定 3 个），支持仓库置顶
-- **多个打开方式** — 官方右键菜单只能配一个编辑器 + 一个终端，GDP 可配置任意多个（VS Code / Cursor / Zed / JetBrains / WSL 等），并支持自动检测、排序、平铺或折叠为子菜单；原生条目保持不变
-- **内嵌设置弹窗** — GDP 菜单或 `Ctrl+Alt+G` 打开：常规配置、打开方式、AI 接入、语言包管理、实时日志
-- **全部设置热生效** — 开关与语言切换即时应用，无需重启 GitHub Desktop
+<p align="center">
+  <strong>Supercharge GitHub Desktop without modifying official binaries.</strong><br>
+  Custom AI Commit Generation • Multi-Editor/Terminal Launch • Full Native i18n • Telemetry Blocker • Hot Reload Settings
+</p>
 
-## 技术栈
+<p align="center">
+  <a href="./README.md"><strong>English</strong></a> ·
+  <a href="./README.zh-CN.md"><strong>简体中文</strong></a>
+</p>
 
-| 层级 | 技术 |
-| ---- | ---- |
-| 运行时核心 | Rust (`gdp`) |
-| Hook 注入 | V8 Inspector (`--inspect-brk`) |
-| Hook 源码 | TypeScript |
-| Hook 构建 | tsdown（Rolldown，main / early / renderer 三入口） |
-| UI 构建 | Vite（library 模式，单文件 IIFE） |
-| 设置弹窗 UI | React 19 + TypeScript + Tailwind CSS 4 + Base UI，Vite 打包 |
-| 设置弹窗宿主 | 渲染进程内的薄壳（dialog + bridge），经 Electron IPC 与主进程通信 |
-| 包管理 | pnpm |
+<p align="center">
+  <a href="https://github.com/sj817/github-desktop-plus/releases"><img src="https://img.shields.io/github/v/release/sj817/github-desktop-plus?style=flat-square&color=409EFF" alt="Release" /></a>
+  <a href="https://github.com/sj817/github-desktop-plus/stargazers"><img src="https://img.shields.io/github/stars/sj817/github-desktop-plus?style=flat-square&color=409EFF" alt="GitHub Stars" /></a>
+  <a href="https://github.com/sj817/github-desktop-plus/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green.svg?style=flat-square" alt="License" /></a>
+  <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/Rust-2024-orange.svg?style=flat-square&logo=rust" alt="Rust" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-blue.svg?style=flat-square&logo=react" alt="React 19" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=flat-square&logo=typescript" alt="TypeScript" /></a>
+</p>
 
-## 当前结构
+</div>
 
-仓库采用 `apps/` + `packages/` + `crates/` 的分层布局，运行时目标如下：
+---
 
-- **运行时核心迁移到 Rust**，Node.js 仅保留为构建辅助
-- **常驻内存目标 < 10MB**，优先压缩运行时和依赖树
-- **启动速度优先**，避免多进程常驻和重型 JS runtime
-- **跨平台**：Windows / macOS / Linux
+## ✨ Why GitHub Desktop Plus?
 
-当前主线拆分如下：
+GitHub Desktop is a clean and intuitive Git GUI, but power users often hit rigid limitations: only one external editor/terminal, no custom AI commit models, mandatory telemetry, and forced auto-updates.
 
-- `crates/gdp-core/`：纯 Rust 核心逻辑库
-- `apps/gdp/`：CLI 入口 + 0-path 注入 + hook 资源内嵌
-- `packages/hooks/`：独立 pnpm 包；Electron hook / preload 的 TypeScript 源码与 tsdown 配置
-- `apps/settings-ui/`：设置弹窗的 React 应用，独立 Vite 包
-- `packages/shared/`：主进程 / 弹窗外壳 / 设置 UI 共用的 IPC 契约
+**GitHub Desktop Plus (GDP)** breaks these barriers. Powered by a high-performance **Rust 0-patch injection core** and a modern **React 19 embedded settings modal**, GDP extends GitHub Desktop seamlessly at runtime — **without patching or modifying a single official binary file**.
 
-详细设计见：[`docs/architecture.md`](docs/architecture.md)
+---
 
-## 工作原理
+## 🌟 Key Features
+
+### 🤖 1. AI Commit Message Generator (Any Model)
+- **Hijack Copilot Button**: Click the native Copilot spark icon in the commit box to generate conventional commit messages with your own AI models.
+- **Universal OpenAI Protocol Compatibility**: Out-of-the-box presets for **OpenAI** (`gpt-4o-mini`, `gpt-4o`), **DeepSeek** (`deepseek-chat`), **SiliconFlow**, and local **Ollama** (`qwen2.5-coder`, `deepseek-r1`, `llama3`).
+- **Live Connectivity Testing**: One-click test with real latency readout without saving unverified credentials.
+- **Custom System Prompt**: Choose from presets (Conventional Commits, Gitmoji, Concise) or write your own.
+
+### 🖥️ 2. Multi-Editor & Terminal Launcher (Open With+)
+- **Beyond the 1-Editor Limitation**: Configure unlimited external editors and terminals simultaneously.
+- **Smart Auto-Detection**: One-click scanning for **VS Code**, **Cursor**, **Zed**, **Windsurf**, **JetBrains** (IntelliJ, WebStorm, PyCharm, CLion), **Windows Terminal**, **PowerShell**, **WSL distros**, and custom CLI tools.
+- **60fps Drag-and-Drop Reordering**: Powered by Framer Motion spring physics.
+- **Display Modes**: Choose between flat root context menu items or a clean collapsed submenu (`Open With ▸`).
+
+### 🌐 3. Full Native i18n & Multi-Language (Real Country Flags)
+- **High-Fidelity UI Translation**: Complete localization for menus, buttons, context menus, and dialogs.
+- **Vector Country Flags**: Beautiful micro SVG flags powered by `country-flag-icons` (🇨🇳 `zh-CN`, 🇺🇸 `en-US`, 🇯🇵 `ja-JP`, etc.).
+- **Hot-Reloadable Locales**: Import, export, create, and hot-switch JSON translation packs on the fly without restarting GitHub Desktop.
+
+### 🐧 4. WSL 2 Cross-Environment Integration
+- Seamlessly open repositories inside WSL distributions directly in Windows IDEs or Linux terminals without path mangling.
+- High-efficiency path translation (`/mnt/c/...` ↔ `\\wsl$\...`) with background agent architecture.
+
+### 🛡️ 5. Telemetry & Update Suppression
+- **Block Auto-Updates**: Prevent unwanted background downloads and keep your patched environment rock-solid.
+- **Telemetry Blocker**: Intercept and drop background tracking requests to central/usage metrics.
+
+### ⚙️ 6. Modern Embedded Settings UI
+- **Zero-Pollution Modal**: Press `Ctrl+Alt+G` or click menu `GDP` to summon the settings dialog.
+- **Element Plus Flat Design**: Ultra-clean, non-intrusive flat outline aesthetic with zero heavy color blocks.
+- **Subsetted MiSans Typography**: Elegant CJK font rendering bundled under 60KB.
+- **Real-Time Diagnostic Log Viewer**: Live colorized console output with instant filtering and copy/clear controls.
+
+---
+
+## 📊 Feature Comparison
+
+| Feature | Official GitHub Desktop | GitHub Desktop Plus (GDP) |
+| :--- | :---: | :---: |
+| **External Editors** | Max 1 Editor | **Unlimited** (VS Code, Cursor, Zed, JetBrains, etc.) |
+| **External Terminals** | Max 1 Shell | **Unlimited** (Windows Terminal, PowerShell, WSL, Bash) |
+| **AI Commit Generation** | GitHub Copilot Subscription only | **Any OpenAI API** (DeepSeek, Ollama, OpenAI, Qwen) |
+| **UI Localization** | English only | **Full Native i18n** (Hot-reload JSON packs) |
+| **WSL 2 Integration** | Basic Windows paths | **Native WSL Distro Detection & Launch** |
+| **Telemetry Suppression** | ❌ Mandatory | **✅ Built-in Zero-Tracking Switch** |
+| **Auto-Update Control** | ❌ Forced | **✅ One-click Block / Freeze Version** |
+| **Binary Modification** | N/A | **0-Path Runtime Injection (100% Safe)** |
+| **Runtime Overhead** | Standard | **< 10MB RAM (Rust Core)** |
+
+---
+
+## 🏗️ Technical Architecture
 
 ```text
-┌─────────────────────────┐      ┌──────────────────────────────┐
-│  GitHub Desktop Plus    │      │  GitHub Desktop (Electron)   │
-│  (Rust gdp binary)      │      │                              │
-│                         │      │  ┌──────────────────────┐    │
-│  ┌───────────────┐      │ CDP  │  │ Hook Scripts (CJS)   │    │
-│  │ Inspector     │─────→│─────→│  │ • update blocker     │    │
-│  │ injector      │      │      │  │ • telemetry blocker  │    │
-│  ├───────────────┤      │      │  │ • menu & UI i18n     │    │
-│  │ Config +      │      │      │  │ • AI commit hijack   │    │
-│  │ hook assets   │      │      │  │ • settings dialog    │    │
-│  └───────────────┘      │      │  │ • IPC bridge         │    │
-└─────────────────────────┘      │  └──────────────────────┘    │
-                                 └──────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  GitHub Desktop Plus (Rust Core `gdp`)       │
+│                                              │
+│  ┌────────────────────┐   CDP (Inspector)    │
+│  │ V8 Inspector       │───────────────────┐  │
+│  │ 0-Path Injector    │                   │  │
+│  └────────────────────┘                   │  │
+│  ┌────────────────────┐                   │  │
+│  │ Embedded Bundles   │                   │  │
+│  │ • Preload Hooks    │                   │  │
+│  │ • Settings UI IIFE │                   │  │
+│  │ • Locale Sources   │                   │  │
+│  └────────────────────┘                   │  │
+└───────────────────────────────────────────┼──┘
+                                            │
+                                            ▼
+┌───────────────────────────────────────────────────────────┐
+│ GitHub Desktop (Official Electron Runtime)                │
+│                                                           │
+│  ┌─────────────────────────────────────────────────────┐  │
+│  │ Main Process Hook                                   │  │
+│  │ • Update Blocker • Telemetry Filter • Menu Injector │  │
+│  │ • Direct IPC Bridge • AI Dispatcher                 │  │
+│  └──────────────────────────┬──────────────────────────┘  │
+│                             │ Electron IPC                │
+│  ┌──────────────────────────┴──────────────────────────┐  │
+│  │ Renderer Process                                    │  │
+│  │ • DOM & Menu i18n Hot Translation                   │  │
+│  │ • Copilot Button Hijack (AI Commit Trigger)         │  │
+│  │ • Embedded React 19 Settings Modal (<dialog>)       │  │
+│  └─────────────────────────────────────────────────────┘  │
+└───────────────────────────────────────────────────────────┘
 ```
 
-GDP 使用 `--inspect-brk=0` 启动 GitHub Desktop，连接 V8 Inspector 后在 `main.js` 执行前注入 hook，
-从而实现 **0-path** 更新拦截、遥测屏蔽、菜单注入和渲染进程 i18n。配置读写、语言包管理、日志流与
-AI 请求全部经 Electron IPC 在注入的主进程 hook 内完成，不依赖本地 HTTP 服务。
+1. **0-Patch Launch**: GDP starts GitHub Desktop via `--inspect-brk=0` and connects over the Chrome DevTools Protocol (CDP).
+2. **Early Hook Injection**: Evaluates TypeScript-compiled CJS bundles inside `main.js` and `renderer` before initial execution.
+3. **IPC Bridge**: High-performance typed IPC protocol connecting the React 19 UI directly to the Electron main process.
 
-## 设置弹窗架构
+---
 
-设置界面是一个独立的 React 应用（`apps/settings-ui`），渲染进程里只留一层薄壳负责创建 `<dialog>`、
-挂载/卸载和桥接 IPC。开发和生产走同一份 UI 代码、同一个 `GDPBridge` 接口，业务代码不知道自己
-运行在哪一侧：
+## 🚀 Quick Start
 
-```text
-生产          React ──▶ GDPBridge ──▶ ipcRenderer ──▶ 主进程 hook
-开发（iframe）React ──▶ GDPBridge ──▶ postMessage ──▶ 弹窗外壳 ──▶ ipcRenderer ──▶ 主进程 hook
-```
+### Installation
 
-- **生产**：Vite 以 library 模式打出单文件 IIFE（CSS 内联），随其他 preload 一起注入，
-  `window.__GDP_SETTINGS_UI__.mount(root, bridge)` 直接挂载到 `<dialog>` 里，不用 iframe、
-  不起本地服务、不依赖开发服务器。
-- **开发**：`scripts/dev.ts` 顺带拉起 Vite，弹窗改为加载 `http://127.0.0.1:5273` 的 iframe。
-  iframe 没有任何 Electron 权限，只能通过 postMessage RPC 说话；外壳会校验来源窗口、来源
-  origin、协议标记和信道白名单（由 `@github-desktop-plus/shared` 提供）后才转发给 `ipcRenderer`。
-- 改 `apps/settings-ui/**` 只走 Vite HMR，不重启 GDP / GitHub Desktop；改 `packages/hooks/**`、
-  `packages/shared/**` 或 Rust 才触发原来的重启流程。
-
-## 快速开始
+Download the latest release executable from [Releases](https://github.com/sj817/github-desktop-plus/releases) and run:
 
 ```bash
-# 安装依赖（pnpm workspace，会一并安装 settings-ui 与 hooks）
+# Start GitHub Desktop with GDP enhancements
+gdp
+```
+
+Press `Ctrl+Alt+G` inside GitHub Desktop to open the Settings Panel anytime.
+
+---
+
+## 🛠️ Development & Building from Source
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (>= 20.x) & [pnpm](https://pnpm.io/) (>= 9.x)
+- [Rust](https://www.rust-lang.org/) (stable toolchain)
+
+### Local Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/sj817/github-desktop-plus.git
+cd github-desktop-plus
+
+# Install all workspace dependencies
 pnpm install
 
-# 开发模式（Vite + hook 构建 + 语言包，启动 GDP + GitHub Desktop）
+# Start development mode (Vite HMR + Hook watcher + GDP + GitHub Desktop)
 pnpm dev
 
-# 只跑设置界面的 Vite dev server
-# 浏览器直接打开 http://127.0.0.1:5273/?mock=1 可脱离 GitHub Desktop 预览界面
-#（内存 mock 桥；加 &theme=dark 看深色，&scenario=empty 看空状态）
+# Run settings UI standalone in browser with mock bridge
 pnpm --filter @github-desktop-plus/settings-ui dev
 
-# 类型检查（hooks + 设置界面）
+# Typecheck all packages
 pnpm run typecheck
 
-# 构建发布版二进制（设置 UI → hook bundle → Rust）
+# Full production build (Settings UI → Hooks Bundle → Rust Executable)
 pnpm run build
-
-# 运行桌面自检
-pnpm run self-check:desktop
 ```
 
-## 项目结构
+---
 
-```text
-apps/
-├── gdp/              # Rust CLI：注入、启动、hook 资源内嵌
-│   └── resources/    # 语言包源与 GitHub Desktop 字符串目录
-├── settings-ui/      # 设置弹窗的 React 应用（Vite + Tailwind + Base UI）
-│   └── src/
-│       ├── bridge/   # GDPBridge 的 iframe 实现与 React context
-│       ├── pages/    # 常规 / 打开方式 / AI / 语言包 / 日志
-│       └── mount.tsx # 生产入口：mount(root, bridge)
-└── site/             # GitHub Pages 落地页
-crates/
-└── gdp-core/         # Rust 核心库：配置、探测、运行时元数据
-packages/
-├── hooks/            # 私有 npm 包（tsdown 三入口构建）
-│   ├── package.json
-│   ├── tsdown.config.ts
-│   └── src/
-│       ├── ipc.ts        # IPC 桥：配置 / 语言包 / 日志 / AI
-│       ├── entries/      # main / early / renderer 打包入口
-│       └── preload/
-│           └── gdp-dialog/   # 设置弹窗外壳：dialog、bridge、dev RPC host
-└── shared/           # 私有 source package：三方共用的 IPC 契约与类型
-scripts/              # 受 TypeScript 严格检查的全部 Node 自动化
-├── dev.ts            # 开发编排：Vite + 监听重启 + 拉起 GDP
-├── locales.ts        # 严格校验语言源，并为 dev 热更新做内存聚合
-├── checks/           # 源码策略与桌面自检
-├── i18n/             # 字符串提取与版本 diff
-└── mock/             # 本地测试服务
-docs/                 # 跨应用的架构和调研文档
-```
+## 🗺️ Roadmap
 
-开发约定见 [`CLAUDE.md`](CLAUDE.md)。
+- [x] Rust-powered 0-patch V8 Inspector injector
+- [x] Element Plus flat aesthetic settings modal (React 19)
+- [x] Multi-Editor & Multi-Terminal manager with Framer Motion drag-and-drop
+- [x] Universal AI commit generator (OpenAI, DeepSeek, SiliconFlow, Ollama)
+- [x] Native i18n engine with SVG country flag previews
+- [x] Telemetry blocker and auto-update suppressor
+- [x] WSL 2 environment integration and path translation
+- [ ] Git Worktree management GUI enhancement
+- [ ] Quick interactive stash/unstash per-file diff manager
+- [ ] Plugin ecosystem for community-contributed hooks
 
-## 文档
+---
 
-- [架构设计](docs/architecture.md)
-- [0-path Hook 方案集](docs/0-path-solutions.md)
-- [WSL 仓库支持可行性调研](docs/wsl-support-feasibility.md)
+## 🤝 Contributing
 
-## 免责声明
+Contributions, feature requests, and bug reports are warmly welcome!
 
-本项目是社区第三方工具，与 GitHub, Inc. 无任何关联，亦未获其背书。
-GitHub 与 GitHub Desktop 是 GitHub, Inc. 的商标。本工具不分发、不修改
-GitHub Desktop 的安装文件，仅在本机运行时通过官方调试接口注入增强逻辑；
-GitHub Desktop 本身以 [MIT 许可证](https://github.com/desktop/desktop/blob/development/LICENSE) 发布。
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feat/amazing-feature`)
+3. Commit your Changes (`git commit -m 'feat: add some amazing feature'`)
+4. Push to the Branch (`git push origin feat/amazing-feature`)
+5. Open a Pull Request
 
-## License
+---
 
-[MIT](LICENSE)
+## 📜 Disclaimer
+
+**GitHub Desktop Plus** is an independent open-source community project and is not affiliated with, endorsed by, or sponsored by GitHub, Inc. or Microsoft Corporation. GitHub and GitHub Desktop are registered trademarks of GitHub, Inc.
+
+GitHub Desktop itself is licensed under the [MIT License](https://github.com/desktop/desktop/blob/development/LICENSE).
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
+
+<div align="center">
+  <sub>Built with ❤️ by sj817 and the open-source community. If you like this project, please consider giving it a ⭐ star!</sub>
+</div>
