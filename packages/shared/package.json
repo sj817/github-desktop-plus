@@ -1,0 +1,19 @@
+{
+  "name": "@github-desktop-plus/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared IPC contracts for GitHub Desktop Plus",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  }
+}

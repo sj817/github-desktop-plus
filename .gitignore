@@ -1,5 +1,4 @@
 node_modules/
-generated/
 target/
 dist/
 build/
@@ -14,7 +13,6 @@ Thumbs.db
 output.js
 *.tmp
 *.log
-/src/ui-app
 *.tsbuildinfo
 
 # Local AI-assistant instructions (not part of the project)

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GitHub Desktop Plus — 不改源码，增强 GitHub Desktop</title>
+<meta name="description" content="外部增强工具：禁用更新、屏蔽遥测、中文界面、AI 提交信息、最近仓库置顶。Rust + 0-path Inspector 注入，全部设置热生效。">
+<meta property="og:title" content="GitHub Desktop Plus">
+<meta property="og:description" content="不改源码，用官方调试接口在运行时增强 GitHub Desktop。">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --bg: #0b0e14;
+    --bg-2: #11151f;
+    --surface: #161b26;
+    --surface-2: #1c2230;
+    --line: #262d3d;
+    --fg: #e6e9ef;
+    --fg-muted: #9aa4b8;
+    --fg-subtle: #6b7488;
+    --accent: #4c8dff;
+    --accent-2: #6ee7d0;
+    --r: 14px;
+    --r-lg: 20px;
+    --maxw: 1080px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #ffffff; --bg-2: #f6f8fc; --surface: #ffffff; --surface-2: #f2f5fa;
+      --line: #e3e8f0; --fg: #10141c; --fg-muted: #4d5666; --fg-subtle: #8a93a6;
+      --accent: #2563eb; --accent-2: #0ea5a0;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
+
+  /* ── Nav ── */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; gap: 16px; height: 62px; }
+  .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 13px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+  }
+  nav .spacer { flex: 1; }
+  nav .nav-links { display: flex; gap: 26px; font-size: 13.5px; color: var(--fg-muted); }
+  nav .nav-links a:hover { color: var(--fg); }
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 9px; font-size: 13.5px; font-weight: 600;
+    border: 1px solid var(--line); background: var(--surface-2); color: var(--fg);
+    transition: transform 0.15s var(--ease), border-color 0.15s, background 0.15s;
+  }
+  .btn:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--fg) 30%, transparent); }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    border-color: transparent; color: #fff;
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--accent) 34%, transparent);
+  }
+  .btn-primary:hover { filter: brightness(1.06); }
+  @media (max-width: 720px) { nav .nav-links { display: none; } }
+
+  /* ── Hero ── */
+  .hero { position: relative; padding: 96px 0 72px; text-align: center; overflow: hidden; }
+  .hero::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background:
+      radial-gradient(ellipse 60% 50% at 50% -10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 70%),
+      radial-gradient(ellipse 50% 40% at 85% 10%, color-mix(in srgb, var(--accent-2) 16%, transparent), transparent 70%);
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 999px; margin-bottom: 26px;
+    border: 1px solid var(--line); background: var(--surface);
+    font-size: 12.5px; color: var(--fg-muted);
+  }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 8px var(--accent-2); }
+  .hero h1 {
+    font-size: clamp(34px, 6vw, 60px); line-height: 1.08; letter-spacing: -0.03em; font-weight: 800;
+    margin-bottom: 20px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(120deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .hero p.lead {
+    font-size: clamp(15px, 2.2vw, 19px); color: var(--fg-muted);
+    max-width: 640px; margin: 0 auto 34px;
+  }
+  .hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* ── Terminal window ── */
+  .window {
+    max-width: 760px; margin: 56px auto 0; text-align: left;
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    background: var(--bg-2); overflow: hidden;
+    box-shadow: 0 30px 80px -20px rgba(0,0,0,0.5);
+  }
+  .window-bar { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .window-bar .d { width: 12px; height: 12px; border-radius: 50%; }
+  .window-bar .d.r { background: #ff5f57; } .window-bar .d.y { background: #febc2e; } .window-bar .d.g { background: #28c840; }
+  .window-bar .title { margin-left: 8px; font-size: 12px; color: var(--fg-subtle); font-family: ui-monospace, monospace; }
+  .window pre {
+    margin: 0; padding: 22px; font-family: ui-monospace, "SFMono-Regular", "Cascadia Code", Consolas, monospace;
+    font-size: 13px; line-height: 1.9; overflow-x: auto; color: var(--fg);
+  }
+  .window .c-comment { color: var(--fg-subtle); }
+  .window .c-cmd { color: var(--accent-2); }
+  .window .c-flag { color: var(--accent); }
+
+  /* ── Sections ── */
+  section { padding: 76px 0; }
+  .section-head { text-align: center; margin-bottom: 52px; }
+  .section-head .kicker { font-size: 12.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+  .section-head h2 { font-size: clamp(26px, 4vw, 38px); letter-spacing: -0.02em; font-weight: 800; }
+  .section-head p { color: var(--fg-muted); max-width: 560px; margin: 14px auto 0; font-size: 15px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    padding: 26px 24px; border: 1px solid var(--line); border-radius: var(--r);
+    background: var(--surface); transition: transform 0.2s var(--ease), border-color 0.2s;
+  }
+  .card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+  .card .ico {
+    width: 42px; height: 42px; border-radius: 11px; margin-bottom: 16px;
+    display: grid; place-items: center;
+    background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent);
+  }
+  .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 7px; letter-spacing: -0.01em; }
+  .card p { font-size: 13.5px; color: var(--fg-muted); }
+  .card .tag {
+    display: inline-block; margin-top: 12px; padding: 2px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; color: var(--accent-2);
+    background: color-mix(in srgb, var(--accent-2) 12%, transparent);
+  }
+
+  /* ── How ── */
+  .how { background: var(--bg-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; counter-reset: step; }
+  @media (max-width: 860px) { .steps { grid-template-columns: 1fr; gap: 28px; } }
+  .step { position: relative; padding-top: 8px; }
+  .step .n {
+    width: 34px; height: 34px; border-radius: 10px; margin-bottom: 16px;
+    display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  }
+  .step h3 { font-size: 16px; margin-bottom: 7px; }
+  .step p { font-size: 13.5px; color: var(--fg-muted); }
+  .step code { font-family: ui-monospace, monospace; font-size: 12.5px; color: var(--accent-2); background: var(--surface-2); padding: 1px 6px; border-radius: 5px; }
+
+  .disclaimer {
+    max-width: 720px; margin: 8px auto 0; padding: 18px 22px;
+    border: 1px solid var(--line); border-radius: var(--r); background: var(--surface);
+    font-size: 12.5px; color: var(--fg-subtle); text-align: center;
+  }
+
+  footer { padding: 44px 0; border-top: 1px solid var(--line); }
+  footer .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  footer .spacer { flex: 1; }
+  footer p { font-size: 13px; color: var(--fg-subtle); }
+  footer a { font-size: 13px; color: var(--fg-muted); }
+  footer a:hover { color: var(--fg); }
+
+  .reveal { animation: reveal 0.6s var(--ease) both; }
+  @keyframes reveal {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="logo">G+</span>GitHub Desktop Plus</a>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <a href="#features">功能</a>
+      <a href="#how">原理</a>
+      <a href="#start">快速开始</a>
+    </div>
+    <a class="btn btn-primary" href="https://github.com/sj817/github-desktop-plus" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="badge reveal"><span class="dot"></span>不改一行源码 · 全部设置热生效</div>
+    <h1 class="reveal">增强 GitHub Desktop，<br><span class="grad">无需修改它本身</span></h1>
+    <p class="lead reveal">用官方 V8 Inspector 调试接口，在运行时注入增强逻辑：禁用更新、屏蔽遥测、中文界面、AI 提交信息、最近仓库置顶。Rust 内核，常驻内存目标 &lt; 10MB。</p>
+    <div class="hero-cta reveal">
+      <a class="btn btn-primary" href="#start">开始使用</a>
+      <a class="btn" href="https://github.com/sj817/github-desktop-plus" target="_blank" rel="noopener">查看源码</a>
+    </div>
+
+    <div class="window reveal">
+      <div class="window-bar">
+        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+        <span class="title">powershell</span>
+      </div>
+      <pre><span class="c-comment"># 构建并启动增强版 GitHub Desktop</span>
+<span class="c-cmd">pnpm</span> install
+<span class="c-cmd">pnpm</span> run build
+<span class="c-cmd">gdp</span> launch
+
+<span class="c-comment"># 打开设置弹窗</span>
+<span class="c-flag">Ctrl</span> + <span class="c-flag">Alt</span> + <span class="c-flag">G</span></pre>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="kicker">Features</div>
+      <h2>你需要的增强，都在这里</h2>
+      <p>每一项都能在内嵌设置弹窗里开关，改动即时生效，不用重启 GitHub Desktop。</p>
+    </div>
+    <div class="grid">
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>
+        <h3>禁用自动更新</h3>
+        <p>阻止 autoUpdater 检查与安装，并接管 About 里的"检查更新"按钮，保持你打了补丁的版本。</p>
+        <span class="tag">热生效</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></div>
+        <h3>屏蔽遥测上报</h3>
+        <p>拦截发往 central / usage / stats.github.com 的统计与异常上报，包装 GHD 自身的请求监听器，确保真正拦得住。</p>
+        <span class="tag">热生效</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg></div>
+        <h3>中文界面 (i18n)</h3>
+        <p>菜单翻译 + DOM 文本替换实现界面中文化。语言包可导入、导出、切换，切换后界面自动刷新。</p>
+        <span class="tag">热生效</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></svg></div>
+        <h3>AI 提交信息</h3>
+        <p>接管提交框的 Copilot 按钮，用任意 OpenAI 兼容接口生成提交信息。内置连通性测试，先验证再保存。</p>
+        <span class="tag">可自定义模型</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+        <h3>最近仓库增强</h3>
+        <p>官方"最近"列表固定 3 个 — GDP 让你自定义条数，还能把常用仓库置顶，永远排在最前不被挤掉。</p>
+        <span class="tag">置顶</span>
+      </div>
+      <div class="card reveal">
+        <div class="ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="m14 9 3 3-3 3"/></svg></div>
+        <h3>内嵌设置弹窗</h3>
+        <p>GDP 菜单或 Ctrl+Alt+G 打开：常规配置、AI 接入、语言包管理、实时日志流，原生 DOM，跟随明暗主题。</p>
+        <span class="tag">Ctrl+Alt+G</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="how" id="how">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="kicker">How it works</div>
+      <h2>0-path 注入，不碰安装文件</h2>
+      <p>GDP 不分发、不修改 GitHub Desktop，只在本机启动时通过官方调试接口注入增强逻辑。</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal">
+        <div class="n">1</div>
+        <h3>以调试模式启动</h3>
+        <p>Rust <code>gdp</code> 用 <code>--inspect-brk=0</code> 拉起 GitHub Desktop，进程在 <code>main.js</code> 执行前暂停。</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">2</div>
+        <h3>注入 hook</h3>
+        <p>通过 V8 Inspector (CDP) 连接，在主进程注入更新拦截、遥测屏蔽、菜单与渲染进程 i18n 等 hook。</p>
+      </div>
+      <div class="step reveal">
+        <div class="n">3</div>
+        <h3>IPC 驱动一切</h3>
+        <p>配置、语言包、日志、AI 请求全部经 Electron IPC 在注入的 hook 内完成，不依赖本地 HTTP 服务。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="start">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="kicker">Get started</div>
+      <h2>三步跑起来</h2>
+      <p>需要已安装 GitHub Desktop、Node.js 22+、pnpm 与 Rust 工具链。</p>
+    </div>
+    <div class="window reveal" style="margin-top:0;">
+      <div class="window-bar">
+        <span class="d r"></span><span class="d y"></span><span class="d g"></span>
+        <span class="title">bash</span>
+      </div>
+      <pre><span class="c-comment"># 1 · 克隆仓库</span>
+<span class="c-cmd">git</span> clone https://github.com/sj817/github-desktop-plus
+<span class="c-cmd">cd</span> github-desktop-plus
+
+<span class="c-comment"># 2 · 安装依赖并构建（语言包 + hook + Rust 二进制）</span>
+<span class="c-cmd">pnpm</span> install
+<span class="c-cmd">pnpm</span> run build
+
+<span class="c-comment"># 3 · 启动增强版 GitHub Desktop</span>
+<span class="c-cmd">gdp</span> launch</pre>
+    </div>
+    <div class="disclaimer reveal" style="margin-top:40px;">
+      本项目是社区第三方工具，与 GitHub, Inc. 无任何关联，亦未获其背书。GitHub 与 GitHub Desktop 是 GitHub, Inc. 的商标。
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="logo">G+</span>GitHub Desktop Plus</a>
+    <div class="spacer"></div>
+    <a href="https://github.com/sj817/github-desktop-plus" target="_blank" rel="noopener">源码</a>
+    <a href="https://github.com/sj817/github-desktop-plus/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+    <p>© 2026 GitHub Desktop Plus contributors</p>
+  </div>
+</footer>
+
+</body>
+</html>

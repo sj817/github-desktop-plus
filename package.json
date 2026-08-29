@@ -1,33 +1,33 @@
 {
   "name": "github-desktop-plus",
   "version": "0.1.0",
-  "type": "module",
+  "private": true,
   "description": "External enhancement tool for GitHub Desktop — Rust runtime + 0-path Electron hooks",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=22.18.0"
+  },
   "scripts": {
-    "locales:dedupe": "node scripts/locales.mjs dedupe zh-CN",
-    "locales:bundle": "node scripts/locales.mjs bundle zh-CN",
-    "locales:prepare": "node scripts/locales.mjs prepare zh-CN",
-    "locales:extract": "node scripts/extract-strings.mjs zh-CN",
-    "locales:diff": "node scripts/extract-strings.mjs diff",
-    "build:ui": "pnpm --filter gdp-settings-ui build",
-    "dev:ui": "pnpm --filter gdp-settings-ui dev",
-    "build:hooks": "node scripts/build-hooks.mjs",
-    "typecheck": "tsc --noEmit && pnpm --filter gdp-settings-ui typecheck",
-    "fmt": "cargo fmt --all",
-    "fmt:check": "cargo fmt --all -- --check",
-    "gdp:build": "pnpm run locales:prepare && pnpm run build:ui && pnpm run build:hooks && cargo build --workspace",
-    "gdp:dev": "pnpm run locales:prepare && pnpm run build:ui && pnpm run build:hooks && cargo run -p gdp -- dev",
-    "check": "pnpm run locales:prepare && pnpm run build:ui && pnpm run build:hooks && cargo check --workspace",
-    "build": "pnpm run locales:prepare && pnpm run build:ui && pnpm run build:hooks && cargo build --workspace --release",
-    "dev": "node scripts/dev.mjs",
-    "test:open-with": "tsx scripts/test-open-with.ts",
-    "test:i18n": "tsx scripts/test-i18n-lookup.ts",
-    "self-check:desktop": "pnpm run locales:prepare && pnpm run build:ui && pnpm run build:hooks && tsx scripts/self-check-desktop.ts"
+    "build": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && cargo build --workspace --release",
+    "check": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && pnpm run typecheck && pnpm -r --if-present run test && cargo fmt --all -- --check && cargo check --workspace",
+    "dev": "tsx scripts/dev.ts",
+    "format": "cargo fmt --all",
+    "locales:diff": "tsx scripts/i18n/extract.ts diff",
+    "locales:extract": "tsx scripts/i18n/extract.ts zh-CN",
+    "locales:prepare": "tsx scripts/locales.ts prepare zh-CN",
+    "mock:ai": "tsx scripts/mock/ai-server.ts",
+    "self-check:desktop": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && tsx scripts/checks/desktop.ts",
+    "test": "pnpm -r --if-present run test && cargo test --workspace",
+    "typecheck": "tsx scripts/checks/no-js.ts && tsc -p scripts/tsconfig.json && pnpm -r --if-present run typecheck"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "esbuild": "^0.24.0",
-    "tsx": "^4.19.0",
-    "typescript": "^6.0.2"
+    "@types/node": "catalog:",
+    "chokidar": "catalog:",
+    "execa": "catalog:",
+    "jsonc-parser": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:"
   }
 }

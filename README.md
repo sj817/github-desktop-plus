@@ -22,7 +22,7 @@
 | 运行时核心 | Rust (`gdp`) |
 | Hook 注入 | V8 Inspector (`--inspect-brk`) |
 | Hook 源码 | TypeScript |
-| Hook 构建 | Node.js + esbuild |
+| Hook 构建 | tsdown（Rolldown，main / early / renderer 三入口） |
 | UI 构建 | Vite（library 模式，单文件 IIFE） |
 | 设置弹窗 UI | React 19 + TypeScript + Tailwind CSS 4 + Base UI，Vite 打包 |
 | 设置弹窗宿主 | 渲染进程内的薄壳（dialog + bridge），经 Electron IPC 与主进程通信 |
@@ -30,7 +30,7 @@
 
 ## 当前结构
 
-当前源码已经统一收敛到 `src/` 下，运行时目标如下：
+仓库采用 `apps/` + `packages/` + `crates/` 的分层布局，运行时目标如下：
 
 - **运行时核心迁移到 Rust**，Node.js 仅保留为构建辅助
 - **常驻内存目标 < 10MB**，优先压缩运行时和依赖树
@@ -39,14 +39,13 @@
 
 当前主线拆分如下：
 
-- `gdp-core`：纯 Rust 核心逻辑库
-- `gdp`：CLI 入口 + 0-path 注入 + hook 资源内嵌
-- `src/hooks/`：Electron hook / preload 的 TypeScript 源码（含 IPC 桥与设置弹窗外壳）
-- `src/settings-ui/`：设置弹窗的 React 应用，独立 Vite 包
-- `src/shared/`：主进程 / 弹窗外壳 / 设置 UI 共用的 IPC 契约
-- `webui/`：语言包在线编辑器（规划中，当前未接入运行时）
+- `crates/gdp-core/`：纯 Rust 核心逻辑库
+- `apps/gdp/`：CLI 入口 + 0-path 注入 + hook 资源内嵌
+- `packages/hooks/`：独立 pnpm 包；Electron hook / preload 的 TypeScript 源码与 tsdown 配置
+- `apps/settings-ui/`：设置弹窗的 React 应用，独立 Vite 包
+- `packages/shared/`：主进程 / 弹窗外壳 / 设置 UI 共用的 IPC 契约
 
-详细设计见：[`docs/phase5-rust-architecture.md`](docs/phase5-rust-architecture.md)
+详细设计见：[`docs/architecture.md`](docs/architecture.md)
 
 ## 工作原理
 
@@ -72,7 +71,7 @@ AI 请求全部经 Electron IPC 在注入的主进程 hook 内完成，不依赖
 
 ## 设置弹窗架构
 
-设置界面是一个独立的 React 应用（`src/settings-ui`），渲染进程里只留一层薄壳负责创建 `<dialog>`、
+设置界面是一个独立的 React 应用（`apps/settings-ui`），渲染进程里只留一层薄壳负责创建 `<dialog>`、
 挂载/卸载和桥接 IPC。开发和生产走同一份 UI 代码、同一个 `GDPBridge` 接口，业务代码不知道自己
 运行在哪一侧：
 
@@ -84,23 +83,23 @@ AI 请求全部经 Electron IPC 在注入的主进程 hook 内完成，不依赖
 - **生产**：Vite 以 library 模式打出单文件 IIFE（CSS 内联），随其他 preload 一起注入，
   `window.__GDP_SETTINGS_UI__.mount(root, bridge)` 直接挂载到 `<dialog>` 里，不用 iframe、
   不起本地服务、不依赖开发服务器。
-- **开发**：`scripts/dev.mjs` 顺带拉起 Vite，弹窗改为加载 `http://127.0.0.1:5273` 的 iframe。
+- **开发**：`scripts/dev.ts` 顺带拉起 Vite，弹窗改为加载 `http://127.0.0.1:5273` 的 iframe。
   iframe 没有任何 Electron 权限，只能通过 postMessage RPC 说话；外壳会校验来源窗口、来源
-  origin、协议标记和信道白名单（见 `src/shared/gdp-ipc.ts`）后才转发给 `ipcRenderer`。
-- 改 `src/settings-ui/**` 只走 Vite HMR，不重启 GDP / GitHub Desktop；改 `src/hooks/**`、
-  `src/shared/**` 或 Rust 才触发原来的重启流程。
+  origin、协议标记和信道白名单（由 `@github-desktop-plus/shared` 提供）后才转发给 `ipcRenderer`。
+- 改 `apps/settings-ui/**` 只走 Vite HMR，不重启 GDP / GitHub Desktop；改 `packages/hooks/**`、
+  `packages/shared/**` 或 Rust 才触发原来的重启流程。
 
 ## 快速开始
 
 ```bash
-# 安装依赖（pnpm workspace，会一并安装 src/settings-ui）
+# 安装依赖（pnpm workspace，会一并安装 settings-ui 与 hooks）
 pnpm install
 
 # 开发模式（Vite + hook 构建 + 语言包，启动 GDP + GitHub Desktop）
 pnpm dev
 
 # 只跑设置界面的 Vite dev server
-pnpm run dev:ui
+pnpm --filter @github-desktop-plus/settings-ui dev
 
 # 类型检查（hooks + 设置界面）
 pnpm run typecheck
@@ -115,39 +114,43 @@ pnpm run self-check:desktop
 ## 项目结构
 
 ```text
-src/
-├── core/             # Rust 核心库：配置、探测、运行时元数据
+apps/
 ├── gdp/              # Rust CLI：注入、启动、hook 资源内嵌
-├── hooks/            # Electron 注入脚本与 preload 源码 (TypeScript)
-│   ├── ipc.ts        # IPC 桥：配置 / 语言包 / 日志 / AI
-│   └── preload/
-│       └── gdp-dialog/   # 设置弹窗外壳：dialog、bridge、dev RPC host
+│   └── resources/    # 语言包源与 GitHub Desktop 字符串目录
 ├── settings-ui/      # 设置弹窗的 React 应用（Vite + Tailwind + Base UI）
 │   └── src/
 │       ├── bridge/   # GDPBridge 的 iframe 实现与 React context
 │       ├── pages/    # 常规 / 打开方式 / AI / 语言包 / 日志
 │       └── mount.tsx # 生产入口：mount(root, bridge)
-├── shared/           # 三方共用的 IPC 契约与类型
-scripts/
-├── build-hooks.mjs   # esbuild 生成 hook bundle，并拷入设置 UI 产物
-└── locales.mjs       # 去重并聚合构建语言包
-webui/                # 语言包在线编辑器（规划中）
-locales/              # 开发期拆分维护
-└── zh-CN/
-    ├── menu.json
-    ├── ui.json
-    └── ...
-generated/locales/    # 运行时只认聚合包
-└── zh-CN.json        # 构建期聚合语言包，文件名作为 key
+└── site/             # GitHub Pages 落地页
+crates/
+└── gdp-core/         # Rust 核心库：配置、探测、运行时元数据
+packages/
+├── hooks/            # 私有 npm 包（tsdown 三入口构建）
+│   ├── package.json
+│   ├── tsdown.config.ts
+│   └── src/
+│       ├── ipc.ts        # IPC 桥：配置 / 语言包 / 日志 / AI
+│       ├── entries/      # main / early / renderer 打包入口
+│       └── preload/
+│           └── gdp-dialog/   # 设置弹窗外壳：dialog、bridge、dev RPC host
+└── shared/           # 私有 source package：三方共用的 IPC 契约与类型
+scripts/              # 受 TypeScript 严格检查的全部 Node 自动化
+├── dev.ts            # 开发编排：Vite + 监听重启 + 拉起 GDP
+├── locales.ts        # 严格校验语言源，并为 dev 热更新做内存聚合
+├── checks/           # 源码策略与桌面自检
+├── i18n/             # 字符串提取与版本 diff
+└── mock/             # 本地测试服务
+docs/                 # 跨应用的架构和调研文档
 ```
+
+开发约定见 [`CLAUDE.md`](CLAUDE.md)。
 
 ## 文档
 
-- [阶段 1：源码分析](docs/phase1-source-analysis.md)
-- [阶段 2：可行性分析](docs/phase2-feasibility.md)
-- [阶段 3：架构设计](docs/phase3-architecture.md)
-- [阶段 4：实现说明](docs/phase4-implementation.md)
-- [阶段 5：Rust 底层重构设计](docs/phase5-rust-architecture.md)
+- [架构设计](docs/architecture.md)
+- [0-path Hook 方案集](docs/0-path-solutions.md)
+- [WSL 仓库支持可行性调研](docs/wsl-support-feasibility.md)
 
 ## 免责声明
 

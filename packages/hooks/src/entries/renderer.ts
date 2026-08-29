@@ -1,0 +1,5 @@
+import '../preload/index'
+import '../preload/update-interceptor'
+import '../preload/copilot-hijack'
+import '../preload/gdp-dialog'
+import '../preload/open-with'
