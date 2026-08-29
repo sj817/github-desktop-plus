@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GDP 设置（开发）</title>
+    <style>
+      /* The iframe is the whole viewport; production mounts into a sized box. */
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+      }
+      #gdp-settings-root {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gdp-settings-root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
