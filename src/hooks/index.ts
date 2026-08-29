@@ -31,6 +31,14 @@ import {
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
 
+/**
+ * Set by scripts/dev.mjs to the Vite dev server's address. When present the
+ * settings dialog loads its UI from there in an iframe (so React edits hot
+ * reload); when empty the production bundle is injected with the other preload
+ * scripts and mounted directly.
+ */
+const SETTINGS_DEV_URL = process.env.GDP_SETTINGS_DEV_URL ?? ''
+
 type StoredConfig = {
   updates?: {
     disabled?: unknown
@@ -429,15 +437,31 @@ function setupRendererI18n(
     }
   } catch { /* optional */ }
 
-  // GDP settings dialog — native DOM dialog with 4 tabs
+  // GDP settings dialog shell — owns the <dialog> and hosts the settings UI.
   const gdpDialogPath = _path.join(dir, 'preload', 'gdp-dialog.js')
   let gdpDialogCode = ''
   try {
     if (_fs.existsSync(gdpDialogPath)) {
       gdpDialogCode = _fs.readFileSync(gdpDialogPath, 'utf-8')
-      gdpLog('GDP dialog script loaded', 'info', 'system')
+      gdpLog('GDP dialog shell script loaded', 'info', 'system')
     }
   } catch { /* optional */ }
+
+  // The settings UI itself (React, built by Vite). In dev it is served by the
+  // Vite dev server and loaded into an iframe instead, so the bundle is left
+  // out of the injection entirely.
+  let settingsUiCode = ''
+  if (SETTINGS_DEV_URL === '') {
+    const settingsUiPath = _path.join(dir, 'preload', 'gdp-settings-ui.js')
+    try {
+      if (_fs.existsSync(settingsUiPath)) {
+        settingsUiCode = _fs.readFileSync(settingsUiPath, 'utf-8')
+        gdpLog(`Settings UI bundle loaded (${settingsUiCode.length} bytes)`, 'info', 'system')
+      }
+    } catch { /* optional */ }
+  } else {
+    gdpLog(`Settings UI served from ${SETTINGS_DEV_URL} (dev iframe)`, 'info', 'system')
+  }
 
   // Open-with context-menu entries. Injected LAST so its show-contextual-menu
   // wrapper sits outside the i18n one — it then sees GD's original English
@@ -456,10 +480,14 @@ function setupRendererI18n(
     `window.__GDP_OVERRIDES__=${JSON.stringify(uiOverrides)};` +
     `window.__GDP_CONFIG__=${JSON.stringify(config)};` +
     `window.__GDP_LOG_FILE__=${JSON.stringify(LOG_JSON_FILE)};` +
+    (SETTINGS_DEV_URL
+      ? `window.__GDP_SETTINGS_DEV_URL__=${JSON.stringify(SETTINGS_DEV_URL)};`
+      : '') +
     `${preloadCode}` +
     (navbarCode ? `\n${navbarCode}` : '') +
     (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
     (copilotHijackCode ? `\n${copilotHijackCode}` : '') +
+    (settingsUiCode ? `\n${settingsUiCode}` : '') +
     (gdpDialogCode ? `\n${gdpDialogCode}` : '') +
     (openWithCode ? `\n${openWithCode}` : '') +
     `})();`

@@ -38,6 +38,10 @@ import { lookupTranslation } from '../i18n-lookup'
     ".blob-code",
     ".blob-code-inner",
     "[data-gdp-no-translate]",
+    // GDP's own settings dialog. Its copy is already localised, and it is a
+    // React tree — letting the observer rewrite text nodes React owns would
+    // mean the locale pack silently re-labelling GDP's own UI.
+    "#gdp-settings-dialog",
   ].join(",");
 
   function getTranslations(): Record<string, string> {
