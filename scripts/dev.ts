@@ -43,7 +43,9 @@ function gdpConfigDir(): string | null {
 // Kill a process recorded in one of GDP's PID files, directly — no `cargo run`.
 // This is the crux of the HMR fix: `cargo run -- stop` would first rebuild
 // gdp.exe, which is locked by the running daemon we're trying to stop, causing
-// the recurring "access denied" deadlock. Killing by PID needs no build.
+// the recurring "access denied" deadlock. Do not add taskkill /T here: editors
+// and terminals launched from Desktop are detached user processes and must
+// survive a GDP hot restart.
 function killByPidFile(file: string): void {
   const dir = gdpConfigDir()
   if (!dir) return
@@ -57,8 +59,7 @@ function killByPidFile(file: string): void {
   if (!Number.isFinite(pid) || pid <= 0) return
   try {
     if (isWin) {
-      // /T also kills GitHub Desktop if it is a child of the daemon.
-      execaSync('taskkill', ['/F', '/T', '/PID', String(pid)], {
+      execaSync('taskkill', ['/F', '/PID', String(pid)], {
         stdio: 'ignore',
         reject: false,
       })
@@ -149,6 +150,8 @@ async function waitForHookBuild(startedAt: number, timeoutMs = 30000): Promise<v
 
 interface CommandOptions {
   env?: NodeJS.ProcessEnv
+  /** GDP manages Desktop/daemon PIDs itself; never sweep its external apps. */
+  killDescendants?: boolean
 }
 
 function command(name: string, args: readonly string[], options: CommandOptions = {}): ResultPromise {
@@ -156,7 +159,7 @@ function command(name: string, args: readonly string[], options: CommandOptions 
     cwd: rootDir,
     stdio: 'inherit',
     cleanup: true,
-    killDescendants: true,
+    killDescendants: options.killDescendants ?? true,
     reject: false,
     env: {
       ...process.env,
@@ -195,6 +198,9 @@ async function stopGdp(): Promise<void> {
 
 async function startGdp(): Promise<void> {
   gdpProcess = command('cargo', ['run', '-p', 'gdp', '--', 'dev'], {
+    // stopGdp handles the two managed PID files explicitly. A descendant sweep
+    // here would also catch IDEs and terminals opened by GitHub Desktop.
+    killDescendants: false,
     env: {
       GDP_DEV: '1',
       // Tells the injected hook to load the settings dialog's UI from Vite in

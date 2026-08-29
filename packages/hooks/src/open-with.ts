@@ -475,10 +475,20 @@ function needsShell(exe: string): boolean {
   return process.platform === 'win32' && /\.(cmd|bat)$/i.test(exe)
 }
 
-export function launchOpenWith(
+function waitForSpawn(child: cp.ChildProcess): Promise<void> {
+  return new Promise((resolve, reject) => {
+    child.once('spawn', resolve)
+    // Keep this listener after `spawn` as well. A late child-process error must
+    // never become an uncaught error in GitHub Desktop's main process.
+    child.once('error', reject)
+    child.unref()
+  })
+}
+
+export async function launchOpenWith(
   item: OpenWithItem,
   targetPath: string,
-): { ok: boolean; reason?: string } {
+): Promise<{ ok: boolean; reason?: string }> {
   if (!item.path) return { ok: false, reason: 'no_path' }
   if (!targetPath) return { ok: false, reason: 'no_target' }
   if (!fs.existsSync(item.path)) return { ok: false, reason: 'executable_missing' }
@@ -489,30 +499,34 @@ export function launchOpenWith(
   const args = expandTarget(tokenizeArgs(argsTemplate), targetPath)
 
   try {
+    let child: cp.ChildProcess
     if (process.platform === 'win32' && (item.console || needsShell(item.path))) {
       // `start` gives console programs their own window and `/D` sets the
       // working directory without relying on spawn's cwd (which rejects UNC).
       const comspec = process.env.ComSpec || 'cmd.exe'
       const quoted = args.map(a => (/\s/.test(a) ? `"${a}"` : a)).join(' ')
       const line = `start "" /D "${targetPath}" "${item.path}" ${quoted}`.trim()
-      const child = cp.spawn(comspec, ['/d', '/s', '/c', line], {
+      child = cp.spawn(comspec, ['/d', '/s', '/c', line], {
         detached: true,
         stdio: 'ignore',
         windowsVerbatimArguments: true,
         windowsHide: true,
       })
-      child.unref()
     } else if (process.platform === 'darwin' && item.path.endsWith('.app')) {
-      const child = cp.spawn('open', ['-a', item.path, ...args], {
+      child = cp.spawn('open', ['-a', item.path, ...args], {
         detached: true,
         stdio: 'ignore',
       })
-      child.unref()
     } else {
-      // Detached so closing GitHub Desktop never takes the editor with it.
-      const child = cp.spawn(item.path, args, { detached: true, stdio: 'ignore' })
-      child.unref()
+      // This mirrors GitHub Desktop's official editor launcher: detached,
+      // ignored stdio, and unref after attaching the spawn/error listeners.
+      child = cp.spawn(item.path, args, {
+        detached: true,
+        stdio: 'ignore',
+        ...(item.group === 'shell' ? { cwd: targetPath } : {}),
+      })
     }
+    await waitForSpawn(child)
     gdpLog(`open-with: launched "${item.label}" for ${targetPath}`, 'info', 'system')
     return { ok: true }
   } catch (e) {

@@ -102,16 +102,35 @@ pub fn find_real_electron_exe(main_js: &Path) -> Option<PathBuf> {
     }
 }
 
-/// Kill a process by PID. Returns true if the process was terminated.
+/// Kill only the managed process by PID. Never use `taskkill /T` here: GitHub
+/// Desktop intentionally launches editors and shells as detached children, and
+/// recursively killing its process tree would terminate those user-owned apps.
+#[cfg(windows)]
+fn taskkill_args(pid: u32) -> Vec<String> {
+    vec!["/F".into(), "/PID".into(), pid.to_string()]
+}
+
 #[cfg(windows)]
 pub fn kill_process(pid: u32) -> bool {
     std::process::Command::new("taskkill")
-        .args(["/F", "/T", "/PID", &pid.to_string()])
+        .args(taskkill_args(pid))
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
         .map(|s| s.success())
         .unwrap_or(false)
+}
+
+#[cfg(all(test, windows))]
+mod windows_tests {
+    use super::taskkill_args;
+
+    #[test]
+    fn managed_process_kill_never_recurses_into_external_apps() {
+        let args = taskkill_args(42);
+        assert_eq!(args, ["/F", "/PID", "42"]);
+        assert!(!args.iter().any(|arg| arg == "/T"));
+    }
 }
 
 #[cfg(unix)]
