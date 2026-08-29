@@ -43,16 +43,22 @@ All IPC communication (settings, logs, AI requests, locales) runs directly over 
 
 ## Installation & Usage
 
-1. Download the latest `gdp` executable from [Releases](https://github.com/sj817/github-desktop-plus/releases).
-2. Run `gdp` to launch GitHub Desktop with enhancements.
-3. Press `Ctrl+Alt+G` inside GitHub Desktop or click `GDP` in the menu bar to open settings.
+Install from WSL with one command (Windows x64, GitHub Desktop, WSL 2, and Windows interop are required):
+
+```bash
+curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
+```
+
+The installer downloads the latest release asset, verifies its SHA-256 checksum, installs it under Windows `%LOCALAPPDATA%\GitHubDesktopPlus\bin`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
+
+For a manual install, download `gdp-windows-x64.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and run the executable from a writable directory.
 
 ---
 
 ## Development
 
 ### Prerequisites
-- Node.js >= 20.x, pnpm >= 9.x
+- Node.js >= 22.18, pnpm 9.15.9
 - Rust toolchain (stable)
 
 ### Commands

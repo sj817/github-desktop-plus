@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawn, type ChildProcessByStdio } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable } from "node:stream";
@@ -37,14 +37,6 @@ interface InspectorResponse {
 const rootDir = fileURLToPath(new URL("../..", import.meta.url));
 const hookLogPath = join(tmpdir(), "gdp-hooks-stream.jsonl");
 const rendererProbeFile = join(tmpdir(), "gdp-self-check-renderer.json");
-const configDir = join(
-  process.env.APPDATA ??
-    process.env.XDG_CONFIG_HOME ??
-    join(process.env.HOME ?? ".", ".config"),
-  "github-desktop-plus"
-);
-const userLocaleDir = join(configDir, "locales", "zh-CN");
-const userUiFile = join(userLocaleDir, "ui.json");
 const probeId = "__gdp_i18n_probe__";
 const probeSourceText = "Settings";
 const builtInProbeTranslation = "设置";
@@ -461,24 +453,19 @@ async function stopGDPDev(child: GDPChildProcess) {
 }
 
 async function main() {
-  mkdirSync(userLocaleDir, { recursive: true });
-  const hadOriginalUserFile = existsSync(userUiFile);
-  const originalUserFile = hadOriginalUserFile
-    ? readFileSync(userUiFile, "utf8")
-    : null;
-  const baselineUserFile = JSON.stringify(
-    { _meta: { description: "GDP self-check baseline" } },
-    null,
-    2
-  );
-
-  writeFileSync(userUiFile, baselineUserFile, "utf8");
+  // Each run must prove that this launch produced the expected hook events.
+  // Keeping an earlier JSONL stream can turn startup failures into false passes.
+  if (existsSync(hookLogPath)) {
+    unlinkSync(hookLogPath);
+  }
 
   let devChild: GDPChildProcess | null = null;
   const inspector = new InspectorClient();
   const importantOutput: string[] = [];
   let wsUrl: string | null = null;
   let childExitCode: number | null = null;
+  let localeBundleFile: string | null = null;
+  let originalLocaleBundle: string | null = null;
 
   try {
     log("Starting GDP dev session for live validation...");
@@ -525,7 +512,7 @@ async function main() {
     );
 
     await waitForHookMessage(/Hook setup complete/, 40000, "hook setup completion");
-    await waitForHookMessage(/Watching locale directory for changes:/, 10000, "locale watcher registration");
+    await waitForHookMessage(/Watching locale package directory:/, 10000, "locale watcher registration");
 
     assert.ok(wsUrl, "Inspector WebSocket URL was not captured");
     log(`Connecting to inspector: ${wsUrl}`);
@@ -558,6 +545,9 @@ async function main() {
       typeof hookConfig.dataDir === "string" && hookConfig.dataDir.length > 0,
       "dataDir should be passed into renderer config"
     );
+    localeBundleFile = join(hookConfig.dataDir as string, "locales", "zh-CN.json");
+    assert.ok(existsSync(localeBundleFile), "runtime locale bundle should exist");
+    originalLocaleBundle = readFileSync(localeBundleFile, "utf8");
 
     const updateInterceptorState = await runRendererProbe<{
       active?: boolean;
@@ -629,7 +619,6 @@ async function main() {
 
     let lastAboutButtons: Array<{
       text: string;
-      intercepted: string;
       disabled: boolean;
       className: string;
       id: string;
@@ -637,10 +626,9 @@ async function main() {
       inFooter: boolean;
     }> = [];
 
-    const interceptedButton = await waitFor(async () => {
+    const updateButton = await waitFor(async () => {
       const buttons = await runRendererProbe<Array<{
         text: string;
-        intercepted: string;
         disabled: boolean;
         className: string;
         id: string;
@@ -652,7 +640,6 @@ async function main() {
         "about-buttons",
         `return Array.from(document.querySelectorAll("button")).map(button => ({
           text: (button.textContent || "").trim(),
-          intercepted: button.dataset.gdpIntercepted || "",
           disabled: button.disabled,
           className: button.className,
           id: button.id || "",
@@ -667,15 +654,15 @@ async function main() {
         buttons.find(button =>
           button.inAbout &&
           !button.inFooter &&
-          button.intercepted === "1"
+          !button.disabled
         ) ?? null
       );
-    }, 10000, "About dialog update button interception", 250).catch(error => {
+    }, 10000, "About dialog update button", 250).catch(error => {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`${message}. Last About buttons: ${JSON.stringify(lastAboutButtons)}`);
     });
 
-    assert.ok(interceptedButton, "Update button was not found in About dialog");
+    assert.ok(updateButton, "Update button was not found in About dialog");
 
     const clickResult = await runRendererProbe<{ clicked: boolean }>(
       inspector,
@@ -697,9 +684,9 @@ async function main() {
         inspector,
         targetWindowId,
         "update-modal",
-        `const overlay = document.getElementById("gdp-update-modal-overlay");
+        `const overlay = document.getElementById("gdp-update-modal-dialog");
         return {
-          visible: overlay !== null,
+          visible: overlay instanceof HTMLDialogElement && overlay.open,
           text: overlay?.textContent || "",
         };`
       );
@@ -710,7 +697,7 @@ async function main() {
     assert.match(updateModal.text, /更新功能已被拦截/, "GDP interception modal should be shown");
     assert.match(updateModal.text, /打开设置/, "GDP interception modal should link to the settings dialog");
 
-    log("Validating user locale override hot reload...");
+    log("Validating runtime locale bundle hot reload...");
     const initialProbe = await runRendererProbe<{ text: string; hasTranslateTree: boolean }>(
       inspector,
       targetWindowId,
@@ -739,20 +726,15 @@ async function main() {
       "Probe text should use built-in translation before override"
     );
 
-    writeFileSync(
-      userUiFile,
-      JSON.stringify(
-        {
-          _meta: { description: "GDP self-check override" },
-          [probeSourceText]: sentinelText,
-        },
-        null,
-        2
-      ),
-      "utf8"
+    const localeBundle = JSON.parse(originalLocaleBundle) as Record<string, unknown>;
+    assert.ok(
+      localeBundle.ui && typeof localeBundle.ui === "object" && !Array.isArray(localeBundle.ui),
+      "runtime locale bundle should contain a ui category"
     );
+    (localeBundle.ui as Record<string, unknown>)[probeSourceText] = sentinelText;
+    writeFileSync(localeBundleFile, `${JSON.stringify(localeBundle, null, 2)}\n`, "utf8");
 
-    await waitForHookMessage(/Locale file changed: ui\.json/, 10000, "locale hot reload log");
+    await waitForHookMessage(/Locale package changed: .*zh-CN\.json/, 10000, "locale hot reload log");
 
     const hotReloadText = await waitFor(async () => {
       const state = await runRendererProbe<{ text: string | null }>(
@@ -768,7 +750,7 @@ async function main() {
 
     assert.equal(hotReloadText, sentinelText, "Probe text should update after locale hot reload");
 
-    writeFileSync(userUiFile, baselineUserFile, "utf8");
+    writeFileSync(localeBundleFile, originalLocaleBundle, "utf8");
 
     const revertedText = await waitFor(async () => {
       const state = await runRendererProbe<{ text: string | null }>(
@@ -796,10 +778,8 @@ async function main() {
       await stopGDPDev(devChild);
     }
 
-    if (originalUserFile !== null) {
-      writeFileSync(userUiFile, originalUserFile, "utf8");
-    } else if (existsSync(userUiFile)) {
-      unlinkSync(userUiFile);
+    if (localeBundleFile !== null && originalLocaleBundle !== null) {
+      writeFileSync(localeBundleFile, originalLocaleBundle, "utf8");
     }
 
     if (existsSync(rendererProbeFile)) {

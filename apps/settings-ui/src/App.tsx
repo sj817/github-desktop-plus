@@ -1,5 +1,4 @@
 import {
-  ArrowUpRight,
   Languages,
   Loader2,
   ScrollText,
@@ -361,4 +360,3 @@ function GithubIcon({ className }: { className?: string }) {
     </svg>
   )
 }
-

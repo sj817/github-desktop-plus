@@ -44,16 +44,22 @@ GDP 作为一个轻量级启动引导器，使用 `--inspect-brk=0` 参数唤起
 
 ## 安装与使用
 
-1. 从 [Releases](https://github.com/sj817/github-desktop-plus/releases) 下载最新版本的 `gdp` 执行文件。
-2. 运行 `gdp` 启动带增强特性的 GitHub Desktop。
-3. 在 GitHub Desktop 中按下 `Ctrl+Alt+G` 或点击顶部菜单 `GDP` 即可打开设置面板。
+在 WSL 中执行一条命令即可安装（需要 Windows x64、GitHub Desktop、WSL 2，并开启 Windows 互操作）：
+
+```bash
+curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
+```
+
+安装脚本会从 GitHub Releases 下载最新正式版、校验 SHA-256，然后安装到 Windows 的 `%LOCALAPPDATA%\GitHubDesktopPlus\bin`，并创建 WSL 命令 `~/.local/bin/gdp`。运行 `gdp` 启动增强版 GitHub Desktop；进入界面后按 `Ctrl+Alt+G` 或点击顶部菜单 `GDP` 打开设置面板。
+
+如需手动安装，请从 [Releases](https://github.com/sj817/github-desktop-plus/releases) 同时下载 `gdp-windows-x64.exe` 和对应的 `.sha256` 文件，校验后在可写目录中运行。
 
 ---
 
 ## 本地开发与构建
 
 ### 前置要求
-- Node.js >= 20.x, pnpm >= 9.x
+- Node.js >= 22.18, pnpm 9.15.9
 - Rust toolchain (stable)
 
 ### 常用命令

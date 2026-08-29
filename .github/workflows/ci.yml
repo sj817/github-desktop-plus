@@ -5,12 +5,28 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  installer:
+    name: Check WSL installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Bash syntax
+        run: bash -n install.sh
+
+      - name: Check installer help
+        run: bash install.sh --help
+
   wsl-agent:
     name: Build WSL agent (Linux x64)
     runs-on: ubuntu-latest
@@ -20,6 +36,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+          targets: x86_64-unknown-linux-musl
 
       - uses: Swatinem/rust-cache@v2
 
@@ -27,13 +44,16 @@ jobs:
         run: cargo test -p gdp-wsl-agent
 
       - name: Build WSL agent
-        run: cargo build --release -p gdp-wsl-agent
+        run: cargo build --release --target x86_64-unknown-linux-musl -p gdp-wsl-agent
+
+      - name: Verify WSL agent
+        run: target/x86_64-unknown-linux-musl/release/gdp-wsl-agent --version
 
       - name: Upload WSL agent
         uses: actions/upload-artifact@v4
         with:
           name: gdp-wsl-agent-x86_64
-          path: target/release/gdp-wsl-agent
+          path: target/x86_64-unknown-linux-musl/release/gdp-wsl-agent
           retention-days: 14
 
   build:
@@ -44,8 +64,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11.23.0
 
       - uses: actions/setup-node@v4
         with:
@@ -72,7 +90,11 @@ jobs:
 
       - name: Rust build (release)
         if: github.ref == 'refs/heads/main'
-        run: cargo build --workspace --release
+        run: cargo build --release -p gdp
+
+      - name: Verify gdp.exe
+        if: github.ref == 'refs/heads/main'
+        run: target/release/gdp.exe --version
 
       - name: Upload gdp.exe artifact
         if: github.ref == 'refs/heads/main'

@@ -279,13 +279,18 @@ fn inject_hooks(child: &mut Child) {
     let hook_code = std::str::from_utf8(HOOK_JS).unwrap_or("");
 
     match ws_url {
-        Some(ref url) => match injector::inject(url, hook_code, Duration::from_secs(30)) {
-            Ok(()) => {}
-            Err(e) => {
-                eprintln!("warning: hook injection failed: {e}");
-                eprintln!("         GitHub Desktop will run without GDP hooks.");
+        Some(ref url) => {
+            if std::env::var_os("GDP_VERBOSE").is_some() {
+                eprintln!("[gdp] Inspector ready: {url}");
             }
-        },
+            match injector::inject(url, hook_code, Duration::from_secs(30)) {
+                Ok(()) => {}
+                Err(e) => {
+                    eprintln!("warning: hook injection failed: {e}");
+                    eprintln!("         GitHub Desktop will run without GDP hooks.");
+                }
+            }
+        }
         None => {
             eprintln!("warning: could not detect inspector WS URL in time.");
             eprintln!("         GitHub Desktop will run without GDP hooks.");

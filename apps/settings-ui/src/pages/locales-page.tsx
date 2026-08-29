@@ -302,12 +302,12 @@ export function LocalesPage() {
 function getCountryCodeForLocale(locale: string): string | null {
   const parts = locale.split(/[-_]/)
   if (parts.length >= 2) {
-    const region = parts[parts.length - 1].toUpperCase()
+    const region = parts[parts.length - 1]!.toUpperCase()
     if (/^[A-Z]{2}$/.test(region)) {
       return region
     }
   }
-  const lang = parts[0].toLowerCase()
+  const lang = parts[0]!.toLowerCase()
   const map: Record<string, string> = {
     zh: 'CN',
     en: 'US',

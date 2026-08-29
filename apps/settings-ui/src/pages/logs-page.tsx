@@ -28,7 +28,7 @@ const LEVEL_CHIP_ON: Record<LogLevel, string> = {
 /** "2026-07-31T02:14:05.123Z" → "02:14:05" */
 function formatTime(ts: string): string {
   const match = /T(\d{2}:\d{2}:\d{2})/.exec(ts)
-  return match ? match[1] : ts
+  return match ? match[1]! : ts
 }
 
 function cleanLogMessage(category: string, message: string): string {
