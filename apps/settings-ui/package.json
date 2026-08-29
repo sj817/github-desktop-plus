@@ -15,6 +15,7 @@
     "@github-desktop-plus/shared": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "framer-motion": "13.1.1",
     "lucide-react": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
@@ -25,6 +26,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
+    "subset-font": "2.6.0",
     "tailwindcss": "catalog:",
     "vite": "catalog:"
   }
