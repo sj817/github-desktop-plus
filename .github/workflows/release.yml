@@ -70,7 +70,7 @@ jobs:
       - name: Verify release tag
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-        run: pnpm run version:check -- $env:RELEASE_TAG
+        run: pnpm exec tsx scripts/checks/version.ts $env:RELEASE_TAG
 
       - name: Check source and tests
         run: pnpm run check

@@ -38,7 +38,13 @@ if (cargoVersion !== expected) {
   throw new Error(`Cargo.toml has workspace version ${cargoVersion ?? 'missing'}; expected ${expected}`)
 }
 
-const releaseTag = process.argv[2]
+// pnpm 9 forwards the conventional `--` separator to the script while newer
+// pnpm versions strip it. Accept both forms so local and CI checks agree.
+const releaseArgs = process.argv.slice(2).filter(argument => argument !== '--')
+if (releaseArgs.length > 1) {
+  throw new Error(`expected at most one release tag, got: ${releaseArgs.join(' ')}`)
+}
+const releaseTag = releaseArgs[0]
 if (releaseTag && releaseTag !== `v${expected}`) {
   throw new Error(`release tag ${releaseTag} does not match project version v${expected}`)
 }
