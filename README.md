@@ -2,7 +2,7 @@
 
 外部增强工具，在不修改 GitHub Desktop 源码的前提下扩展其功能。
 
-基于 **Rust + 0-path Inspector 注入 + 原生内嵌设置弹窗** 构建。
+基于 **Rust + 0-path Inspector 注入 + React 内嵌设置弹窗** 构建。
 
 ## 功能
 
@@ -23,7 +23,9 @@
 | Hook 注入 | V8 Inspector (`--inspect-brk`) |
 | Hook 源码 | TypeScript |
 | Hook 构建 | Node.js + esbuild |
-| 设置弹窗 | 原生 DOM（TypeScript），注入渲染进程，经 Electron IPC 与主进程通信 |
+| UI 构建 | Vite（library 模式，单文件 IIFE） |
+| 设置弹窗 UI | React 19 + TypeScript + Tailwind CSS 4 + Base UI，Vite 打包 |
+| 设置弹窗宿主 | 渲染进程内的薄壳（dialog + bridge），经 Electron IPC 与主进程通信 |
 | 包管理 | pnpm |
 
 ## 当前结构
@@ -39,7 +41,9 @@
 
 - `gdp-core`：纯 Rust 核心逻辑库
 - `gdp`：CLI 入口 + 0-path 注入 + hook 资源内嵌
-- `src/hooks/`：Electron hook / preload 的 TypeScript 源码（含 IPC 桥与设置弹窗）
+- `src/hooks/`：Electron hook / preload 的 TypeScript 源码（含 IPC 桥与设置弹窗外壳）
+- `src/settings-ui/`：设置弹窗的 React 应用，独立 Vite 包
+- `src/shared/`：主进程 / 弹窗外壳 / 设置 UI 共用的 IPC 契约
 - `webui/`：语言包在线编辑器（规划中，当前未接入运行时）
 
 详细设计见：[`docs/phase5-rust-architecture.md`](docs/phase5-rust-architecture.md)
@@ -66,16 +70,42 @@ GDP 使用 `--inspect-brk=0` 启动 GitHub Desktop，连接 V8 Inspector 后在 
 从而实现 **0-path** 更新拦截、遥测屏蔽、菜单注入和渲染进程 i18n。配置读写、语言包管理、日志流与
 AI 请求全部经 Electron IPC 在注入的主进程 hook 内完成，不依赖本地 HTTP 服务。
 
+## 设置弹窗架构
+
+设置界面是一个独立的 React 应用（`src/settings-ui`），渲染进程里只留一层薄壳负责创建 `<dialog>`、
+挂载/卸载和桥接 IPC。开发和生产走同一份 UI 代码、同一个 `GDPBridge` 接口，业务代码不知道自己
+运行在哪一侧：
+
+```text
+生产          React ──▶ GDPBridge ──▶ ipcRenderer ──▶ 主进程 hook
+开发（iframe）React ──▶ GDPBridge ──▶ postMessage ──▶ 弹窗外壳 ──▶ ipcRenderer ──▶ 主进程 hook
+```
+
+- **生产**：Vite 以 library 模式打出单文件 IIFE（CSS 内联），随其他 preload 一起注入，
+  `window.__GDP_SETTINGS_UI__.mount(root, bridge)` 直接挂载到 `<dialog>` 里，不用 iframe、
+  不起本地服务、不依赖开发服务器。
+- **开发**：`scripts/dev.mjs` 顺带拉起 Vite，弹窗改为加载 `http://127.0.0.1:5273` 的 iframe。
+  iframe 没有任何 Electron 权限，只能通过 postMessage RPC 说话；外壳会校验来源窗口、来源
+  origin、协议标记和信道白名单（见 `src/shared/gdp-ipc.ts`）后才转发给 `ipcRenderer`。
+- 改 `src/settings-ui/**` 只走 Vite HMR，不重启 GDP / GitHub Desktop；改 `src/hooks/**`、
+  `src/shared/**` 或 Rust 才触发原来的重启流程。
+
 ## 快速开始
 
 ```bash
-# 安装依赖
+# 安装依赖（pnpm workspace，会一并安装 src/settings-ui）
 pnpm install
 
-# 开发模式（构建 hook + 语言包，启动 GDP + GitHub Desktop）
+# 开发模式（Vite + hook 构建 + 语言包，启动 GDP + GitHub Desktop）
 pnpm dev
 
-# 构建发布版二进制
+# 只跑设置界面的 Vite dev server
+pnpm run dev:ui
+
+# 类型检查（hooks + 设置界面）
+pnpm run typecheck
+
+# 构建发布版二进制（设置 UI → hook bundle → Rust）
 pnpm run build
 
 # 运行桌面自检
@@ -91,9 +121,15 @@ src/
 ├── hooks/            # Electron 注入脚本与 preload 源码 (TypeScript)
 │   ├── ipc.ts        # IPC 桥：配置 / 语言包 / 日志 / AI
 │   └── preload/
-│       └── gdp-dialog/   # 内嵌设置弹窗
+│       └── gdp-dialog/   # 设置弹窗外壳：dialog、bridge、dev RPC host
+├── settings-ui/      # 设置弹窗的 React 应用（Vite + Tailwind + Base UI）
+│   └── src/
+│       ├── bridge/   # GDPBridge 的 iframe 实现与 React context
+│       ├── pages/    # 常规 / 打开方式 / AI / 语言包 / 日志
+│       └── mount.tsx # 生产入口：mount(root, bridge)
+├── shared/           # 三方共用的 IPC 契约与类型
 scripts/
-├── build-hooks.mjs   # 使用 esbuild 生成 hook bundle
+├── build-hooks.mjs   # esbuild 生成 hook bundle，并拷入设置 UI 产物
 └── locales.mjs       # 去重并聚合构建语言包
 webui/                # 语言包在线编辑器（规划中）
 locales/              # 开发期拆分维护
