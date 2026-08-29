@@ -1,6 +1,6 @@
 {
   "name": "@github-desktop-plus/shared",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Shared IPC contracts for GitHub Desktop Plus",
   "license": "MIT",

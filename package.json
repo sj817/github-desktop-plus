@@ -1,6 +1,6 @@
 {
   "name": "github-desktop-plus",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "External enhancement tool for GitHub Desktop — Rust runtime + 0-path Electron hooks",
   "license": "MIT",

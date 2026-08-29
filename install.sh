@@ -15,7 +15,7 @@ Install GitHub Desktop Plus from GitHub Releases into the Windows user profile.
 Usage: install.sh [options]
 
 Options:
-  --release <version>    Install a release such as v0.2.0 (default: latest)
+  --release <version>    Install a release such as v0.2.1 (default: latest)
   --install-dir <path>   Override the WSL installation directory
   -h, --help             Show this help
 
@@ -72,7 +72,7 @@ require_command wslpath
 
 windows_arch="$({
   powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
-    '[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()'
+    '[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()' </dev/null
 } | tr -d '\r\n')"
 
 case "${windows_arch,,}" in
@@ -94,7 +94,7 @@ fi
 if [[ -z "$install_dir" ]]; then
   windows_local_app_data="$({
     powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
-      '[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)'
+      '[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)' </dev/null
   } | tr -d '\r\n')"
   [[ -n "$windows_local_app_data" ]] || die 'could not resolve Windows LocalAppData'
   install_dir="$(wslpath -u "${windows_local_app_data}\\GitHubDesktopPlus\\bin")"
@@ -139,7 +139,7 @@ printf '#!/usr/bin/env bash\nexec %q "$@"\n' "$destination" > "$launcher_tmp"
 chmod 755 "$launcher_tmp"
 mv -f -- "$launcher_tmp" "$launcher"
 
-installed_version="$({ "$destination" --version; } 2>&1 | tr -d '\r')"
+installed_version="$({ "$destination" --version </dev/null; } 2>&1 | tr -d '\r')"
 printf 'Installed %s to %s\n' "$installed_version" "$destination"
 printf 'WSL launcher: %s\n' "$launcher"
 if [[ ":$PATH:" != *":$launcher_dir:"* ]]; then

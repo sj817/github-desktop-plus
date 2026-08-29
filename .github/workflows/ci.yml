@@ -27,6 +27,9 @@ jobs:
       - name: Check installer help
         run: bash install.sh --help
 
+      - name: Check piped installer
+        run: bash scripts/checks/installer-pipe.sh
+
   wsl-agent:
     name: Build WSL agent (Linux x64)
     runs-on: ubuntu-latest
