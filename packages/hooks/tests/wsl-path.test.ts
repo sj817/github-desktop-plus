@@ -21,6 +21,10 @@ test('parses modern, legacy, and extended WSL UNC paths', () => {
     distro: 'Ubuntu-24.04',
     linuxPath: '/',
   })
+  assert.deepEqual(parseWslRepositoryPath('\\\\wsl.localhost\\Ubuntu-24.04/root/test'), {
+    distro: 'Ubuntu-24.04',
+    linuxPath: '/root/test',
+  })
   assert.equal(parseWslRepositoryPath('D:\\Github\\repo'), null)
 })
 
