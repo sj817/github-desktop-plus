@@ -99,6 +99,8 @@ pnpm install
 pnpm dev
 
 # 只跑设置界面的 Vite dev server
+# 浏览器直接打开 http://127.0.0.1:5273/?mock=1 可脱离 GitHub Desktop 预览界面
+#（内存 mock 桥；加 &theme=dark 看深色，&scenario=empty 看空状态）
 pnpm --filter @github-desktop-plus/settings-ui dev
 
 # 类型检查（hooks + 设置界面）

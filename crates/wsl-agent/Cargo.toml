@@ -1,0 +1,17 @@
+[package]
+name = "gdp-wsl-agent"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[[bin]]
+name = "gdp-wsl-agent"
+path = "src/main.rs"
+
+[dependencies]
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc.workspace = true

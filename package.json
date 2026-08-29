@@ -10,7 +10,7 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "build": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && cargo build --workspace --release",
+    "build": "tsx scripts/wsl-agent.ts && tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && cargo build --workspace --release",
     "check": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && pnpm run typecheck && pnpm -r --if-present run test && cargo fmt --all -- --check && cargo check --workspace",
     "dev": "tsx scripts/dev.ts",
     "format": "cargo fmt --all",

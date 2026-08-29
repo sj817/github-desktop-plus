@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { watch, type FSWatcher } from 'chokidar'
 import { execa, execaSync, type ResultPromise } from 'execa'
 import { SETTINGS_DEV_URL } from '../apps/settings-ui/dev-config'
+import { ensureWslAgent } from './lib/wsl-agent'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const isWin = process.platform === 'win32'
@@ -254,6 +255,7 @@ function watchForRestart(
 }
 
 async function main(): Promise<void> {
+  await ensureWslAgent()
   const locales = command('tsx', ['scripts/locales.ts', 'watch', 'zh-CN'])
 
   // Long-lived: the settings UI is never a reason to restart GDP, so Vite keeps

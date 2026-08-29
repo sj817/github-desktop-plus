@@ -44,6 +44,7 @@ pub struct RuntimePlan {
 const NOTES: &[&str] = &[
     "Rust core only; Node.js remains optional build tooling",
     "Hook bundles and locale packages are embedded at build time",
+    "WSL repositories share one on-demand Rust agent per distribution",
     "Settings UI ships as a prebuilt IIFE, injected on demand",
     "Settings dialog is opened from GitHub Desktop's GDP menu",
 ];
@@ -55,7 +56,7 @@ pub fn runtime_plan() -> RuntimePlan {
         cli_boundary: "in-process function calls + stdout/stderr",
         web_boundary: "Electron IPC (ipcMain/ipcRenderer), no HTTP server",
         ui_strategy: "React settings dialog injected into GitHub Desktop renderer",
-        startup_priority: "single-process, no Tokio, no HTTP server",
+        startup_priority: "single Windows controller + one on-demand agent per WSL distribution",
         notes: NOTES,
     }
 }

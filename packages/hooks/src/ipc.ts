@@ -76,12 +76,50 @@ function readConfigFromDisk(configPath: string): StoredConfig {
   }
 }
 
+/**
+ * Options for background, read-only Git commands.
+ *
+ * `git diff` may refresh index stat data as an optional optimization, which
+ * briefly creates `.git/index.lock`. GDP never needs that side effect, and a
+ * forced Desktop exit while it is active can leave a stale zero-byte lock.
+ */
+export function buildReadOnlyGitOptions(
+  repoPath: string,
+  timeoutMs: number,
+  baseEnv: NodeJS.ProcessEnv = process.env,
+): cp.ExecFileOptionsWithStringEncoding {
+  return {
+    cwd: repoPath,
+    timeout: timeoutMs,
+    maxBuffer: 500 * 1024,
+    encoding: 'utf8',
+    windowsHide: true,
+    env: {
+      ...baseEnv,
+      GIT_OPTIONAL_LOCKS: '0',
+    },
+  }
+}
+
 function runGitDiff(repoPath: string, args: string[], timeoutMs: number): Promise<string> {
   return new Promise((resolve) => {
     cp.execFile(
       'git', args,
-      { cwd: repoPath, timeout: timeoutMs, maxBuffer: 500 * 1024 },
-      (err, stdout) => resolve(err ? '' : stdout),
+      buildReadOnlyGitOptions(repoPath, timeoutMs),
+      (err, stdout, stderr) => {
+        if (err) {
+          const reason = err.killed
+            ? `timed out after ${timeoutMs}ms`
+            : `exit ${String(err.code ?? 'unknown')}`
+          const detail = stderr.trim().replace(/\s+/g, ' ').slice(0, 240)
+          gdpLog(
+            `read-only git ${args.join(' ')} failed in "${repoPath}": ${reason}${detail ? `; ${detail}` : ''}`,
+            'warn',
+            'system',
+          )
+        }
+        resolve(err ? '' : stdout)
+      },
     )
   })
 }

@@ -11,9 +11,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  wsl-agent:
+    name: Build WSL agent (Linux x64)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Test WSL agent
+        run: cargo test -p gdp-wsl-agent
+
+      - name: Build WSL agent
+        run: cargo build --release -p gdp-wsl-agent
+
+      - name: Upload WSL agent
+        uses: actions/upload-artifact@v4
+        with:
+          name: gdp-wsl-agent-x86_64
+          path: target/release/gdp-wsl-agent
+          retention-days: 14
+
   build:
     name: Check + Build (Windows)
     runs-on: windows-latest
+    needs: wsl-agent
     steps:
       - uses: actions/checkout@v4
 
@@ -31,6 +57,12 @@ jobs:
           components: rustfmt
 
       - uses: Swatinem/rust-cache@v2
+
+      - name: Download WSL agent
+        uses: actions/download-artifact@v4
+        with:
+          name: gdp-wsl-agent-x86_64
+          path: target/wsl-agent/x86_64-unknown-linux-gnu/release
 
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile

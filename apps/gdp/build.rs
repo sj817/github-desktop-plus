@@ -14,6 +14,43 @@ fn embed_file(out_dir: &Path, repo_root: &Path, relative: &str, out_name: &str) 
     }
 }
 
+fn embed_wsl_agent(
+    out_dir: &Path,
+    repo_root: &Path,
+    target: &str,
+    environment_variable: &str,
+    out_name: &str,
+) -> bool {
+    let conventional = repo_root
+        .join("target/wsl-agent")
+        .join(target)
+        .join("release/gdp-wsl-agent");
+    let source = std::env::var_os(environment_variable)
+        .map(std::path::PathBuf::from)
+        .unwrap_or(conventional);
+    let destination = out_dir.join(out_name);
+    println!("cargo:rerun-if-env-changed={environment_variable}");
+
+    if source.is_file() {
+        std::fs::copy(&source, &destination)
+            .unwrap_or_else(|error| panic!("copy {}: {error}", source.display()));
+        println!("cargo:rerun-if-changed={}", source.display());
+        println!(
+            "cargo:warning=Embedded WSL agent {} → {out_name}",
+            source.display()
+        );
+        true
+    } else {
+        std::fs::write(&destination, [])
+            .unwrap_or_else(|error| panic!("write empty {out_name}: {error}"));
+        println!(
+            "cargo:warning=WSL agent for {target} not found at {}",
+            source.display()
+        );
+        false
+    }
+}
+
 fn bundle_locale(out_dir: &Path, resources_dir: &Path, locale: &str, out_name: &str) {
     let locale_dir = resources_dir.join("locales").join(locale);
     let out_file = out_dir.join(out_name);
@@ -92,6 +129,35 @@ fn main() {
         "apps/settings-ui/dist/gdp-settings-ui.js",
         "preload_gdp_settings_ui.js",
     );
+
+    let has_x86_64_agent = embed_wsl_agent(
+        out_dir,
+        &repo_root,
+        "x86_64-unknown-linux-gnu",
+        "GDP_WSL_AGENT_X86_64",
+        "wsl_agent_x86_64",
+    );
+    let has_aarch64_agent = embed_wsl_agent(
+        out_dir,
+        &repo_root,
+        "aarch64-unknown-linux-gnu",
+        "GDP_WSL_AGENT_AARCH64",
+        "wsl_agent_aarch64",
+    );
+
+    let profile = std::env::var("PROFILE").unwrap_or_default();
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let required_agent_is_present = match target_arch.as_str() {
+        "x86_64" => has_x86_64_agent,
+        "aarch64" => has_aarch64_agent,
+        _ => true,
+    };
+    if profile == "release" && target_os == "windows" && !required_agent_is_present {
+        panic!(
+            "release build requires a WSL agent for the Windows target architecture ({target_arch})"
+        );
+    }
 
     println!(
         "cargo:rerun-if-changed={}",
