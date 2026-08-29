@@ -5,10 +5,15 @@ import type {
   SpawnOptions,
 } from 'node:child_process'
 
-import { WslAgentClient } from './agent-client'
+import {
+  getWslAgentClient,
+  type WslAgentClient,
+  type WslAgentSpawnOptions,
+} from './agent-client'
 import { isGitExecutable, parseWslRepositoryPath } from './path'
 
 const childProcess = process.getBuiltinModule('node:child_process')
+const timers = process.getBuiltinModule('node:timers')
 
 interface WslHookConfig {
   dataDir?: string
@@ -115,7 +120,16 @@ export function execFileWithAgent(
   options: ExecFileOptions,
   callback: ExecFileCallback | undefined,
 ): ChildProcess {
-  const child = client.spawn(file, args, linuxCwd, options)
+  // Node's execFile defaults to UTF-8 and applies that encoding to the live
+  // stdout/stderr streams before returning the ChildProcess. GitHub Desktop's
+  // progress callbacks rely on that behavior when piping stderr through byline.
+  const outputEncoding = (
+    options.encoding === undefined ? 'utf8' : options.encoding
+  ) as Exclude<WslAgentSpawnOptions['encoding'], undefined>
+  const child = client.spawn(file, args, linuxCwd, {
+    ...options,
+    encoding: outputEncoding,
+  } as WslAgentSpawnOptions)
   const stdoutChunks: Buffer[] = []
   const stderrChunks: Buffer[] = []
   let stdoutLength = 0
@@ -124,10 +138,15 @@ export function execFileWithAgent(
   let overflowError: ExecFileException | undefined
   const maxBuffer = options.maxBuffer ?? 1024 * 1024
 
-  const append = (chunks: Buffer[], chunk: Buffer, stream: 'stdout' | 'stderr') => {
-    chunks.push(chunk)
-    if (stream === 'stdout') stdoutLength += chunk.length
-    else stderrLength += chunk.length
+  const append = (chunks: Buffer[], chunk: Buffer | string, stream: 'stdout' | 'stderr') => {
+    const bytes = Buffer.isBuffer(chunk)
+      ? chunk
+      : Buffer.from(chunk, outputEncoding === 'buffer' || outputEncoding === null
+        ? 'utf8'
+        : outputEncoding)
+    chunks.push(bytes)
+    if (stream === 'stdout') stdoutLength += bytes.length
+    else stderrLength += bytes.length
     if (!overflowError && Number.isFinite(maxBuffer) && Math.max(stdoutLength, stderrLength) > maxBuffer) {
       overflowError = Object.assign(
         new RangeError(`${stream} maxBuffer length exceeded`) as ExecFileException,
@@ -137,12 +156,12 @@ export function execFileWithAgent(
     }
   }
 
-  child.stdout?.on('data', (chunk: Buffer) => append(stdoutChunks, chunk, 'stdout'))
-  child.stderr?.on('data', (chunk: Buffer) => append(stderrChunks, chunk, 'stderr'))
+  child.stdout?.on('data', (chunk: Buffer | string) => append(stdoutChunks, chunk, 'stdout'))
+  child.stderr?.on('data', (chunk: Buffer | string) => append(stderrChunks, chunk, 'stderr'))
 
   let timeout: NodeJS.Timeout | undefined
   if (options.timeout && options.timeout > 0) {
-    timeout = setTimeout(() => child.kill(options.killSignal ?? 'SIGTERM'), options.timeout)
+    timeout = timers.setTimeout(() => child.kill(options.killSignal ?? 'SIGTERM'), options.timeout)
     timeout.unref()
   }
 
@@ -152,7 +171,7 @@ export function execFileWithAgent(
   const finish = (error: ExecFileException | null) => {
     if (completed) return
     completed = true
-    if (timeout) clearTimeout(timeout)
+    if (timeout) timers.clearTimeout(timeout)
     options.signal?.removeEventListener('abort', abort)
     const stdout = Buffer.concat(stdoutChunks)
     const stderr = Buffer.concat(stderrChunks)
@@ -184,16 +203,7 @@ export function installWslGitInterceptor(): boolean {
 
   const originalSpawn = mutable.spawn
   const originalExecFile = mutable.execFile
-  const clients = new Map<string, WslAgentClient>()
-  const getClient = (distro: string) => {
-    const key = distro.toLowerCase()
-    let client = clients.get(key)
-    if (!client) {
-      client = new WslAgentClient(distro, config.dataDir ?? '')
-      clients.set(key, client)
-    }
-    return client
-  }
+  const getClient = (distro: string) => getWslAgentClient(distro, config.dataDir ?? '')
 
   const patchedSpawn = (...raw: unknown[]): ChildProcess => {
     const call = normalizeSpawnCall(raw)
@@ -244,4 +254,3 @@ export function installWslGitInterceptor(): boolean {
   console.info('[GDP WSL] Native Git routing installed for WSL UNC repositories')
   return true
 }
-

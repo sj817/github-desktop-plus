@@ -7,6 +7,7 @@
  * When false, the button is shown but original Copilot handler runs.
  */
 import { getSelectedRepositoryPath } from './lib/gd-db'
+import { frameScheduler, mutationsTouchSelector } from './lib/mutation-filter'
 ;(function () {
   type GdpConfig = {
     ai?: {
@@ -404,7 +405,10 @@ import { getSelectedRepositoryPath } from './lib/gd-db'
   // Initial scan + watch for React re-renders that replace the button
   scan()
 
-  const observer = new MutationObserver(scan)
+  const scheduleScan = frameScheduler(scan)
+  const observer = new MutationObserver(mutations => {
+    if (mutationsTouchSelector(mutations, '.commit-message-component')) scheduleScan()
+  })
   observer.observe(document.body, { childList: true, subtree: true })
 
   // Re-apply when config changes (e.g. AI enabled/disabled at runtime)

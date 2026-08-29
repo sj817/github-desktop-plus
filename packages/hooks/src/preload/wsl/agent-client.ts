@@ -12,14 +12,17 @@ import {
   type WslFrame,
 } from './protocol'
 import { portableGitEnvironment, translateGitArgument } from './path'
+import { syncWindowsGitConfiguration } from './git-config'
 import {
   VirtualChildProcess,
   type AgentErrorPayload,
   type AgentExitPayload,
   type VirtualChildTransport,
+  type VirtualChildOutputEncoding,
 } from './virtual-child'
 
 const childProcess = process.getBuiltinModule('node:child_process')
+const timers = process.getBuiltinModule('node:timers')
 const IO_CHUNK_SIZE = 64 * 1024
 const HEARTBEAT_INTERVAL_MS = 15_000
 
@@ -38,6 +41,10 @@ interface SpawnRequest {
   args: string[]
   cwd: string
   env: Record<string, string>
+}
+
+export interface WslAgentSpawnOptions extends SpawnOptions {
+  encoding?: VirtualChildOutputEncoding
 }
 
 interface AgentConnection {
@@ -116,6 +123,7 @@ async function deployAgent(distro: string, dataDir: string): Promise<string> {
     fs.copyFileSync(source, uncPath)
   }
   await execFileText(wslExecutable(), ['-d', distro, '--exec', 'chmod', '755', linuxPath])
+  await syncWindowsGitConfiguration(distro, home)
   return linuxPath
 }
 
@@ -139,7 +147,7 @@ export class WslAgentClient {
     file: string,
     args: readonly string[],
     cwd: string,
-    options: SpawnOptions,
+    options: WslAgentSpawnOptions,
   ): ChildProcess {
     const requestId = this.nextRequestId++
     const started = deferred<void>()
@@ -173,7 +181,7 @@ export class WslAgentClient {
       },
     }
 
-    const child = new VirtualChildProcess(file, args, transport)
+    const child = new VirtualChildProcess(file, args, transport, options.encoding)
     this.children.set(requestId, child)
     const request: SpawnRequest = {
       args: args.map(arg => translateGitArgument(arg, this.distro)),
@@ -193,6 +201,10 @@ export class WslAgentClient {
     return child.asChildProcess()
   }
 
+  async ensureReady(): Promise<void> {
+    await this.ensureConnected()
+  }
+
   async shutdown(): Promise<void> {
     const pending = this.connectionPromise
     if (!pending) return
@@ -204,7 +216,7 @@ export class WslAgentClient {
       return
     }
 
-    clearInterval(connection.heartbeat)
+    timers.clearInterval(connection.heartbeat)
     const closed = new Promise<void>(resolve => connection.process.once('close', () => resolve()))
     try {
       await new Promise<void>((resolve, reject) => {
@@ -217,7 +229,7 @@ export class WslAgentClient {
       await Promise.race([
         closed,
         new Promise<void>(resolve => {
-          const timer = setTimeout(resolve, 2_000)
+          const timer = timers.setTimeout(resolve, 2_000)
           timer.unref()
         }),
       ])
@@ -270,7 +282,7 @@ export class WslAgentClient {
     const handshake = deferred<HelloResponse>()
     const parser = new WslFrameParser()
     let heartbeat: NodeJS.Timeout | undefined
-    const timer = setTimeout(() => {
+    const timer = timers.setTimeout(() => {
       handshake.reject(new Error(`WSL agent handshake timed out for ${this.distro}`))
       processHandle.kill()
     }, 10_000)
@@ -307,7 +319,7 @@ export class WslAgentClient {
       this.failConnection(error)
     })
     processHandle.once('close', (code, signal) => {
-      if (heartbeat) clearInterval(heartbeat)
+      if (heartbeat) timers.clearInterval(heartbeat)
       const error = new Error(`WSL agent for ${this.distro} exited (${code ?? signal ?? 'unknown'})`)
       handshake.reject(error)
       this.failConnection(error)
@@ -322,7 +334,7 @@ export class WslAgentClient {
         error => error ? reject(error) : resolve(),
       )
     })
-    const hello = await handshake.promise.finally(() => clearTimeout(timer))
+    const hello = await handshake.promise.finally(() => timers.clearTimeout(timer))
     if (hello.version !== WSL_PROTOCOL_VERSION || hello.os !== 'linux') {
       processHandle.kill()
       throw new Error(
@@ -330,7 +342,7 @@ export class WslAgentClient {
       )
     }
 
-    heartbeat = setInterval(() => {
+    heartbeat = timers.setInterval(() => {
       input.write(encodeWslFrame(WslFrameKind.Ping, 0), error => {
         if (error) processHandle.kill()
       })
@@ -396,4 +408,16 @@ export class WslAgentClient {
     this.requestStarted.clear()
     this.connectionPromise = undefined
   }
+}
+
+const sharedClients = new Map<string, WslAgentClient>()
+
+export function getWslAgentClient(distro: string, dataDir: string): WslAgentClient {
+  const key = distro.toLowerCase()
+  let client = sharedClients.get(key)
+  if (!client) {
+    client = new WslAgentClient(distro, dataDir)
+    sharedClients.set(key, client)
+  }
+  return client
 }

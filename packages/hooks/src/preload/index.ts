@@ -117,12 +117,35 @@ import { lookupTranslation } from '../i18n-lookup'
     return { regex: new RegExp(`^${regexStr}$`), names };
   }
 
+  type PreparedTranslationPattern = {
+    pattern: string;
+    replacement: string;
+    regex: RegExp;
+    names: string[];
+  };
+
+  const translationPatternCache = new WeakMap<object, PreparedTranslationPattern[]>();
+
+  function translationPatterns(translations: Record<string, string>): PreparedTranslationPattern[] {
+    const cached = translationPatternCache.get(translations);
+    if (cached !== undefined) return cached;
+
+    const prepared: PreparedTranslationPattern[] = [];
+    const entries = Object.entries(translations).sort((left, right) => right[0].length - left[0].length);
+    for (const [pattern, replacement] of entries) {
+      const compiled = buildTranslationPattern(pattern);
+      if (compiled !== null) prepared.push({ pattern, replacement, ...compiled });
+    }
+    translationPatternCache.set(translations, prepared);
+    return prepared;
+  }
+
   // `contextEl` is the element the text belongs to (a text node's parent, or the
   // attribute's element). It is used only to resolve anchor-based overrides; when
   // omitted (e.g. context-menu labels with no DOM node) the flat translation is used.
   function translateText(text: string, contextEl: Element | null = null): string {
     const translations = getTranslations();
-    const entries = Object.entries(translations).sort((a, b) => b[0].length - a[0].length);
+    const patterns = translationPatterns(translations);
     const trimmed = text.trim();
     if (!trimmed) return text;
 
@@ -143,13 +166,11 @@ import { lookupTranslation } from '../i18n-lookup'
       }
 
       // Also try pattern match with normalized text
-      for (const [pattern, replacement] of entries) {
-        const compiled = buildTranslationPattern(pattern);
-        if (compiled === null) continue;
-        const normalizedMatch = normalized.match(compiled.regex);
+      for (const { pattern, replacement, regex, names } of patterns) {
+        const normalizedMatch = normalized.match(regex);
         if (normalizedMatch) {
           let result = resolveOverride(pattern, replacement, contextEl);
-          compiled.names.forEach((name, i) => {
+          names.forEach((name, i) => {
             const value = normalizedMatch[i + 1] ?? "";
             result = result.replace(`{{${name}}}`, value);
             result = result.replace(`{${name}}`, value);
@@ -160,15 +181,12 @@ import { lookupTranslation } from '../i18n-lookup'
     }
 
     // Pattern match (entries with {{var}} or {var} placeholders)
-    for (const [pattern, replacement] of entries) {
-      const compiled = buildTranslationPattern(pattern);
-      if (compiled === null) continue;
-
-      const match = trimmed.match(compiled.regex);
+    for (const { pattern, replacement, regex, names } of patterns) {
+      const match = trimmed.match(regex);
 
       if (match) {
         let result = resolveOverride(pattern, replacement, contextEl);
-        compiled.names.forEach((name, i) => {
+        names.forEach((name, i) => {
           const value = match[i + 1] ?? "";
           result = result.replace(`{{${name}}}`, value);
           result = result.replace(`{${name}}`, value);
@@ -285,19 +303,40 @@ import { lookupTranslation } from '../i18n-lookup'
 
   // Observe DOM mutations for dynamic content (React re-renders)
   const observer = new MutationObserver((mutations) => {
+    const roots: Element[] = [];
+    const textNodes = new Set<Node>();
+    const characterNodes = new Set<Node>();
+
+    const addRoot = (element: Element) => {
+      if (roots.some(root => root.contains(element))) return;
+      for (let index = roots.length - 1; index >= 0; index--) {
+        if (element.contains(roots[index]!)) roots.splice(index, 1);
+      }
+      roots.push(element);
+    };
+
     for (const mutation of mutations) {
       if (mutation.type === "characterData" && mutation.target.textContent) {
-        translateNode(mutation.target);
+        characterNodes.add(mutation.target);
       }
       if (mutation.type === "childList") {
         mutation.addedNodes.forEach((node) => {
           if (node.nodeType === Node.TEXT_NODE) {
-            translateNode(node);
+            textNodes.add(node);
           } else if (node.nodeType === Node.ELEMENT_NODE) {
-            translateTree(node);
+            addRoot(node as Element);
           }
         });
       }
+    }
+
+    for (const root of roots) translateTree(root);
+    const coveredByRoot = (node: Node) => roots.some(root => root.contains(node));
+    for (const node of textNodes) {
+      if (!coveredByRoot(node)) translateNode(node);
+    }
+    for (const node of characterNodes) {
+      if (!coveredByRoot(node)) translateNode(node);
     }
   });
 

@@ -18,6 +18,8 @@ export interface AgentExitPayload {
   signal: NodeJS.Signals | null
 }
 
+export type VirtualChildOutputEncoding = BufferEncoding | 'buffer' | null
+
 function asError(payload: AgentErrorPayload): Error & { code: string } {
   const error = new Error(payload.message) as Error & { code: string }
   error.code = payload.code
@@ -45,10 +47,15 @@ export class VirtualChildProcess extends EventEmitter {
     file: string,
     args: readonly string[],
     private readonly transport: VirtualChildTransport,
+    outputEncoding?: VirtualChildOutputEncoding,
   ) {
     super()
     this.spawnfile = file
     this.spawnargs = [file, ...args]
+    if (outputEncoding !== undefined && outputEncoding !== null && outputEncoding !== 'buffer') {
+      this.stdout.setEncoding(outputEncoding)
+      this.stderr.setEncoding(outputEncoding)
+    }
     this.stdin = new Writable({
       write: (chunk: Buffer | string, encoding, callback) => {
         const payload = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, encoding)

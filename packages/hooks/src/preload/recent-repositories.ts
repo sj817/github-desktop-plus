@@ -1,3 +1,5 @@
+import { frameScheduler, mutationsTouchSelector } from './lib/mutation-filter'
+
 type GDPWindowConfig = {
   recentReposLimit?: number
 }
@@ -609,12 +611,16 @@ function setupRecentPinUi(): void {
 
   const install = () => {
     injectPinStyles()
-    const observer = new MutationObserver(() => {
+    const decorate = frameScheduler(() => {
       try {
         decorateRecentRows()
       } catch (error) {
         console.warn('[GDP] Pin UI decoration failed:', error)
       }
+    })
+    decorate()
+    const observer = new MutationObserver(mutations => {
+      if (mutationsTouchSelector(mutations, '#foldout-container .repository-list')) decorate()
     })
     observer.observe(document.body, { childList: true, subtree: true })
   }
