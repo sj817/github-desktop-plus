@@ -1,28 +1,28 @@
 # GitHub Desktop Plus
 
-A zero-patch runtime enhancement tool for GitHub Desktop.
+An external enhancement tool and hook suite for GitHub Desktop.
 
-GitHub Desktop Plus (GDP) injects into GitHub Desktop at launch via the V8 Inspector protocol (`--inspect-brk=0`). It adds missing power-user features—custom AI commit messages, multiple editors and terminals, full i18n translation, and telemetry/update suppression—without modifying official binaries or touching local files.
+GitHub Desktop Plus (GDP) extends GitHub Desktop at runtime via the official V8 Inspector debugging interface (`--inspect-brk=0`). It unlocks power-user features—custom AI commits, multiple editors/terminals, full i18n localization, and update/telemetry controls—**without modifying or patching official GitHub Desktop files**.
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 ---
 
-## Features
+## Enhanced Capabilities
 
-- **Custom AI Commits**: Hijacks the native Copilot button in the commit box. Supports any OpenAI-compatible API (OpenAI, DeepSeek, Ollama, SiliconFlow) with custom system prompts and live latency testing.
-- **Multiple Editors & Terminals**: Replaces the official 1-editor limit with an unlimited launcher. Auto-detects VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, and custom CLI tools, with Framer Motion drag-and-drop ordering.
-- **Full UI Localization (i18n)**: Native-feeling translation for menus, context menus, and UI dialogs with country flag previews. Hot-reloadable JSON translation packs.
-- **WSL 2 Integration**: Open WSL-hosted repositories in Windows IDEs or Linux terminals with transparent `/mnt/c/` ↔ `\\wsl$\` path translation.
-- **Privacy & Version Freezing**: Blocks background telemetry reporting and prevents forced auto-updates from overwriting your setup.
-- **Embedded Settings Modal**: Clean React 19 settings dialog accessible via `Ctrl+Alt+G` or the menu bar. Hot-reloads all settings instantly without restarting the app.
-- **Lightweight Rust Core**: Native Rust launcher with < 10MB resident memory overhead.
+- **Custom AI Commits**: Replaces the native Copilot commit button action with your own AI endpoint. Compatible with any OpenAI-compatible API (OpenAI, DeepSeek, Ollama, SiliconFlow), with custom system prompts and live latency testing.
+- **Multiple Editors & Terminals (Open With+)**: Configure unlimited external editors and terminals in the repository context menu. Auto-detects VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, and custom CLI tools, with Framer Motion drag-and-drop ordering.
+- **Full UI Localization (i18n)**: Complete translation for menus, context menus, and UI dialogs with country flag previews. Includes hot-reloadable JSON translation packs.
+- **WSL 2 Integration**: Manage WSL-hosted repositories from Windows with transparent `/mnt/c/` ↔ `\\wsl$\` path translation.
+- **Telemetry & Update Controls**: Block background telemetry tracking and suppress automatic updates with a single toggle.
+- **Embedded Settings Modal**: Press `Ctrl+Alt+G` or click `GDP` in the menu bar to open a clean React 19 settings panel. All settings apply instantly without restarting.
+- **Zero Binary Modification**: Injected at launch using standard V8 debugging protocols. Leaves your official GitHub Desktop installation 100% clean and intact.
 
 ---
 
 ## How It Works
 
-GDP launches GitHub Desktop with `--inspect-brk=0`, attaches via the Chrome DevTools Protocol (CDP), and injects hook scripts before `main.js` and renderer scripts execute:
+GDP acts as a lightweight launcher (< 10MB memory). It starts GitHub Desktop with `--inspect-brk=0`, attaches via the Chrome DevTools Protocol (CDP), and injects runtime hooks into the main and renderer processes before scripts execute:
 
 ```text
 ┌───────────────────────────┐         ┌──────────────────────────────┐
@@ -41,26 +41,10 @@ All IPC communication (settings, logs, AI requests, locales) runs directly over 
 
 ---
 
-## Comparison with Official GitHub Desktop
-
-| Feature | Official GitHub Desktop | GitHub Desktop Plus |
-| :--- | :---: | :---: |
-| **External Editors** | 1 at a time | Unlimited (VS Code, Cursor, Zed, JetBrains...) |
-| **External Terminals** | 1 at a time | Unlimited (Windows Terminal, WSL, PowerShell...) |
-| **AI Commit Generation** | GitHub Copilot subscription only | Any OpenAI-compatible API (DeepSeek, Ollama, OpenAI...) |
-| **UI Language** | English only | Multi-language with hot-reload JSON packs |
-| **WSL 2 Support** | Windows paths only | Native distro detection & path mapping |
-| **Auto-Updates** | Forced | Blockable via switch |
-| **Telemetry** | Mandatory | Blockable via switch |
-| **Binary Integrity** | Official | 100% Unmodified (0-patch runtime injection) |
-| **Memory Overhead** | Standard | < 10MB RAM |
-
----
-
 ## Installation & Usage
 
 1. Download the latest `gdp` executable from [Releases](https://github.com/sj817/github-desktop-plus/releases).
-2. Run `gdp` (or replace your desktop shortcut target with `gdp`).
+2. Run `gdp` to launch GitHub Desktop with enhancements.
 3. Press `Ctrl+Alt+G` inside GitHub Desktop or click `GDP` in the menu bar to open settings.
 
 ---
