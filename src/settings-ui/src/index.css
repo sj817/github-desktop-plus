@@ -1,0 +1,232 @@
+/*
+ * Tailwind is imported piecemeal on purpose: preflight is left out because this
+ * stylesheet is injected into GitHub Desktop's own document, where a global
+ * reset would restyle the entire app. Everything we reset is scoped under
+ * #gdp-settings-root instead.
+ */
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Dark mode is driven by a class the bridge sets, not by the OS preference —
+   GitHub Desktop's theme is what we follow. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* `inline` keeps the utilities pointing at the --gdp-* variables, so the same
+   compiled CSS re-resolves per theme when the class flips. */
+@theme inline {
+  --color-canvas: var(--gdp-canvas);
+  --color-surface: var(--gdp-surface);
+  --color-surface-alt: var(--gdp-surface-alt);
+  --color-surface-hover: var(--gdp-surface-hover);
+  --color-line: var(--gdp-line);
+  --color-line-soft: var(--gdp-line-soft);
+  --color-fg: var(--gdp-fg);
+  --color-fg-muted: var(--gdp-fg-muted);
+  --color-fg-subtle: var(--gdp-fg-subtle);
+  --color-accent: var(--gdp-accent);
+  --color-accent-hover: var(--gdp-accent-hover);
+  --color-accent-fg: var(--gdp-accent-fg);
+  --color-accent-soft: var(--gdp-accent-soft);
+  --color-danger: var(--gdp-danger);
+  --color-danger-soft: var(--gdp-danger-soft);
+  --color-success: var(--gdp-success);
+  --color-warn: var(--gdp-warn);
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'Helvetica Neue', 'Microsoft YaHei',
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+}
+
+@layer base {
+  /*
+   * Palette tracks GitHub Desktop's own (renderer.css: --background-color
+   * #24292e dark / #fff light, --button-background #0366d6) so the dialog reads
+   * as part of the app rather than a web page dropped into it.
+   */
+  #gdp-settings-root {
+    --gdp-canvas: #ffffff;
+    --gdp-surface: #f6f8fa;
+    --gdp-surface-alt: #ffffff;
+    --gdp-surface-hover: #eaeef2;
+    --gdp-line: #d0d7de;
+    --gdp-line-soft: #e6eaef;
+    --gdp-fg: #1f2328;
+    --gdp-fg-muted: #59636e;
+    --gdp-fg-subtle: #818b98;
+    --gdp-accent: #0969da;
+    --gdp-accent-hover: #0860ca;
+    --gdp-accent-fg: #ffffff;
+    --gdp-accent-soft: #ddf4ff;
+    --gdp-danger: #cf222e;
+    --gdp-danger-soft: #ffebe9;
+    --gdp-success: #1a7f37;
+    --gdp-warn: #9a6700;
+
+    color: var(--gdp-fg);
+    background: var(--gdp-canvas);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  #gdp-settings-root.dark {
+    --gdp-canvas: #24292e;
+    --gdp-surface: #1d2125;
+    --gdp-surface-alt: #2b3137;
+    --gdp-surface-hover: #2f363d;
+    --gdp-line: #444d56;
+    --gdp-line-soft: #32383f;
+    --gdp-fg: #f6f8fa;
+    --gdp-fg-muted: #a8b1bb;
+    --gdp-fg-subtle: #79838e;
+    --gdp-accent: #2f81f7;
+    --gdp-accent-hover: #4c92f8;
+    --gdp-accent-fg: #ffffff;
+    --gdp-accent-soft: #16334f;
+    --gdp-danger: #f85149;
+    --gdp-danger-soft: #3d1517;
+    --gdp-success: #3fb950;
+    --gdp-warn: #d29922;
+  }
+
+  /*
+   * Local reset. GitHub Desktop only sets `button { -webkit-app-region }` and
+   * `img {}` globally, but form controls still arrive with UA styling, so
+   * neutralise them here rather than pulling in Tailwind preflight.
+   */
+  #gdp-settings-root,
+  #gdp-settings-root *,
+  #gdp-settings-root *::before,
+  #gdp-settings-root *::after {
+    box-sizing: border-box;
+  }
+
+  #gdp-settings-root :where(h1, h2, h3, h4, p, ul, ol, li, figure) {
+    margin: 0;
+    padding: 0;
+  }
+
+  #gdp-settings-root :where(ul, ol) {
+    list-style: none;
+  }
+
+  #gdp-settings-root :where(button) {
+    appearance: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: inherit;
+  }
+
+  #gdp-settings-root :where(button:disabled) {
+    cursor: default;
+  }
+
+  #gdp-settings-root :where(input, textarea, select) {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    margin: 0;
+  }
+
+  #gdp-settings-root :where(input[type='checkbox']) {
+    appearance: auto;
+    accent-color: var(--gdp-accent);
+    cursor: pointer;
+  }
+
+  #gdp-settings-root :where(svg) {
+    display: block;
+    flex: none;
+  }
+
+  #gdp-settings-root :where(a) {
+    color: var(--gdp-accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  #gdp-settings-root :where(:focus-visible) {
+    outline: 2px solid var(--gdp-accent);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbars — GitHub Desktop's own are styled, ours should match. */
+  #gdp-settings-root ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  #gdp-settings-root ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--gdp-fg) 22%, transparent);
+    border: 3px solid transparent;
+    border-radius: 8px;
+    background-clip: content-box;
+  }
+  #gdp-settings-root ::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, var(--gdp-fg) 38%, transparent);
+    border: 3px solid transparent;
+    background-clip: content-box;
+  }
+  #gdp-settings-root ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* Base UI popups fade/scale with these, driven by their data attributes. */
+  @keyframes gdp-pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97) translateY(-2px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gdp-pop-out {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.97) translateY(-2px);
+    }
+  }
+
+  @keyframes gdp-page-in {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gdp-toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
