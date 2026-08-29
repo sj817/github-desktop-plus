@@ -1,10 +1,15 @@
 import { build } from 'esbuild'
-import { mkdir, rm } from 'node:fs/promises'
+import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = fileURLToPath(new URL('..', import.meta.url))
 const outDir = resolve(rootDir, 'generated', 'hooks')
+
+// Built by Vite (pnpm run build:ui), not esbuild — see src/settings-ui.
+const settingsUiBundle = resolve(rootDir, 'src', 'settings-ui', 'dist', 'gdp-settings-ui.js')
+const settingsUiOut = resolve(outDir, 'preload', 'gdp-settings-ui.js')
 
 const jobs = [
 	{
@@ -72,6 +77,8 @@ async function run() {
 	await rm(outDir, { recursive: true, force: true })
 	await mkdir(resolve(outDir, 'preload'), { recursive: true })
 
+	await copySettingsUi()
+
 	await Promise.all(
 		jobs.map(({ entry, outfile, ...options }) =>
 			build({
@@ -88,6 +95,26 @@ async function run() {
 	)
 
 	console.log(`Built ${jobs.length} hook bundles into ${outDir}`)
+}
+
+/**
+ * The settings UI ships as a prebuilt IIFE that the Rust launcher embeds, so
+ * something must always exist at that path. A placeholder keeps `cargo build`
+ * working before the first `pnpm run build:ui` (and in dev, where the UI is
+ * served from Vite and the bundle is never injected).
+ */
+async function copySettingsUi() {
+	if (existsSync(settingsUiBundle)) {
+		await copyFile(settingsUiBundle, settingsUiOut)
+		console.log('Copied settings-ui bundle')
+		return
+	}
+	await writeFile(
+		settingsUiOut,
+		'/* placeholder — run `pnpm run build:ui` to produce the real bundle */\n',
+		'utf8'
+	)
+	console.warn('[build-hooks] settings-ui bundle missing; wrote placeholder')
 }
 
 run().catch(error => {

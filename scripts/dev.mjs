@@ -84,6 +84,46 @@ async function waitUntilUnlocked(file, timeoutMs = 8000) {
   return false
 }
 
+/**
+ * Vite dev server for the settings UI. Must match `server.port` in
+ * src/settings-ui/vite.config.ts.
+ */
+const SETTINGS_DEV_URL = 'http://127.0.0.1:5273/'
+
+/**
+ * Kill a child and everything it spawned. On Windows the children are started
+ * through a shell, so `child.kill()` would only take out cmd.exe and leave the
+ * Vite server holding port 5273 — the next `pnpm dev` would then fail on
+ * strictPort.
+ */
+function killTree(child) {
+  if (!child || child.killed) return
+  if (isWin && child.pid) {
+    spawnSync('taskkill', ['/F', '/T', '/PID', String(child.pid)], { stdio: 'ignore' })
+    return
+  }
+  child.kill()
+}
+
+/** Poll until Vite answers, so the first dialog open never races the server. */
+async function waitForDevServer(url, timeoutMs = 30000) {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const response = await fetch(url, { method: 'GET' })
+      if (response.ok) {
+        console.log(`[dev] settings UI ready at ${url}`)
+        return true
+      }
+    } catch {
+      // Not listening yet.
+    }
+    await delay(200)
+  }
+  console.warn(`[dev] settings UI did not come up at ${url} — the dialog will show a blank frame`)
+  return false
+}
+
 function command(name, args, options = {}) {
   const child = spawn(name, args, {
     cwd: rootDir,
@@ -133,6 +173,10 @@ async function startGdp() {
   gdpProcess = command('cargo', ['run', '-p', 'gdp', '--', 'dev'], {
     env: {
       GDP_DEV: '1',
+      // Tells the injected hook to load the settings dialog's UI from Vite in
+      // an iframe instead of injecting the built bundle, so React/CSS edits
+      // hot-reload without restarting anything.
+      GDP_SETTINGS_DEV_URL: SETTINGS_DEV_URL,
     },
   })
 }
@@ -175,18 +219,27 @@ async function main() {
     env: { GDP_NOTIFY_RUNTIME: '1' },
   })
 
+  // Long-lived: the settings UI is never a reason to restart GDP, so Vite keeps
+  // running across GDP restarts and src/settings-ui is not watched below.
+  const settingsUi = command('pnpm', ['--filter', 'gdp-settings-ui', 'dev'])
+  await waitForDevServer(SETTINGS_DEV_URL)
+
   process.once('exit', () => {
-    for (const child of children) child.kill()
+    for (const child of children) killTree(child)
   })
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.once(signal, async () => {
       await stopGdp()
-      locales.kill()
+      killTree(locales)
+      killTree(settingsUi)
       process.exit(0)
     })
   }
 
   void watchForRestart('src/hooks', 'hook')
+  // The IPC contract is shared with the settings UI, but the hook bundles it —
+  // a change there still needs a GDP restart.
+  void watchForRestart('src/shared', 'shared')
   void watchForRestart('src/gdp', 'gdp')
   void watchForRestart('src/core', 'core')
 

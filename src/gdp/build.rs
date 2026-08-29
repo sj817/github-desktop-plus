@@ -112,6 +112,15 @@ fn main() {
         "generated/hooks/preload/open-with.js",
         "preload_open_with.js",
     );
+    // Built by Vite (`pnpm run build:ui`), copied into generated/ by
+    // scripts/build-hooks.mjs, which also writes a placeholder when it is
+    // missing so this embed always resolves.
+    embed_file(
+        out_dir,
+        &repo_root,
+        "generated/hooks/preload/gdp-settings-ui.js",
+        "preload_gdp_settings_ui.js",
+    );
 
     println!(
         "cargo:rerun-if-changed={}",

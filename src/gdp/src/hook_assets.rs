@@ -21,6 +21,8 @@ pub const PRELOAD_GDP_DIALOG_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_gdp_dialog.js"));
 pub const PRELOAD_OPEN_WITH_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_open_with.js"));
+pub const PRELOAD_GDP_SETTINGS_UI_JS: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/preload_gdp_settings_ui.js"));
 
 pub static LOCALES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../generated/locales");
 
@@ -83,6 +85,10 @@ pub fn extract_hook_to_disk() -> PathBuf {
     );
     write_if_changed(&preload_dir.join("gdp-dialog.js"), PRELOAD_GDP_DIALOG_JS);
     write_if_changed(&preload_dir.join("open-with.js"), PRELOAD_OPEN_WITH_JS);
+    write_if_changed(
+        &preload_dir.join("gdp-settings-ui.js"),
+        PRELOAD_GDP_SETTINGS_UI_JS,
+    );
 
     extract_dir(&LOCALES, &locales_dir);
 
