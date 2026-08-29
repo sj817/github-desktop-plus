@@ -11,8 +11,8 @@ export function Switch({ className, ...props }: ComponentProps<typeof BaseSwitch
         'shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] outline-none',
         'transition-[background-color,box-shadow] duration-200 ease-out',
         'hover:bg-[color-mix(in_srgb,var(--gdp-fg)_22%,transparent)]',
-        'data-[checked]:bg-accent data-[checked]:hover:bg-accent-hover',
-        'focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
+        'data-[checked]:bg-[#409eff] data-[checked]:hover:bg-[#66b1ff]',
+        'focus-visible:outline-2 focus-visible:outline-[#409eff]/40 focus-visible:outline-offset-2',
         'data-[disabled]:cursor-default data-[disabled]:opacity-40',
         className
       )}

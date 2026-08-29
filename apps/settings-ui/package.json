@@ -15,6 +15,7 @@
     "@github-desktop-plus/shared": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
+    "country-flag-icons": "1.6.20",
     "framer-motion": "13.1.1",
     "lucide-react": "catalog:",
     "react": "catalog:",

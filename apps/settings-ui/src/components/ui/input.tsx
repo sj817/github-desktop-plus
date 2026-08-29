@@ -25,7 +25,7 @@ export function Input({ className, type = 'text', ...props }: ComponentProps<'in
 export function Textarea({ className, ...props }: ComponentProps<'textarea'>) {
   return (
     <textarea
-      className={cn(fieldClasses, 'resize-y px-3 py-2 text-[12.5px] leading-relaxed', className)}
+      className={cn(fieldClasses, 'resize-none px-3 py-2 text-[12.5px] leading-relaxed', className)}
       {...props}
     />
   )

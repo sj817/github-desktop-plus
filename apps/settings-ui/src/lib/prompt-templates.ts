@@ -3,6 +3,19 @@ export interface PromptTemplate {
   prompt: string
 }
 
+export interface ProviderPreset {
+  name: string
+  baseUrl: string
+  defaultModel: string
+}
+
+export const PROVIDER_PRESETS: readonly ProviderPreset[] = [
+  { name: 'OpenAI', baseUrl: 'https://api.openai.com/v1', defaultModel: 'gpt-4o-mini' },
+  { name: 'DeepSeek', baseUrl: 'https://api.deepseek.com', defaultModel: 'deepseek-chat' },
+  { name: 'SiliconFlow (硅基流动)', baseUrl: 'https://api.siliconflow.cn/v1', defaultModel: 'deepseek-ai/DeepSeek-V3' },
+  { name: 'Ollama (本地)', baseUrl: 'http://localhost:11434/v1', defaultModel: 'qwen2.5-coder:7b' },
+]
+
 export const PROMPT_TEMPLATES: readonly PromptTemplate[] = [
   {
     name: 'feat: 中文',
@@ -34,7 +47,6 @@ export const PROMPT_TEMPLATES: readonly PromptTemplate[] = [
 export const MODEL_SUGGESTIONS: readonly string[] = [
   'gpt-4o-mini',
   'gpt-4o',
-  'o4-mini',
   'deepseek-chat',
   'deepseek-reasoner',
   'qwen-plus',
