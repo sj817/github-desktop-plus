@@ -13,6 +13,6 @@
     "moduleResolution": "bundler",
     "types": ["node"]
   },
-  "include": ["src/hooks/**/*.ts", "scripts/**/*.ts"],
+  "include": ["src/hooks/**/*.ts", "src/shared/**/*.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "generated", "target", "dist", "build"]
 }
