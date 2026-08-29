@@ -49,5 +49,7 @@
   "Current Repository": "当前仓库",
   "Current repository": "当前仓库",
   "No repository selected": "未选择仓库",
-  "Overwrite any changes on": "覆盖以下位置的任何更改："
+  "Overwrite any changes on": "覆盖以下位置的任何更改：",
+  "Current worktree dropdown button": "当前工作树下拉按钮",
+  "Current worktree": "当前工作树"
 }

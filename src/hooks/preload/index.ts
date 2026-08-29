@@ -1,4 +1,5 @@
 import './recent-repositories'
+import { lookupTranslation } from '../i18n-lookup'
 
 /**
  * i18n Preload Script — runs inside GitHub Desktop's renderer process.
@@ -122,16 +123,20 @@ import './recent-repositories'
     const trimmed = text.trim();
     if (!trimmed) return text;
 
-    // Exact match first
-    const exact = translations[trimmed];
-    if (exact !== undefined) return text.replace(trimmed, resolveOverride(trimmed, exact, contextEl));
+    // Exact match first, then a case-insensitive fallback (see i18n-lookup.ts:
+    // GitHub Desktop title-cases most labels on macOS, and both spellings want
+    // the same translation).
+    const direct = lookupTranslation(translations, trimmed);
+    if (direct !== undefined) {
+      return text.replace(trimmed, resolveOverride(direct.key, direct.value, contextEl));
+    }
 
     // Whitespace-normalized match: collapse internal whitespace (handles multiline JSX text nodes)
     const normalized = trimmed.replace(/\s+/g, ' ');
     if (normalized !== trimmed) {
-      const normalizedExact = translations[normalized];
-      if (normalizedExact !== undefined) {
-        return text.replace(trimmed, resolveOverride(normalized, normalizedExact, contextEl));
+      const normalizedHit = lookupTranslation(translations, normalized);
+      if (normalizedHit !== undefined) {
+        return text.replace(trimmed, resolveOverride(normalizedHit.key, normalizedHit.value, contextEl));
       }
 
       // Also try pattern match with normalized text

@@ -520,6 +520,42 @@ export function injectStyles(): void {
     }
     #gdp-settings-dialog .gdp-empty .gdp-icon { opacity: 0.35; }
 
+    /* ── Open with ─────────────────────────────────────────────────── */
+    #gdp-settings-dialog .gdp-ow-item {
+      display: flex; flex-direction: column; gap: 7px;
+      padding: 11px 0; border-bottom: 1px solid var(--gdp-line-soft);
+    }
+    #gdp-settings-dialog .gdp-ow-item:first-child { padding-top: 2px; }
+    #gdp-settings-dialog .gdp-ow-item:last-child { border-bottom: none; padding-bottom: 2px; }
+    #gdp-settings-dialog .gdp-ow-head { display: flex; align-items: center; gap: 8px; }
+    #gdp-settings-dialog .gdp-ow-body {
+      display: flex; align-items: center; gap: 8px; padding-left: 2px;
+    }
+    #gdp-settings-dialog .gdp-ow-label { flex: 1 1 auto; min-width: 0; }
+    #gdp-settings-dialog .gdp-ow-group { width: 92px; flex: none; }
+    #gdp-settings-dialog .gdp-ow-path { flex: 2 1 0; min-width: 0; }
+    #gdp-settings-dialog .gdp-ow-args { flex: 1 1 0; min-width: 0; }
+    #gdp-settings-dialog .gdp-ow-check {
+      display: inline-flex; align-items: center; gap: 5px; flex: none;
+      font-size: 11.5px; color: var(--gdp-fg-subtle); white-space: nowrap;
+    }
+    #gdp-settings-dialog .gdp-ow-item .gdp-icon-btn[disabled] {
+      opacity: 0.3; pointer-events: none;
+    }
+    #gdp-settings-dialog .gdp-ow-detected-head {
+      padding-bottom: 4px; font-size: 11.5px; color: var(--gdp-fg-subtle);
+    }
+    #gdp-settings-dialog .gdp-ow-found {
+      display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    }
+    #gdp-settings-dialog .gdp-ow-found-name { font-weight: 550; flex: none; }
+    #gdp-settings-dialog .gdp-ow-found-path {
+      flex: 1 1 auto; min-width: 0;
+      font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+      font-size: 11px; color: var(--gdp-fg-subtle);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
     /* ── Toast ─────────────────────────────────────────────────────── */
     #gdp-settings-dialog .gdp-toast-region {
       position: absolute; left: 50%; bottom: 68px; transform: translateX(-50%);

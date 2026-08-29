@@ -17,6 +17,7 @@ export interface HookConfig {
   dataDir: string
   configDir: string
   recentReposLimit: number
+  unlockCopilot: boolean
   ai: AiHookConfig
 }
 
@@ -31,6 +32,7 @@ export function parseConfig(): HookConfig {
     dataDir: '',
     configDir: '',
     recentReposLimit: 3,
+    unlockCopilot: true,
     ai: {
       enabled: false,
       baseUrl: 'https://api.openai.com/v1',

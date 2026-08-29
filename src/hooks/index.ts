@@ -20,6 +20,13 @@ import { configureLogLevel, gdpLog, LOG_JSON_FILE, resetLogStream } from './logg
 import { setupTelemetryBlocker } from './telemetry-blocker'
 import { blockUpdates } from './update-blocker'
 import { setupGdpIpc } from './ipc'
+import { setupCopilotUnlock } from './copilot-unlock'
+import {
+  RESERVED_LOCALE_KEYS,
+  collectAliases,
+  applyAliases,
+  lookupTranslation,
+} from './i18n-lookup'
 
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
@@ -41,6 +48,9 @@ type StoredConfig = {
   }
   ui?: {
     recent_repos_limit?: unknown
+  }
+  copilot?: {
+    unlock?: unknown
   }
   ai?: {
     enabled?: unknown
@@ -93,6 +103,7 @@ function applyStoredConfig(config: HookConfig, stored: StoredConfig): boolean {
     stored.ui?.recent_repos_limit,
     config.recentReposLimit
   )
+  config.unlockCopilot = boolOrCurrent(stored.copilot?.unlock, config.unlockCopilot)
   if (stored.ai && typeof stored.ai === 'object') {
     config.ai = {
       enabled: boolOrCurrent(stored.ai.enabled, config.ai.enabled),
@@ -172,30 +183,43 @@ function flattenLocaleBundle(
   excludedCategories: ReadonlySet<string>
 ): Record<string, string> {
   const translations: Record<string, string> = {}
+  // Collected across every category so an alias may point at a canonical key
+  // that lives in a different file.
+  const aliasPairs: Array<[source: string, canonical: string]> = []
+
   for (const [category, entries] of Object.entries(bundle)) {
     if (excludedCategories.has(category) || !entries || typeof entries !== 'object') {
       continue
     }
-    const copy = { ...entries }
-    delete copy._meta
-    for (const [key, value] of Object.entries(copy)) {
-      if (typeof value === 'string') {
+    const record = entries as Record<string, unknown>
+    for (const [key, value] of Object.entries(record)) {
+      // An empty value means "extracted but not translated yet" — leaving it
+      // in would blank the UI text instead of falling through to English.
+      if (typeof value === 'string' && value !== '' && !RESERVED_LOCALE_KEYS.has(key)) {
         translations[key] = value
       }
     }
+    collectAliases(record, aliasPairs)
+  }
+
+  const applied = applyAliases(translations, aliasPairs)
+  if (applied > 0) {
+    gdpLog(`Expanded ${applied} translation aliases`, 'info', 'i18n')
   }
   return translations
 }
 
 function loadMenuTranslations(dir: string, locale: string, dataDir: string): Record<string, string> {
-  const menu = loadLocaleBundle(dir, locale, dataDir).menu ?? {}
+  const menu = (loadLocaleBundle(dir, locale, dataDir).menu ?? {}) as Record<string, unknown>
   const translations: Record<string, string> = {}
   for (const [key, value] of Object.entries(menu)) {
-    if (typeof value === 'string') {
+    if (typeof value === 'string' && value !== '' && !RESERVED_LOCALE_KEYS.has(key)) {
       translations[key] = value
     }
   }
-  delete translations._meta
+  const aliasPairs: Array<[source: string, canonical: string]> = []
+  collectAliases(menu, aliasPairs)
+  applyAliases(translations, aliasPairs)
   gdpLog(`Loaded ${Object.keys(translations).length} menu translations from aggregate package`, 'info', 'menu')
   return translations
 }
@@ -240,9 +264,9 @@ function translateLabel(
   label: string,
   translations: Record<string, string>
 ): string | null {
-  const exact = translations[label]
-  if (exact !== undefined) {
-    return exact
+  const direct = lookupTranslation(translations, label)
+  if (direct !== undefined) {
+    return direct.value
   }
 
   for (const [pattern, replacement] of Object.entries(translations).sort((a, b) => b[0].length - a[0].length)) {
@@ -415,6 +439,18 @@ function setupRendererI18n(
     }
   } catch { /* optional */ }
 
+  // Open-with context-menu entries. Injected LAST so its show-contextual-menu
+  // wrapper sits outside the i18n one — it then sees GD's original English
+  // labels, and its own entries get translated on the way out like any other.
+  const openWithPath = _path.join(dir, 'preload', 'open-with.js')
+  let openWithCode = ''
+  try {
+    if (_fs.existsSync(openWithPath)) {
+      openWithCode = _fs.readFileSync(openWithPath, 'utf-8')
+      gdpLog('Open-with script loaded', 'info', 'system')
+    }
+  } catch { /* optional */ }
+
   const buildInjectScript = () => `(function(){` +
     `window.__GDP_TRANSLATIONS__=${JSON.stringify(uiTranslations)};` +
     `window.__GDP_OVERRIDES__=${JSON.stringify(uiOverrides)};` +
@@ -425,6 +461,7 @@ function setupRendererI18n(
     (updateInterceptorCode ? `\n${updateInterceptorCode}` : '') +
     (copilotHijackCode ? `\n${copilotHijackCode}` : '') +
     (gdpDialogCode ? `\n${gdpDialogCode}` : '') +
+    (openWithCode ? `\n${openWithCode}` : '') +
     `})();`
 
   const buildEarlyInjectScript = () => recentRepositoriesCode
@@ -895,6 +932,25 @@ function main(): void {
       },
       electron.BrowserWindow as GDPBrowserWindowConstructor,
     )
+  }
+
+  // 2b2. Copilot gate unlock — rewrite the entitlement check in the renderer
+  //      bundle as it loads, so GitHub Desktop's own BYOK provider support is
+  //      reachable without a Copilot subscription. Registered before any window
+  //      exists so the very first load is already patched.
+  if (electron.app && electron.session && electron.net) {
+    const registerUnlock = () =>
+      setupCopilotUnlock(
+        electron.session as { defaultSession?: { protocol?: never } },
+        electron.net as never,
+        () => config.unlockCopilot,
+      )
+    const appModule = electron.app as { isReady(): boolean; on(e: string, cb: () => void): void }
+    if (appModule.isReady()) {
+      registerUnlock()
+    } else {
+      appModule.on('ready', registerUnlock)
+    }
   }
 
   // 2c. Early preload — recent-repositories patches must run before page

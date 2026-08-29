@@ -200,5 +200,8 @@
   "Commit description": "提交描述",
   "New": "新",
   "Adjust the filters to see all": "调整筛选条件以查看全部",
-  "You can": "您可以"
+  "You can": "您可以",
+  "not included": "",
+  "partially included": "",
+  "The email in your global Git config (": ""
 }

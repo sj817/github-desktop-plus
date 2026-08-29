@@ -191,6 +191,50 @@ async function dedupe(locale) {
   console.log(`[locales] ${locale}: ${duplicateCount} duplicate key(s), ${changedFiles} file(s) updated`)
 }
 
+/**
+ * `_aliases` maps a canonical source string to the other spellings that should
+ * reuse its translation. The runtime expands them (src/hooks/i18n-lookup.ts);
+ * this only catches the mistakes it would otherwise swallow silently — a typo
+ * in the canonical key, or an alias that already has a translation of its own.
+ */
+function validateAliases(bundled) {
+  const translated = new Set()
+  for (const entries of Object.values(bundled)) {
+    for (const [key, value] of Object.entries(entries)) {
+      if (typeof value === 'string' && !key.startsWith('_')) translated.add(key)
+    }
+  }
+
+  let count = 0
+  for (const [category, entries] of Object.entries(bundled)) {
+    const aliases = entries._aliases
+    if (!aliases || typeof aliases !== 'object') continue
+
+    for (const [canonical, sources] of Object.entries(aliases)) {
+      if (!Array.isArray(sources)) {
+        console.warn(`[locales] ${category}._aliases.${JSON.stringify(canonical)} is not an array`)
+        continue
+      }
+      if (!translated.has(canonical)) {
+        console.warn(
+          `[locales] ${category}._aliases points at ${JSON.stringify(canonical)}, which has no translation`
+        )
+      }
+      for (const source of sources) {
+        if (translated.has(source)) {
+          console.warn(
+            `[locales] ${category}._aliases lists ${JSON.stringify(source)}, ` +
+              'which already has its own translation (the alias will be ignored)'
+          )
+        }
+        count += 1
+      }
+    }
+  }
+
+  if (count > 0) console.log(`[locales] ${count} alias(es) declared`)
+}
+
 async function bundle(locale) {
   const files = await jsonFiles(locale)
   const bundled = {}
@@ -200,6 +244,8 @@ async function bundle(locale) {
     const key = path.basename(filePath, '.json')
     bundled[key] = value
   }
+
+  validateAliases(bundled)
 
   await mkdir(generatedDir, { recursive: true })
   const outFile = path.join(generatedDir, `${locale}.json`)

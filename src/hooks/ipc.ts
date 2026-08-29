@@ -13,6 +13,14 @@ import * as https from 'https'
 import * as http from 'http'
 import * as cp from 'child_process'
 import { gdpLog, LOG_JSON_FILE, setLogBroadcast, type LogEntry } from './logger'
+import {
+  detectOpenWith,
+  launchOpenWith,
+  normalizeItem,
+  labelForExecutable,
+  defaultBrowseDir,
+  type OpenWithItem,
+} from './open-with'
 
 // ── Electron types (used as any in main-process hooks) ─────────────────────
 
@@ -227,6 +235,63 @@ export function setupGdpIpc(
       return { ok: true }
     } catch (e) {
       gdpLog(`gdp:set-config failed: ${e}`, 'error', 'system')
+      return { ok: false, reason: String(e) }
+    }
+  })
+
+  // ── Open with ─────────────────────────────────────────────────────────────
+  // The renderer injects one context-menu entry per configured item and calls
+  // back here with the item id; resolving the item from disk (rather than
+  // trusting the renderer's copy) keeps the executable list authoritative.
+  ipcMain.handle('gdp:open-with-detect', () => {
+    try {
+      const found = detectOpenWith()
+      gdpLog(`open-with: detected ${found.length} launchers`, 'info', 'system')
+      return found
+    } catch (e) {
+      gdpLog(`open-with: detection failed: ${e}`, 'error', 'system')
+      return []
+    }
+  })
+
+  ipcMain.handle('gdp:open-with-launch', (_event, payload?: { id?: string; path?: string }) => {
+    const id = payload?.id ?? ''
+    const targetPath = payload?.path ?? ''
+    if (!id || !targetPath) return { ok: false, reason: 'bad_request' }
+
+    const stored = readConfigFromDisk(configPath)
+    const rawItems = (stored.open_with as { items?: unknown[] } | undefined)?.items ?? []
+    const items = rawItems
+      .map((raw, i) => normalizeItem(raw, i))
+      .filter((item): item is OpenWithItem => item !== null)
+
+    const item = items.find(i => i.id === id)
+    if (!item) return { ok: false, reason: 'unknown_item' }
+    return launchOpenWith(item, targetPath)
+  })
+
+  // Manual "add a launcher we did not detect" path.
+  ipcMain.handle('gdp:open-with-browse', async () => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { dialog } = require('electron') as {
+        dialog: {
+          showOpenDialog(opts: Record<string, unknown>): Promise<{ canceled: boolean; filePaths: string[] }>
+        }
+      }
+      const filters = process.platform === 'win32'
+        ? [{ name: '可执行文件', extensions: ['exe', 'cmd', 'bat'] }]
+        : []
+      const result = await dialog.showOpenDialog({
+        title: '选择要添加的程序',
+        defaultPath: defaultBrowseDir(),
+        properties: process.platform === 'darwin' ? ['openFile', 'treatPackageAsDirectory'] : ['openFile'],
+        filters,
+      })
+      if (result.canceled || result.filePaths.length === 0) return { ok: false, reason: 'canceled' }
+      const picked = result.filePaths[0]
+      return { ok: true, path: picked, label: labelForExecutable(picked) }
+    } catch (e) {
       return { ok: false, reason: String(e) }
     }
   })

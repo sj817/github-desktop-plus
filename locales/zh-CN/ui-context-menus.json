@@ -4,7 +4,6 @@
     "target": "renderer-ipc",
     "section": "context-menus"
   },
-
   "_comment_file_actions": "文件操作（来自 context-menu.ts）",
   "Copy file path": "复制文件路径",
   "Copy File Path": "复制文件路径",
@@ -23,9 +22,9 @@
   "Show in Explorer": "在资源管理器中显示",
   "Reveal in Finder": "在访达中显示",
   "Show in your File Manager": "在文件管理器中显示",
+  "Open with": "打开方式",
   "Open with default program": "用默认程序打开",
   "Open with Default Program": "用默认程序打开",
-
   "_comment_changes": "更改列表右键菜单（filter-changes-list.tsx）",
   "Discard changes": "放弃更改",
   "Discard Changes": "放弃更改",
@@ -53,7 +52,6 @@
   "Include Selected Files": "包含所选文件",
   "Exclude selected files": "排除所选文件",
   "Exclude Selected Files": "排除所选文件",
-
   "_comment_commits": "提交历史右键菜单（commit-list.tsx）",
   "Amend commit…": "修改提交…",
   "Amend Commit…": "修改提交…",
@@ -89,7 +87,6 @@
   "Squash {n} Commits…": "压缩 {n} 个提交…",
   "Reorder {n} commits…": "重新排序 {n} 个提交…",
   "Reorder {n} Commits…": "重新排序 {n} 个提交…",
-
   "_comment_branches": "分支列表右键菜单（branch-list-item-context-menu.tsx）",
   "Rename…": "重命名…",
   "Copy branch name": "复制分支名",
@@ -103,7 +100,6 @@
   "Change Alias": "更改别名",
   "Remove alias": "删除别名",
   "Remove Alias": "删除别名",
-
   "_comment_repos": "仓库列表右键菜单（repository-list-item-context-menu.ts）",
   "Copy repo name": "复制仓库名",
   "Copy Repo Name": "复制仓库名",
@@ -117,7 +113,6 @@
   "Create New Repository…": "创建新仓库…",
   "Add existing repository…": "添加现有仓库…",
   "Add Existing Repository…": "添加现有仓库…",
-
   "_comment_diff": "Diff 右键菜单（side-by-side-diff.tsx）",
   "Copy": "复制",
   "Select all": "全选",
@@ -128,7 +123,6 @@
   "Collapse Expanded Lines": "折叠已展开的行",
   "File does not exist on disk": "文件在磁盘上不存在",
   "File Does Not Exist on Disk": "文件在磁盘上不存在",
-
   "_comment_commit_options": "提交选项右键菜单（commit-message.tsx）",
   "Bypass Commit hooks": "跳过提交钩子",
   "Bypass Commit Hooks": "跳过提交钩子",
@@ -140,13 +134,16 @@
   "Enable Commit Spellcheck": "启用提交拼写检查",
   "Disable commit spellcheck": "禁用提交拼写检查",
   "Disable Commit Spellcheck": "禁用提交拼写检查",
-
   "_comment_ci": "CI 检查重新运行按钮（ci-check-re-run-button.tsx）",
   "Re-run failed checks": "重新运行失败的检查",
   "Re-run Failed Checks": "重新运行失败的检查",
   "Re-run all checks": "重新运行所有检查",
   "Re-run All Checks": "重新运行所有检查",
-
   "_comment_pr": "拉取请求相关",
-  "View on GitHub{suffix}": "在 GitHub{suffix} 上查看"
+  "View on GitHub{suffix}": "在 GitHub{suffix} 上查看",
+  "Checkout in new worktree…": "在新工作树中检出…",
+  "Copy worktree name": "复制工作树名称",
+  "Copy worktree path": "复制工作树路径",
+  "New worktree…": "新建工作树…",
+  "Show worktrees": "工作树列表"
 }

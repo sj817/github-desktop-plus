@@ -32,6 +32,10 @@ const ICON_PATHS: Record<string, string> = {
   // wrench — advanced sections
   wrench:
     '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  // square-arrow-out-up-right — Open with tab
+  'open-with':
+    '<path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/>' +
+    '<path d="m21 3-9 9"/><path d="M15 3h6v6"/>',
   // globe — locale list items
   globe:
     '<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/>' +

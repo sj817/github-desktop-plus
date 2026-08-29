@@ -19,6 +19,8 @@ pub const PRELOAD_COPILOT_HIJACK_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_copilot_hijack.js"));
 pub const PRELOAD_GDP_DIALOG_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_gdp_dialog.js"));
+pub const PRELOAD_OPEN_WITH_JS: &[u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/preload_open_with.js"));
 
 pub static LOCALES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/../../generated/locales");
 
@@ -80,6 +82,7 @@ pub fn extract_hook_to_disk() -> PathBuf {
         PRELOAD_COPILOT_HIJACK_JS,
     );
     write_if_changed(&preload_dir.join("gdp-dialog.js"), PRELOAD_GDP_DIALOG_JS);
+    write_if_changed(&preload_dir.join("open-with.js"), PRELOAD_OPEN_WITH_JS);
 
     extract_dir(&LOCALES, &locales_dir);
 

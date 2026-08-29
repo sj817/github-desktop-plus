@@ -6,7 +6,7 @@
 import { injectStyles } from './styles'
 import { buildDialog, openDialog, closeDialog } from './dialog'
 
-type TabId = 'general' | 'ai' | 'logs' | 'locales'
+type TabId = 'general' | 'open-with' | 'ai' | 'logs' | 'locales'
 
 ;(function () {
   let initialized = false

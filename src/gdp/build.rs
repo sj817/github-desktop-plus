@@ -106,6 +106,12 @@ fn main() {
         "generated/hooks/preload/gdp-dialog.js",
         "preload_gdp_dialog.js",
     );
+    embed_file(
+        out_dir,
+        &repo_root,
+        "generated/hooks/preload/open-with.js",
+        "preload_open_with.js",
+    );
 
     println!(
         "cargo:rerun-if-changed={}",

@@ -8,6 +8,19 @@ export interface StoredConfig {
   logging?: { level?: string }
   i18n?: { enabled?: boolean; locale?: string }
   ui?: { recent_repos_limit?: number }
+  copilot?: { unlock?: boolean }
+  open_with?: {
+    submenu?: boolean
+    items?: Array<{
+      id?: string
+      label?: string
+      path?: string
+      args?: string
+      group?: string
+      console?: boolean
+      enabled?: boolean
+    }>
+  }
   ai?: {
     enabled?: boolean
     base_url?: string

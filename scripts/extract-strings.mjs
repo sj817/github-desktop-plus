@@ -59,7 +59,10 @@ const SKIP_PATTERNS = [
   /^[A-Z0-9_-]+$/,
   /^&\w+;$/,
   /^[\d\s%px.]+$/,
-  /[=>{}[\]()]/,
+  // Code-ish punctuation. Parentheses are deliberately NOT here: plenty of
+  // real labels use them ("Auto (default)", "Request timeout (seconds)").
+  /[={}[\]]/,
+  /=>/,
   /^--[a-z-]/,
   /^\d+\.\d+/,
   /^[a-z]+([A-Z][a-z]+)+$/, // camelCase
@@ -211,14 +214,37 @@ function getAttrName(node) {
   return name.getText?.() ?? null
 }
 
-function literalText(init) {
-  if (!init) return null
-  if (ts.isStringLiteral(init)) return init.text
-  // attr={'...'} form
-  if (ts.isJsxExpression(init) && init.expression && ts.isStringLiteral(init.expression)) {
-    return init.expression.text
+// One attribute can carry several user-visible strings: GitHub Desktop writes
+// `label={__DARWIN__ ? 'Date Format' : 'Date format'}` all over the place, and
+// both branches ship. Collect every literal branch rather than only the plain
+// string form.
+function literalTextsFromExpr(expr) {
+  if (!expr) return []
+  if (ts.isStringLiteral(expr)) return [expr.text]
+  if (ts.isParenthesizedExpression(expr)) return literalTextsFromExpr(expr.expression)
+  if (ts.isConditionalExpression(expr)) {
+    return [...literalTextsFromExpr(expr.whenTrue), ...literalTextsFromExpr(expr.whenFalse)]
   }
-  return null
+  // `cond && 'Foo'` / `value ?? 'Foo'`
+  if (ts.isBinaryExpression(expr)) {
+    const op = expr.operatorToken.kind
+    if (
+      op === ts.SyntaxKind.AmpersandAmpersandToken ||
+      op === ts.SyntaxKind.BarBarToken ||
+      op === ts.SyntaxKind.QuestionQuestionToken
+    ) {
+      return [...literalTextsFromExpr(expr.left), ...literalTextsFromExpr(expr.right)]
+    }
+  }
+  return []
+}
+
+function literalTexts(init) {
+  if (!init) return []
+  if (ts.isStringLiteral(init)) return [init.text]
+  // attr={'...'} and attr={cond ? '...' : '...'} forms
+  if (ts.isJsxExpression(init)) return literalTextsFromExpr(init.expression)
+  return []
 }
 
 function extractFromSource(relFile, content) {
@@ -241,13 +267,42 @@ function extractFromSource(relFile, content) {
         hits.push({ text: raw, kind: 'text', line: lineOf(node.getStart(sf)) })
       }
     }
+    // `__DARWIN__ ? 'Foo Bar' : 'Foo bar'` — GitHub Desktop's platform-label
+    // idiom. It shows up as a JSX attribute, an object `label:` property and a
+    // bare call argument, so match the ternary itself rather than its context.
+    if (ts.isConditionalExpression(node) && /__DARWIN__/.test(node.condition.getText(sf))) {
+      for (const value of literalTextsFromExpr(node)) {
+        const text = value.trim()
+        if (text) {
+          hits.push({ text, kind: 'darwin', line: lineOf(node.getStart(sf)) })
+        }
+      }
+    }
+    // Exported label constants — `export const DefaultShellLabel =
+    // __DARWIN__ ? 'Open in Shell' : 'Open in shell'` and friends never appear
+    // in JSX directly but end up as menu-item and button labels.
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      /Label$|Title$|Text$/.test(node.name.text) &&
+      node.initializer
+    ) {
+      for (const value of literalTextsFromExpr(node.initializer)) {
+        const text = value.trim()
+        if (text) {
+          hits.push({ text, kind: 'const', line: lineOf(node.getStart(sf)) })
+        }
+      }
+    }
     // JSX attributes with string-literal values
     if (ts.isJsxAttribute(node)) {
       const attr = getAttrName(node)
       if (attr && STRING_ATTRS.has(attr)) {
-        const value = literalText(node.initializer)
-        if (value) {
-          hits.push({ text: value.trim(), kind: `attr:${attr}`, line: lineOf(node.getStart(sf)) })
+        for (const value of literalTexts(node.initializer)) {
+          const text = value.trim()
+          if (text) {
+            hits.push({ text, kind: `attr:${attr}`, line: lineOf(node.getStart(sf)) })
+          }
         }
       }
     }
@@ -265,8 +320,18 @@ function extract(locale, args) {
   console.log(`[extract] version: ${appVersion}`)
 
   const map = JSON.parse(fs.readFileSync(mapPath, 'utf-8'))
-  const sources = map.sources ?? []
-  const contents = map.sourcesContent ?? []
+  const sources = [...(map.sources ?? [])]
+  const contents = [...(map.sourcesContent ?? [])]
+
+  // The application menu is built in the main process (`build-default-menu.ts`),
+  // so its labels are absent from the renderer bundle entirely.
+  const mainMapPath = path.join(path.dirname(mapPath), 'main.js.map')
+  if (fs.existsSync(mainMapPath)) {
+    const mainMap = JSON.parse(fs.readFileSync(mainMapPath, 'utf-8'))
+    sources.push(...(mainMap.sources ?? []))
+    contents.push(...(mainMap.sourcesContent ?? []))
+    console.log(`[extract] main:    ${mainMapPath}`)
+  }
 
   // catalog: text -> { locations: [{file,line,kind,section,target}], sections:Set, areas:Set }
   const catalog = new Map()
@@ -362,33 +427,55 @@ function extract(locale, args) {
 // so a string already translated (possibly in a differently-named, hand-curated
 // file) is never re-added as an empty duplicate — which would fragment the
 // dictionary and, at runtime flatten, risk shadowing the real translation.
+// A string counts as "already covered" when a locale file translates it, when
+// an `_aliases` entry routes it to another key, or when it differs from an
+// existing key only by case (the runtime falls back to a case-insensitive
+// lookup — see src/hooks/i18n-lookup.ts). Without the last two, every
+// `__DARWIN__ ? 'Foo Bar' : 'Foo bar'` pair would keep coming back as a new
+// untranslated key.
 function collectExistingKeys(localeDir) {
   const keys = new Set()
-  if (!fs.existsSync(localeDir)) return keys
+  const lowerKeys = new Set()
+  const add = (key) => {
+    keys.add(key)
+    lowerKeys.add(key.toLowerCase())
+  }
+
+  if (!fs.existsSync(localeDir)) return { keys, lowerKeys }
   for (const name of fs.readdirSync(localeDir)) {
     if (!name.endsWith('.json')) continue
     try {
       const obj = JSON.parse(fs.readFileSync(path.join(localeDir, name), 'utf-8'))
-      for (const k of Object.keys(obj)) {
-        if (k !== '_meta' && k !== '_overrides') keys.add(k)
+      for (const [k, v] of Object.entries(obj)) {
+        if (k === '_meta' || k === '_overrides') continue
+        if (k === '_aliases') {
+          for (const sources of Object.values(v ?? {})) {
+            if (Array.isArray(sources)) sources.forEach(add)
+          }
+          continue
+        }
+        add(k)
       }
     } catch {
       // ignore unparseable file
     }
   }
-  return keys
+  return { keys, lowerKeys }
 }
 
 function mergeIntoLocaleFiles(locale, entries) {
   const localeDir = path.join(localesDir, locale)
   fs.mkdirSync(localeDir, { recursive: true })
 
-  const existingKeys = collectExistingKeys(localeDir)
+  const { keys: existingKeys, lowerKeys: existingLowerKeys } = collectExistingKeys(localeDir)
 
   // Group NEW strings (absent from every existing file) by routed area file.
   const byArea = new Map()
   for (const e of entries) {
-    if (existingKeys.has(e.text)) continue // already covered somewhere — skip
+    // Covered by an exact key, an alias, or the runtime's case-insensitive fallback.
+    if (existingKeys.has(e.text) || existingLowerKeys.has(e.text.toLowerCase())) continue
+    // …and not twice within this run either.
+    existingLowerKeys.add(e.text.toLowerCase())
     const loc = e.locations[0]
     const area = areaFileFor(loc.section, loc.target)
     if (!byArea.has(area)) byArea.set(area, { texts: [], section: loc.section })

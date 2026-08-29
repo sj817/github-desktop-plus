@@ -1,0 +1,3388 @@
+{
+  "appVersion": "3.6.4",
+  "count": 105,
+  "note": "Same English at multiple sections. Add _overrides with an anchor selector only where the translation genuinely differs.",
+  "strings": [
+    {
+      "text": "Abort",
+      "area": "ui-multi-commit-operation",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-loading-dialog.tsx",
+          "line": 474,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/hook-failed/hook-failed.tsx",
+          "line": 57,
+          "kind": "attr:cancelButtonText",
+          "section": "hook-failed",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Add",
+      "area": "ui-repositories-list",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repositories-list/repositories-list.tsx",
+          "line": 379,
+          "kind": "text",
+          "section": "repositories-list",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-provider-dialog.tsx",
+          "line": 172,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-model-dialog.tsx",
+          "line": 124,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Add repository",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 97,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 248,
+          "kind": "attr:okButtonText",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 248,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Add Repository",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 97,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 248,
+          "kind": "attr:okButtonText",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 248,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Apple silicon",
+      "area": "ui-banners",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/banners/update-available.tsx",
+          "line": 77,
+          "kind": "darwin",
+          "section": "banners",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-test-menu.ts",
+          "line": 166,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Arm64",
+      "area": "ui-banners",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/banners/update-available.tsx",
+          "line": 77,
+          "kind": "darwin",
+          "section": "banners",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-test-menu.ts",
+          "line": 166,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Branch",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 508,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/lib/git/checkout.ts",
+          "line": 118,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 508,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Cancel",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/welcome/start.tsx",
+          "line": 64,
+          "kind": "text",
+          "section": "welcome",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/welcome/sign-in-enterprise.tsx",
+          "line": 34,
+          "kind": "text",
+          "section": "welcome",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/welcome/configure-git.tsx",
+          "line": 33,
+          "kind": "text",
+          "section": "welcome",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/discard-changes/discard-changes-retry-dialog.tsx",
+          "line": 90,
+          "kind": "attr:cancelButtonText",
+          "section": "discard-changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/open-pull-request/open-pull-request-dialog.tsx",
+          "line": 279,
+          "kind": "attr:cancelButtonText",
+          "section": "open-pull-request",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 69,
+          "kind": "attr:cancelButtonText",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Changes",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repository.tsx",
+          "line": 226,
+          "kind": "text",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-dialog.tsx",
+          "line": 478,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Choose…",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/custom-integration-form.tsx",
+          "line": 79,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 241,
+          "kind": "text",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 206,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 59,
+          "kind": "text",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 127,
+          "kind": "text",
+          "section": "clone-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Clone",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 328,
+          "kind": "attr:okButtonText",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/no-repositories/no-repositories-view.tsx",
+          "line": 250,
+          "kind": "text",
+          "section": "no-repositories",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Clone Repository…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 124,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/repositories-list/repositories-list.tsx",
+          "line": 420,
+          "kind": "darwin",
+          "section": "repositories-list",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 124,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Close",
+      "area": "ui-dialog",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/dialog/header.tsx",
+          "line": 71,
+          "kind": "attr:aria-label",
+          "section": "dialog",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/dialog/default-dialog-footer.tsx",
+          "line": 39,
+          "kind": "attr:okButtonText",
+          "section": "dialog",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/changes-list-filter-options.tsx",
+          "line": 166,
+          "kind": "attr:aria-label",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/popover-dropdown.tsx",
+          "line": 118,
+          "kind": "attr:aria-label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/app-error.tsx",
+          "line": 275,
+          "kind": "attr:okButtonText",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 65,
+          "kind": "attr:okButtonText",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 75,
+          "kind": "attr:okButtonText",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/shell/shell-error.tsx",
+          "line": 56,
+          "kind": "attr:okButtonText",
+          "section": "shell",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/release-notes/release-notes-dialog.tsx",
+          "line": 139,
+          "kind": "text",
+          "section": "release-notes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/release-notes/release-notes-dialog.tsx",
+          "line": 150,
+          "kind": "attr:cancelButtonText",
+          "section": "release-notes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/local-changes-overwritten/local-changes-overwritten-dialog.tsx",
+          "line": 132,
+          "kind": "attr:cancelButtonText",
+          "section": "local-changes-overwritten",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/test-notifications/test-notifications.tsx",
+          "line": 745,
+          "kind": "attr:okButtonText",
+          "section": "test-notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/commit-progress/commit-progress.tsx",
+          "line": 55,
+          "kind": "attr:okButtonText",
+          "section": "commit-progress",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Collapse",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/expandable-commit-summary.tsx",
+          "line": 223,
+          "kind": "attr:tooltip",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-changes.tsx",
+          "line": 361,
+          "kind": "attr:tooltip",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Commit",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/lib/git/checkout.ts",
+          "line": 170,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/progress-dialog.tsx",
+          "line": 47,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Commit anyway",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/oversized-files-warning.tsx",
+          "line": 56,
+          "kind": "attr:okButtonText",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/oversized-files-warning.tsx",
+          "line": 56,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/unknown-authors/unknown-authors-dialog.tsx",
+          "line": 39,
+          "kind": "attr:okButtonText",
+          "section": "unknown-authors",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/unknown-authors/unknown-authors-dialog.tsx",
+          "line": 39,
+          "kind": "darwin",
+          "section": "unknown-authors",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 68,
+          "kind": "attr:okButtonText",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 68,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Commit Anyway",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/oversized-files-warning.tsx",
+          "line": 56,
+          "kind": "attr:okButtonText",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/oversized-files-warning.tsx",
+          "line": 56,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/unknown-authors/unknown-authors-dialog.tsx",
+          "line": 39,
+          "kind": "attr:okButtonText",
+          "section": "unknown-authors",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/unknown-authors/unknown-authors-dialog.tsx",
+          "line": 39,
+          "kind": "darwin",
+          "section": "unknown-authors",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 68,
+          "kind": "attr:okButtonText",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 68,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Configure custom editor…",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/integrations.tsx",
+          "line": 226,
+          "kind": "darwin",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/open-with-external-editor/open-with-external-editor.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "open-with-external-editor",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Configure Custom Editor…",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/integrations.tsx",
+          "line": 226,
+          "kind": "darwin",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/open-with-external-editor/open-with-external-editor.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "open-with-external-editor",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Continue",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/enterprise-server-entry.tsx",
+          "line": 68,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/no-repositories/create-tutorial-repository-dialog.tsx",
+          "line": 95,
+          "kind": "attr:okButtonText",
+          "section": "no-repositories",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/choose-fork-settings/choose-fork-settings-dialog.tsx",
+          "line": 101,
+          "kind": "attr:okButtonText",
+          "section": "choose-fork-settings",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/undo/warn-local-changes-before-undo.tsx",
+          "line": 57,
+          "kind": "attr:okButtonText",
+          "section": "undo",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/reset/warning-before-reset.tsx",
+          "line": 56,
+          "kind": "attr:okButtonText",
+          "section": "reset",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Continue in browser",
+      "area": "ui-workflow-push-rejected",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/workflow-push-rejected/workflow-push-rejected.tsx",
+          "line": 9,
+          "kind": "const",
+          "section": "workflow-push-rejected",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/workflow-push-rejected/workflow-push-rejected.tsx",
+          "line": 9,
+          "kind": "darwin",
+          "section": "workflow-push-rejected",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/saml-reauth-required/saml-reauth-required.tsx",
+          "line": 8,
+          "kind": "const",
+          "section": "saml-reauth-required",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/saml-reauth-required/saml-reauth-required.tsx",
+          "line": 8,
+          "kind": "darwin",
+          "section": "saml-reauth-required",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Continue in Browser",
+      "area": "ui-workflow-push-rejected",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/workflow-push-rejected/workflow-push-rejected.tsx",
+          "line": 9,
+          "kind": "const",
+          "section": "workflow-push-rejected",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/workflow-push-rejected/workflow-push-rejected.tsx",
+          "line": 9,
+          "kind": "darwin",
+          "section": "workflow-push-rejected",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/saml-reauth-required/saml-reauth-required.tsx",
+          "line": 8,
+          "kind": "const",
+          "section": "saml-reauth-required",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/saml-reauth-required/saml-reauth-required.tsx",
+          "line": 8,
+          "kind": "darwin",
+          "section": "saml-reauth-required",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Copy the full SHA",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/expandable-commit-summary.tsx",
+          "line": 446,
+          "kind": "attr:ariaLabel",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-resolution-summary.tsx",
+          "line": 255,
+          "kind": "attr:ariaLabel",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/secret-scanning/push-protection-error-location.tsx",
+          "line": 47,
+          "kind": "attr:ariaLabel",
+          "section": "secret-scanning",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Create a new repository",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 85,
+          "kind": "attr:title",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 600,
+          "kind": "attr:title",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 601,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Create repository",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 88,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 662,
+          "kind": "attr:okButtonText",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 663,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Create Repository",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 88,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 662,
+          "kind": "attr:okButtonText",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 663,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Default branch",
+      "area": "ui-branches",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/branches/branch-list.tsx",
+          "line": 390,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/git.tsx",
+          "line": 148,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Default Branch",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 19,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/branches/branch-list.tsx",
+          "line": 390,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 19,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Delete",
+      "area": "ui-delete-branch",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/delete-branch/delete-branch-dialog.tsx",
+          "line": 62,
+          "kind": "attr:okButtonText",
+          "section": "delete-branch",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/delete-branch/delete-remote-branch-dialog.tsx",
+          "line": 59,
+          "kind": "attr:okButtonText",
+          "section": "delete-branch",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/delete-branch/delete-pull-request-dialog.tsx",
+          "line": 43,
+          "kind": "attr:okButtonText",
+          "section": "delete-branch",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/delete-tag/delete-tag-dialog.tsx",
+          "line": 52,
+          "kind": "attr:okButtonText",
+          "section": "delete-tag",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/worktrees/delete-worktree-dialog.tsx",
+          "line": 70,
+          "kind": "attr:okButtonText",
+          "section": "worktrees",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Description",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/commit-message.tsx",
+          "line": 1809,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/commit-message.tsx",
+          "line": 1823,
+          "kind": "attr:placeholder",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 633,
+          "kind": "attr:label",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish-repository.tsx",
+          "line": 174,
+          "kind": "attr:label",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Discard all changes…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 428,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 558,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 428,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Discard All Changes…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 428,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 558,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 428,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Do not show this message again",
+      "area": "ui-discard-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/discard-changes/discard-changes-dialog.tsx",
+          "line": 115,
+          "kind": "attr:label",
+          "section": "discard-changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/stashing/confirm-discard-stash.tsx",
+          "line": 59,
+          "kind": "attr:label",
+          "section": "stashing",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/checkout/confirm-checkout-commit.tsx",
+          "line": 61,
+          "kind": "attr:label",
+          "section": "checkout",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/discard-changes/discard-selection-dialog.tsx",
+          "line": 91,
+          "kind": "attr:label",
+          "section": "discard-changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/move-to-applications-folder.tsx",
+          "line": 57,
+          "kind": "attr:label",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/warn-force-push-dialog.tsx",
+          "line": 69,
+          "kind": "attr:label",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/undo/warn-local-changes-before-undo.tsx",
+          "line": 75,
+          "kind": "attr:label",
+          "section": "undo",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/rebase/confirm-force-push.tsx",
+          "line": 54,
+          "kind": "attr:label",
+          "section": "rebase",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/discard-changes/discard-changes-retry-dialog.tsx",
+          "line": 69,
+          "kind": "attr:label",
+          "section": "discard-changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/confirm-commit-filtered-changes-dialog.tsx",
+          "line": 55,
+          "kind": "attr:label",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/generate-commit-message/generate-commit-message-override-warning.tsx",
+          "line": 76,
+          "kind": "attr:label",
+          "section": "generate-commit-message",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/worktrees/delete-worktree-dialog.tsx",
+          "line": 60,
+          "kind": "attr:label",
+          "section": "worktrees",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Enterprise address",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/enterprise-server-entry.tsx",
+          "line": 57,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/sign-in/sign-in.tsx",
+          "line": 173,
+          "kind": "attr:label",
+          "section": "sign-in",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Expand",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/expandable-commit-summary.tsx",
+          "line": 223,
+          "kind": "attr:tooltip",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-changes.tsx",
+          "line": 361,
+          "kind": "attr:tooltip",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Failed",
+      "area": "ui-check-runs",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/check-runs/ci-check-run-rerun-dialog.tsx",
+          "line": 212,
+          "kind": "darwin",
+          "section": "check-runs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/hook-failed/hook-failed.tsx",
+          "line": 18,
+          "kind": "darwin",
+          "section": "hook-failed",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Fetch",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 332,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/push-needs-pull/push-needs-pull-warning.tsx",
+          "line": 53,
+          "kind": "attr:okButtonText",
+          "section": "push-needs-pull",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 332,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "File does not exist on disk",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/selected-commits.tsx",
+          "line": 389,
+          "kind": "darwin",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/open-pull-request/pull-request-files-changed.tsx",
+          "line": 167,
+          "kind": "darwin",
+          "section": "open-pull-request",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "File Does Not Exist on Disk",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/selected-commits.tsx",
+          "line": 389,
+          "kind": "darwin",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/open-pull-request/pull-request-files-changed.tsx",
+          "line": 167,
+          "kind": "darwin",
+          "section": "open-pull-request",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Filter",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/section-filter-list.tsx",
+          "line": 284,
+          "kind": "attr:placeholder",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/augmented-filter-list.tsx",
+          "line": 341,
+          "kind": "attr:placeholder",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 1306,
+          "kind": "attr:placeholder",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Full Name:",
+      "area": "ui-repositories-list",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repositories-list/repositories-list.tsx",
+          "line": 210,
+          "kind": "text",
+          "section": "repositories-list",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/branch-list.tsx",
+          "line": 342,
+          "kind": "text",
+          "section": "branches",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Git LFS",
+      "area": "ui-lfs",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lfs/initialize-lfs.tsx",
+          "line": 65,
+          "kind": "text",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lfs/initialize-lfs.tsx",
+          "line": 79,
+          "kind": "text",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/oversized-files-warning.tsx",
+          "line": 48,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "GitHub Enterprise",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/accounts.tsx",
+          "line": 42,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 277,
+          "kind": "text",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 157,
+          "kind": "text",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "GitHub.com",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/accounts.tsx",
+          "line": 37,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 276,
+          "kind": "text",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 156,
+          "kind": "text",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Ignore",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/commit-message-avatar.tsx",
+          "line": 320,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/upstream-already-exists/upstream-already-exists.tsx",
+          "line": 70,
+          "kind": "attr:cancelButtonText",
+          "section": "upstream-already-exists",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Learn more about commit attribution",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/commit-message-avatar.tsx",
+          "line": 348,
+          "kind": "attr:ariaLabel",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/git-email-not-found-warning.tsx",
+          "line": 33,
+          "kind": "attr:ariaLabel",
+          "section": "lib",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "License and Open Source Notices",
+      "area": "ui-about",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/about/about.tsx",
+          "line": 296,
+          "kind": "text",
+          "section": "about",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/acknowledgements/acknowledgements.tsx",
+          "line": 118,
+          "kind": "attr:title",
+          "section": "acknowledgements",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Local path",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 236,
+          "kind": "attr:label",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 236,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 197,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 198,
+          "kind": "darwin",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 55,
+          "kind": "attr:label",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 55,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 123,
+          "kind": "attr:label",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Local Path",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 236,
+          "kind": "attr:label",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 236,
+          "kind": "darwin",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 197,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 198,
+          "kind": "darwin",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 55,
+          "kind": "attr:label",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 55,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 123,
+          "kind": "attr:label",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Make sure notifications are",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/notifications.tsx",
+          "line": 141,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/test-notifications/test-notifications.tsx",
+          "line": 236,
+          "kind": "text",
+          "section": "test-notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Models",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/copilot.tsx",
+          "line": 137,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-provider-dialog.tsx",
+          "line": 289,
+          "kind": "text",
+          "section": "copilot",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Name",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/git-config-user-form.tsx",
+          "line": 149,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/rename-branch/rename-branch-dialog.tsx",
+          "line": 77,
+          "kind": "attr:label",
+          "section": "rename-branch",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/configure-git-user.tsx",
+          "line": 279,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-provider-dialog.tsx",
+          "line": 184,
+          "kind": "attr:label",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 185,
+          "kind": "attr:label",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/create-branch/create-branch-dialog.tsx",
+          "line": 240,
+          "kind": "attr:label",
+          "section": "create-branch",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish-repository.tsx",
+          "line": 164,
+          "kind": "attr:label",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/create-tag/create-tag-dialog.tsx",
+          "line": 69,
+          "kind": "attr:label",
+          "section": "create-tag",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/worktrees/rename-worktree-dialog.tsx",
+          "line": 76,
+          "kind": "attr:label",
+          "section": "worktrees",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "New",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/commit-message.tsx",
+          "line": 1050,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/conflicts-dialog.tsx",
+          "line": 307,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "New branch",
+      "area": "ui-branches",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/branches/branch-list.tsx",
+          "line": 413,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/branches-container.tsx",
+          "line": 317,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/tutorial/tutorial-panel.tsx",
+          "line": 173,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "New Branch",
+      "area": "ui-branches",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/branches/branch-list.tsx",
+          "line": 413,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/branches-container.tsx",
+          "line": 317,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/tutorial/tutorial-panel.tsx",
+          "line": 173,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "New worktree…",
+      "area": "ui-context-menus",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repositories-list/repository-list-item-context-menu.ts",
+          "line": 134,
+          "kind": "darwin",
+          "section": "repositories-list",
+          "target": "renderer-ipc"
+        },
+        {
+          "file": "app/src/ui/toolbar/worktree-dropdown.tsx",
+          "line": 105,
+          "kind": "darwin",
+          "section": "toolbar",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "New Worktree…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 393,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/repositories-list/repository-list-item-context-menu.ts",
+          "line": 134,
+          "kind": "darwin",
+          "section": "repositories-list",
+          "target": "renderer-ipc"
+        },
+        {
+          "file": "app/src/ui/toolbar/worktree-dropdown.tsx",
+          "line": 105,
+          "kind": "darwin",
+          "section": "toolbar",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 393,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "None",
+      "area": "ui-copilot",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/copilot/edit-byok-provider-dialog.tsx",
+          "line": 261,
+          "kind": "text",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish-repository.tsx",
+          "line": 118,
+          "kind": "text",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Not Now",
+      "area": "ui-lfs",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lfs/initialize-lfs.tsx",
+          "line": 47,
+          "kind": "attr:cancelButtonText",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lfs/initialize-lfs.tsx",
+          "line": 47,
+          "kind": "darwin",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lfs/attribute-mismatch.tsx",
+          "line": 45,
+          "kind": "attr:cancelButtonText",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lfs/attribute-mismatch.tsx",
+          "line": 45,
+          "kind": "darwin",
+          "section": "lfs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/move-to-applications-folder.tsx",
+          "line": 78,
+          "kind": "attr:cancelButtonText",
+          "section": "root",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Notifications Settings",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/notifications.tsx",
+          "line": 127,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/notifications.tsx",
+          "line": 143,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/test-notifications/test-notifications.tsx",
+          "line": 223,
+          "kind": "text",
+          "section": "test-notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/test-notifications/test-notifications.tsx",
+          "line": 238,
+          "kind": "text",
+          "section": "test-notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open in browser",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 79,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-review.tsx",
+          "line": 128,
+          "kind": "const",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-review.tsx",
+          "line": 128,
+          "kind": "darwin",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-comment.tsx",
+          "line": 123,
+          "kind": "const",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-comment.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open in Browser",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/done.tsx",
+          "line": 79,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-review.tsx",
+          "line": 128,
+          "kind": "const",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-review.tsx",
+          "line": 128,
+          "kind": "darwin",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-comment.tsx",
+          "line": 123,
+          "kind": "const",
+          "section": "notifications",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-comment.tsx",
+          "line": 123,
+          "kind": "darwin",
+          "section": "notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open options",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/app-error.tsx",
+          "line": 277,
+          "kind": "attr:cancelButtonText",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/app-error.tsx",
+          "line": 277,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 66,
+          "kind": "attr:cancelButtonText",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 66,
+          "kind": "darwin",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/shell/shell-error.tsx",
+          "line": 57,
+          "kind": "attr:cancelButtonText",
+          "section": "shell",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/shell/shell-error.tsx",
+          "line": 57,
+          "kind": "darwin",
+          "section": "shell",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open Preferences",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/app-error.tsx",
+          "line": 277,
+          "kind": "attr:cancelButtonText",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/app-error.tsx",
+          "line": 277,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 66,
+          "kind": "attr:cancelButtonText",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/editor/editor-error.tsx",
+          "line": 66,
+          "kind": "darwin",
+          "section": "editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/shell/shell-error.tsx",
+          "line": 57,
+          "kind": "attr:cancelButtonText",
+          "section": "shell",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/shell/shell-error.tsx",
+          "line": 57,
+          "kind": "darwin",
+          "section": "shell",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open repository",
+      "area": "ui-diff",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/diff/submodule-diff.tsx",
+          "line": 201,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/cli-action/test-cli-action-dialog.tsx",
+          "line": 71,
+          "kind": "text",
+          "section": "cli-action",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Open With…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 376,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/open-with-external-editor/open-with-external-editor.tsx",
+          "line": 151,
+          "kind": "darwin",
+          "section": "open-with-external-editor",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 376,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Options",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/lib/editors/lookup.ts",
+          "line": 60,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/editors/launch.ts",
+          "line": 17,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/shells/shared.ts",
+          "line": 98,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/shells/shared.ts",
+          "line": 135,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/diff/diff-options.tsx",
+          "line": 85,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/diff/diff-options.tsx",
+          "line": 112,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/no-changes.tsx",
+          "line": 331,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/preferences.tsx",
+          "line": 351,
+          "kind": "attr:title",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/preferences.tsx",
+          "line": 351,
+          "kind": "darwin",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/test-ui-components/test-ui-components.ts",
+          "line": 117,
+          "kind": "darwin",
+          "section": "lib",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Path",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/custom-integration-form.tsx",
+          "line": 72,
+          "kind": "attr:label",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/cli-action/test-cli-action-dialog.tsx",
+          "line": 95,
+          "kind": "attr:label",
+          "section": "cli-action",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Press",
+      "area": "ui-window",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/window/full-screen-info.tsx",
+          "line": 156,
+          "kind": "text",
+          "section": "window",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/history/commit-list.tsx",
+          "line": 660,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "ProTip! Press",
+      "area": "ui-repositories-list",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repositories-list/repositories-list.tsx",
+          "line": 400,
+          "kind": "text",
+          "section": "repositories-list",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/no-branches.tsx",
+          "line": 42,
+          "kind": "text",
+          "section": "branches",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Publish branch",
+      "area": "ui-toolbar",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/toolbar/push-pull-button.tsx",
+          "line": 549,
+          "kind": "attr:title",
+          "section": "toolbar",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/toolbar/push-pull-button.tsx",
+          "line": 577,
+          "kind": "attr:title",
+          "section": "toolbar",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/push-branch-commits.tsx",
+          "line": 141,
+          "kind": "attr:okButtonText",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/push-branch-commits.tsx",
+          "line": 141,
+          "kind": "darwin",
+          "section": "branches",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Publish repository",
+      "area": "ui-toolbar",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/toolbar/push-pull-button.tsx",
+          "line": 531,
+          "kind": "attr:title",
+          "section": "toolbar",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 146,
+          "kind": "attr:title",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 146,
+          "kind": "darwin",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 310,
+          "kind": "attr:okButtonText",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 311,
+          "kind": "darwin",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "README.md",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/tutorial-panel.tsx",
+          "line": 193,
+          "kind": "text",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/create-repository.tsx",
+          "line": 557,
+          "kind": "text",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Remove",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 21,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 21,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/copilot/confirm-delete-byok-provider-dialog.tsx",
+          "line": 40,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/confirm-delete-byok-provider-dialog.tsx",
+          "line": 40,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/confirm-delete-byok-provider-dialog.tsx",
+          "line": 40,
+          "kind": "darwin",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/confirm-delete-byok-provider-dialog.tsx",
+          "line": 40,
+          "kind": "darwin",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/missing-repository.tsx",
+          "line": 107,
+          "kind": "text",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/remove-repository/confirm-remove-repository.tsx",
+          "line": 92,
+          "kind": "attr:okButtonText",
+          "section": "remove-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 21,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 21,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Repository",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 315,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/lib/stores/app-store.ts",
+          "line": 4667,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 315,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "repository path",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 237,
+          "kind": "attr:placeholder",
+          "section": "add-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-generic-repository.tsx",
+          "line": 56,
+          "kind": "attr:placeholder",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-github-repository.tsx",
+          "line": 124,
+          "kind": "attr:placeholder",
+          "section": "clone-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Save",
+      "area": "ui-repository-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/repository-settings/repository-settings.tsx",
+          "line": 210,
+          "kind": "attr:okButtonText",
+          "section": "repository-settings",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/preferences.tsx",
+          "line": 944,
+          "kind": "attr:okButtonText",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-provider-dialog.tsx",
+          "line": 172,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/copilot/edit-byok-model-dialog.tsx",
+          "line": 124,
+          "kind": "attr:okButtonText",
+          "section": "copilot",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Select All",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 165,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/diff/side-by-side-diff.tsx",
+          "line": 1428,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 165,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Settings",
+      "area": "ui",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/lib/editors/lookup.ts",
+          "line": 60,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/editors/launch.ts",
+          "line": 17,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/shells/shared.ts",
+          "line": 98,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/lib/shells/shared.ts",
+          "line": 135,
+          "kind": "darwin",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/diff/diff-options.tsx",
+          "line": 85,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/diff/diff-options.tsx",
+          "line": 112,
+          "kind": "darwin",
+          "section": "diff",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/no-changes.tsx",
+          "line": 331,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/tutorial/tutorial-panel.tsx",
+          "line": 157,
+          "kind": "darwin",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/preferences.tsx",
+          "line": 351,
+          "kind": "attr:title",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/preferences.tsx",
+          "line": 351,
+          "kind": "darwin",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/test-ui-components/test-ui-components.ts",
+          "line": 117,
+          "kind": "darwin",
+          "section": "lib",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Show in your File Manager",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 358,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/lib/context-menu.ts",
+          "line": 22,
+          "kind": "const",
+          "section": "lib",
+          "target": "renderer-ipc"
+        },
+        {
+          "file": "app/src/ui/lib/context-menu.ts",
+          "line": 22,
+          "kind": "darwin",
+          "section": "lib",
+          "target": "renderer-ipc"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 358,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Sign in",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 519,
+          "kind": "const",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 519,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/sign-in/sign-in.tsx",
+          "line": 35,
+          "kind": "const",
+          "section": "sign-in",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 274,
+          "kind": "const",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 274,
+          "kind": "darwin",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Sign In",
+      "area": "ui-clone-add",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 519,
+          "kind": "const",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 519,
+          "kind": "darwin",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 274,
+          "kind": "const",
+          "section": "publish-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 274,
+          "kind": "darwin",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Sign in to your GitHub.com account to access your repositories.",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/accounts.tsx",
+          "line": 130,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/clone-repository/clone-repository.tsx",
+          "line": 525,
+          "kind": "text",
+          "section": "clone-repository",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish.tsx",
+          "line": 280,
+          "kind": "text",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Sign in using your browser",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/authentication-form.tsx",
+          "line": 50,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/sign-in/sign-in.tsx",
+          "line": 31,
+          "kind": "const",
+          "section": "sign-in",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/sign-in/sign-in.tsx",
+          "line": 31,
+          "kind": "darwin",
+          "section": "sign-in",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Stand By",
+      "area": "ui-check-runs",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/check-runs/ci-check-run-popover.tsx",
+          "line": 229,
+          "kind": "text",
+          "section": "check-runs",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/notifications/pull-request-checks-failed.tsx",
+          "line": 244,
+          "kind": "text",
+          "section": "notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Stash All Changes",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 25,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 25,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 549,
+          "kind": "const",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 549,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 25,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 25,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Stash All Changes…",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 22,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 22,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 552,
+          "kind": "const",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 552,
+          "kind": "darwin",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 22,
+          "kind": "const",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 22,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Summary",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/commit-message.tsx",
+          "line": 1784,
+          "kind": "attr:label",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/dialog/copilot-conflicts-dialog.tsx",
+          "line": 477,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "The",
+      "area": "ui-discard-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/discard-changes/discard-changes-retry-dialog.tsx",
+          "line": 53,
+          "kind": "text",
+          "section": "discard-changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/hook-failed/hook-failed.tsx",
+          "line": 44,
+          "kind": "text",
+          "section": "hook-failed",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "There will be",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/merge-call-to-action-with-conflicts.tsx",
+          "line": 313,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/choose-branch/merge-choose-branch-dialog.tsx",
+          "line": 222,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "This will merge",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/merge-call-to-action-with-conflicts.tsx",
+          "line": 279,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/choose-branch/merge-choose-branch-dialog.tsx",
+          "line": 196,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "This will update",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/merge-call-to-action-with-conflicts.tsx",
+          "line": 268,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/choose-branch/rebase-choose-branch-dialog.tsx",
+          "line": 182,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Unable to merge unrelated histories in this repository",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/merge-call-to-action-with-conflicts.tsx",
+          "line": 300,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/choose-branch/merge-choose-branch-dialog.tsx",
+          "line": 209,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Unable to start rebase. Check you have chosen a valid branch.",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/merge-call-to-action-with-conflicts.tsx",
+          "line": 293,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/multi-commit-operation/choose-branch/rebase-choose-branch-dialog.tsx",
+          "line": 155,
+          "kind": "text",
+          "section": "multi-commit-operation",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Undo",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 158,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/changes/undo-commit.tsx",
+          "line": 56,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/banners/success-banner.tsx",
+          "line": 28,
+          "kind": "text",
+          "section": "banners",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/lib/conflicts/unmerged-file.tsx",
+          "line": 164,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 158,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Undo commit",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/undo-commit.tsx",
+          "line": 37,
+          "kind": "attr:aria-label",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/prompts.tsx",
+          "line": 296,
+          "kind": "attr:label",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/undo/warn-local-changes-before-undo.tsx",
+          "line": 41,
+          "kind": "darwin",
+          "section": "undo",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Use",
+      "area": "ui-history",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/history/commit-list.tsx",
+          "line": 655,
+          "kind": "text",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/preferences/advanced.tsx",
+          "line": 144,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "View on GitHub",
+      "area": "menu",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 345,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        },
+        {
+          "file": "app/src/ui/pull-request-quick-view.tsx",
+          "line": 174,
+          "kind": "text",
+          "section": "root",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/history/commit-list.tsx",
+          "line": 742,
+          "kind": "const",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/history/selected-commits.tsx",
+          "line": 433,
+          "kind": "const",
+          "section": "history",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/main-process/menu/build-default-menu.ts",
+          "line": 345,
+          "kind": "darwin",
+          "section": "root",
+          "target": "main"
+        }
+      ]
+    },
+    {
+      "text": "Warning:",
+      "area": "ui-changes",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/changes/filter-changes-list.tsx",
+          "line": 1414,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/toolbar/push-pull-button-dropdown.tsx",
+          "line": 83,
+          "kind": "text",
+          "section": "toolbar",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Welcome to GitHub Desktop",
+      "area": "ui-welcome-tutorial",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/tutorial/welcome.tsx",
+          "line": 20,
+          "kind": "text",
+          "section": "tutorial",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/welcome/start.tsx",
+          "line": 31,
+          "kind": "attr:aria-label",
+          "section": "welcome",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Will be created as",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/repository-path.tsx",
+          "line": 169,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/publish-repository/publish-repository.tsx",
+          "line": 205,
+          "kind": "text",
+          "section": "publish-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "Would you like to",
+      "area": "ui-branches",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/branches/no-pull-requests.tsx",
+          "line": 72,
+          "kind": "text",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/branches/no-pull-requests.tsx",
+          "line": 82,
+          "kind": "text",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/add-repository/add-existing-repository.tsx",
+          "line": 185,
+          "kind": "text",
+          "section": "add-repository",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "You have",
+      "area": "ui-branches",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/branches/push-branch-commits.tsx",
+          "line": 119,
+          "kind": "text",
+          "section": "branches",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/changes/no-changes.tsx",
+          "line": 418,
+          "kind": "text",
+          "section": "changes",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "You need to",
+      "area": "ui-settings",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/preferences/notifications.tsx",
+          "line": 106,
+          "kind": "text",
+          "section": "preferences",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/test-notifications/test-notifications.tsx",
+          "line": 202,
+          "kind": "text",
+          "section": "test-notifications",
+          "target": "renderer"
+        }
+      ]
+    },
+    {
+      "text": "You're already signed in to",
+      "area": "ui-lib",
+      "ambiguous": true,
+      "locations": [
+        {
+          "file": "app/src/ui/lib/sign-in.tsx",
+          "line": 39,
+          "kind": "text",
+          "section": "lib",
+          "target": "renderer"
+        },
+        {
+          "file": "app/src/ui/sign-in/sign-in.tsx",
+          "line": 158,
+          "kind": "text",
+          "section": "sign-in",
+          "target": "renderer"
+        }
+      ]
+    }
+  ]
+}

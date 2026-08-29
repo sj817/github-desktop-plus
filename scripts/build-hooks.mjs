@@ -51,6 +51,14 @@ const jobs = [
 		target: 'chrome120',
 	},
 	{
+		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'open-with.ts'),
+		outfile: resolve(outDir, 'preload', 'open-with.js'),
+		platform: 'browser',
+		format: 'iife',
+		target: 'chrome120',
+		external: ['electron'],
+	},
+	{
 		entry: resolve(rootDir, 'src', 'hooks', 'preload', 'gdp-dialog', 'index.ts'),
 		outfile: resolve(outDir, 'preload', 'gdp-dialog.js'),
 		platform: 'browser',

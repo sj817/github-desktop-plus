@@ -18,6 +18,27 @@ pub struct Config {
     pub ui: UiConfig,
     #[serde(default)]
     pub ai: AiConfig,
+    #[serde(default)]
+    pub open_with: OpenWithConfig,
+    #[serde(default)]
+    pub copilot: CopilotConfig,
+}
+
+/// GitHub Desktop 3.6 can drive any OpenAI-compatible endpoint through its own
+/// "bring your own key" providers, but keeps the commit-message UI behind a
+/// Copilot entitlement check. Unlocking rewrites that client-side check so the
+/// native BYOK path becomes reachable; it does not grant access to GitHub's
+/// hosted models, which stay authorised server-side.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CopilotConfig {
+    #[serde(default = "default_true")]
+    pub unlock: bool,
+}
+
+impl Default for CopilotConfig {
+    fn default() -> Self {
+        Self { unlock: true }
+    }
 }
 
 /// AI commit-message generation.
@@ -69,6 +90,53 @@ impl Default for AiConfig {
             fallback_to_copilot: true,
         }
     }
+}
+
+/// User-defined "open with" targets injected into GitHub Desktop's repository
+/// context menu. GitHub Desktop only ever shows ONE editor and ONE shell (the
+/// ones picked in its own settings); these entries add as many as the user
+/// wants, listed alongside the native ones.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenWithConfig {
+    /// Collapse every entry into a single "打开方式 ▸" submenu instead of
+    /// listing them inline.
+    #[serde(default)]
+    pub submenu: bool,
+    #[serde(default)]
+    pub items: Vec<OpenWithItem>,
+}
+
+impl Default for OpenWithConfig {
+    fn default() -> Self {
+        Self {
+            submenu: false,
+            items: Vec::new(),
+        }
+    }
+}
+
+/// One launchable target. `args` is a command line whose `%TARGET_PATH%`
+/// placeholders are replaced with the repository path (same convention as
+/// GitHub Desktop's own custom-integration setting).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OpenWithItem {
+    pub id: String,
+    pub label: String,
+    pub path: String,
+    #[serde(default)]
+    pub args: String,
+    /// "editor" or "shell" — decides which native entry it sits next to.
+    #[serde(default = "default_open_with_group")]
+    pub group: String,
+    /// Launch through the shell's `start` so console programs get a window.
+    #[serde(default)]
+    pub console: bool,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+}
+
+fn default_open_with_group() -> String {
+    "editor".to_string()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -165,6 +233,8 @@ impl Default for Config {
             desktop: DesktopConfig::default(),
             ui: UiConfig::default(),
             ai: AiConfig::default(),
+            open_with: OpenWithConfig::default(),
+            copilot: CopilotConfig::default(),
         }
     }
 }
@@ -277,6 +347,22 @@ mod tests {
         assert!(c.updates.block_manual_check);
         assert!(!c.ai.enabled);
         assert_eq!(c.ai.base_url, "https://api.openai.com/v1");
+    }
+
+    #[test]
+    fn open_with_defaults_and_roundtrip() {
+        let c: Config = serde_json::from_str("{}").expect("parse {}");
+        assert!(!c.open_with.submenu);
+        assert!(c.copilot.unlock);
+        assert!(c.open_with.items.is_empty());
+
+        // Only the three required fields — everything else falls back.
+        let json = r#"{"open_with":{"items":[{"id":"zed","label":"Zed","path":"/usr/bin/zed"}]}}"#;
+        let c: Config = serde_json::from_str(json).expect("parse items");
+        assert_eq!(c.open_with.items.len(), 1);
+        assert_eq!(c.open_with.items[0].group, "editor");
+        assert!(c.open_with.items[0].enabled);
+        assert!(!c.open_with.items[0].console);
     }
 
     #[test]

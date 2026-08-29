@@ -19,6 +19,7 @@ export function buildGeneralTab(cfg: StoredConfig, ipc: IpcRenderer): HTMLElemen
   const i18nOn = cfg.i18n?.enabled !== false
   const currentLocale = cfg.i18n?.locale ?? 'zh-CN'
   const telemetryBlocked = cfg.telemetry?.disabled !== false
+  const copilotUnlocked = cfg.copilot?.unlock !== false
   const logLevel = cfg.logging?.level ?? ''
 
   const levelButtons = LOG_LEVELS.map(
@@ -53,6 +54,20 @@ export function buildGeneralTab(cfg: StoredConfig, ipc: IpcRenderer): HTMLElemen
           <input type="range" id="gdp-recent-repos-limit" min="1" max="30" value="${limit}">
           <span class="gdp-range-value" id="gdp-recent-repos-limit-display">${limit}</span>
         </div>
+      </div>
+    </section>
+
+    <div class="gdp-group-label">Copilot</div>
+    <section class="gdp-card">
+      <div class="gdp-row">
+        <div class="gdp-row-text">
+          <span class="gdp-row-label">解锁提交信息生成</span>
+          <span class="gdp-row-desc">
+            改写 GitHub Desktop 的订阅判断，让「选项 → Copilot → 提供方」里配置的自定义端点可用。
+            不会解锁 GitHub 自家模型（那部分由服务端鉴权）。改动后需重启生效
+          </span>
+        </div>
+        ${sw('gdp-unlock-copilot', copilotUnlocked)}
       </div>
     </section>
 
@@ -151,6 +166,7 @@ export async function saveGeneralTab(container: HTMLElement, ipc: IpcRenderer): 
         current.i18n?.locale || 'zh-CN',
     },
     ui: { ...(current.ui ?? {}), recent_repos_limit: num('gdp-recent-repos-limit') },
+    copilot: { ...(current.copilot ?? {}), unlock: bool('gdp-unlock-copilot') },
   }
 
   // Drop stale flat keys written by older builds so config.json stays clean.

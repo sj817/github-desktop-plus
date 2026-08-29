@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "description": "worktrees 区域 UI 字符串（自动抽取）",
+    "target": "renderer",
+    "section": "worktrees"
+  },
+  "Are you sure you want to delete the worktree": "确定要删除工作树",
+  "Deleting the worktree": "正在删除工作树",
+  "Forcefully delete": "强制删除",
+  "No worktrees found": "未找到工作树",
+  "Will check out existing branch": "将检出现有分支",
+  "Will check out remote branch": "将检出远程分支",
+  "Worktree will be created at": "工作树将创建于",
+  "Would you like to forcefully delete the worktree": "是否强制删除工作树",
+  "Add worktree": "添加工作树",
+  "Create worktree": "创建工作树",
+  "Delete worktree": "删除工作树",
+  "Delete worktree failed": "删除工作树失败",
+  "Rename worktree": "重命名工作树",
+  "New worktree": "新建工作树",
+  "Worktree": "工作树",
+  "Worktree name": "工作树名称"
+}

@@ -2,16 +2,22 @@ import type { StoredConfig, IpcRenderer } from './types'
 import { icon, toast } from './components'
 import { buildGeneralTab, saveGeneralTab } from './tabs/general'
 import { buildAiTab, saveAiTab } from './tabs/ai'
+import { buildOpenWithTab, saveOpenWithTab } from './tabs/open-with'
 import { buildLogsTab, initLogsTab } from './tabs/logs'
 import { buildLocalesTab, initLocalesTab } from './tabs/locales'
 
 const PROJECT_URL = 'https://github.com/sj817/github-desktop-plus'
 
-const TABS = ['general', 'ai', 'locales', 'logs'] as const
+const TABS = ['general', 'open-with', 'ai', 'locales', 'logs'] as const
 type TabId = (typeof TABS)[number]
 
 const TAB_META: Record<TabId, { label: string; iconName: string; subtitle: string }> = {
   general: { label: '常规', iconName: 'general', subtitle: '界面语言、更新与隐私偏好' },
+  'open-with': {
+    label: '打开方式',
+    iconName: 'open-with',
+    subtitle: '右键仓库时可选的编辑器与终端',
+  },
   ai: { label: 'AI 提交', iconName: 'ai', subtitle: '用自定义模型生成提交信息' },
   locales: { label: '语言包', iconName: 'locales', subtitle: '导入、导出与管理翻译' },
   logs: { label: '日志', iconName: 'logs', subtitle: '实时运行诊断输出' },
@@ -167,8 +173,8 @@ export function buildDialog(): { dialog: HTMLDialogElement; state: DialogState }
   return { dialog, state }
 }
 
-// Persist every built form tab (general + ai), not just the visible one, so
-// edits made before switching tabs are never silently dropped. All settings
+// Persist every built form tab (general + AI + open-with), not just the visible
+// one, so edits made before switching tabs are never silently dropped. All settings
 // hot-apply; an i18n change additionally soft-reloads the window (main
 // process schedules it right after the save).
 async function saveAll(state: DialogState, saveBtn?: HTMLButtonElement | null): Promise<void> {
@@ -178,6 +184,8 @@ async function saveAll(state: DialogState, saveBtn?: HTMLButtonElement | null): 
     if (general) await saveGeneralTab(general, state.ipc)
     const ai = state.tabContents.ai
     if (ai) await saveAiTab(ai, state.ipc)
+    const openWith = state.tabContents['open-with']
+    if (openWith) await saveOpenWithTab(openWith, state.ipc)
     toast('设置已保存')
   } catch (e) {
     toast(`保存失败：${e}`, 'error')
@@ -200,6 +208,8 @@ async function switchTab(tab: TabId, state: DialogState): Promise<void> {
 
     if (tab === 'general') {
       state.tabContents[tab] = buildGeneralTab(cfg, state.ipc)
+    } else if (tab === 'open-with') {
+      state.tabContents[tab] = buildOpenWithTab(cfg, state.ipc)
     } else if (tab === 'ai') {
       state.tabContents[tab] = buildAiTab(cfg)
     } else if (tab === 'logs') {

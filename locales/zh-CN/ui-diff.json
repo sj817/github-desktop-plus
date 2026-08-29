@@ -72,5 +72,8 @@
   "untracked": "未追踪",
   "modified": "已修改",
   "Lines": "行",
-  "This submodule changed its commit from": "此子模块的提交已从"
+  "This submodule changed its commit from": "此子模块的提交已从",
+  "Git is configured to convert them": "",
+  "This file uses '": "",
+  "Removed": ""
 }

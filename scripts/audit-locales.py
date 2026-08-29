@@ -19,7 +19,9 @@ def tokens_are_proper(v):
 def walk(obj, path, out):
     if isinstance(obj, dict):
         for k,v in obj.items():
-            if k == "_meta": continue
+            # Metadata blocks, not translations: _aliases maps a canonical key
+            # to extra source strings, _overrides holds anchor-scoped variants.
+            if k in ("_meta", "_aliases", "_overrides"): continue
             walk(v, path+[k], out)
     elif isinstance(obj, list):
         for i,v in enumerate(obj):

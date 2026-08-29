@@ -97,5 +97,9 @@
   "Co-Authors ": "共同作者 ",
   "@username": "@用户名",
   "Co-Authors&nbsp;": "共同作者&nbsp;",
-  "Will be": "将会"
+  "Will be": "将会",
+  "Invalid characters have been replaced by hyphens.": "",
+  "No models found.": "",
+  "user not found": "",
+  "Terminal": ""
 }

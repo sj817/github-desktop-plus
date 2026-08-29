@@ -131,5 +131,21 @@
   "No models available. Check your Copilot subscription.": "没有可用的模型。请检查您的 Copilot 订阅。",
   "Prefer absolute dates over relative": "优先使用绝对日期而非相对日期",
   "Providers": "提供方",
-  "Tailor how Copilot behaves by using": "通过以下方式定制 Copilot 的行为："
+  "Tailor how Copilot behaves by using": "通过以下方式定制 Copilot 的行为：",
+  "AI credits per": "",
+  "Checking Copilot access…": "正在检查 Copilot 访问权限…",
+  "Model changes apply to future conflict resolutions.": "模型变更将应用于之后的冲突解决。",
+  "No Copilot models available.": "没有可用的 Copilot 模型。",
+  "Removing worktrees": "正在移除工作树",
+  "Show Copilot model credit costs": "显示 Copilot 模型的额度消耗",
+  "Show credit costs": "显示额度消耗",
+  "1 model": "1 个模型",
+  "Always use Copilot when conflicts are detected": "检测到冲突时始终使用 Copilot",
+  "Date format": "日期格式",
+  "Number format": "数字格式",
+  "Sign into": "",
+  "Time format": "时间格式",
+  "Add provider…": "添加提供方…",
+  "Commit message generation": "提交信息生成",
+  "Conflict resolution": "冲突解决"
 }

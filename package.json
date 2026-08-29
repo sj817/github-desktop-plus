@@ -17,6 +17,8 @@
     "check": "pnpm run locales:prepare && pnpm run build:hooks && cargo check --workspace",
     "build": "pnpm run locales:prepare && pnpm run build:hooks && cargo build --workspace --release",
     "dev": "node scripts/dev.mjs",
+    "test:open-with": "tsx scripts/test-open-with.ts",
+    "test:i18n": "tsx scripts/test-i18n-lookup.ts",
     "self-check:desktop": "pnpm run locales:prepare && pnpm run build:hooks && tsx scripts/self-check-desktop.ts"
   },
   "devDependencies": {

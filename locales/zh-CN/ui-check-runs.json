@@ -45,5 +45,7 @@
   "There is {n} check that cannot be re-run": "有 {n} 个检查无法重新运行",
   "There are {n} checks that cannot be re-run": "有 {n} 个检查无法重新运行",
   "There is {n} failed check that cannot be re-run": "有 {n} 个失败的检查无法重新运行",
-  "There are {n} failed checks that cannot be re-run": "有 {n} 个失败的检查无法重新运行"
+  "There are {n} failed checks that cannot be re-run": "有 {n} 个失败的检查无法重新运行",
+  "Failed": "",
+  "Single": ""
 }
