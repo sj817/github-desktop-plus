@@ -1,56 +1,77 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
-/**
- * Layout primitives every page is built from — a titled group of rows, and the
- * two row shapes: control-on-the-right for compact settings, stacked for inputs
- * that need the full width.
+/*
+ * Layout primitives every page is built from.
+ *
+ * The visual model is a document, not a dashboard: a section is a heading with
+ * a list of rows beneath it, and rows are separated by hairlines rather than
+ * wrapped in cards. Hierarchy comes from spacing and type weight.
  */
 
 export function SettingSection({
   title,
-  hint,
+  description,
   action,
   children,
   className,
 }: {
-  title: string
-  hint?: ReactNode
+  title: ReactNode
+  description?: ReactNode
   action?: ReactNode
   children: ReactNode
   className?: string
 }) {
   return (
-    <section className={cn('mb-5', className)}>
-      <header className="mb-1.5 flex items-baseline gap-2 px-0.5">
-        <h2 className="text-[12px] font-semibold tracking-wide text-fg-muted">{title}</h2>
-        {hint ? <span className="text-[11.5px] text-fg-subtle">{hint}</span> : null}
-        {action ? <div className="ml-auto">{action}</div> : null}
-      </header>
-      <div className="divide-y divide-line-soft overflow-hidden rounded-lg border border-line bg-surface-alt">
+    <section className={cn('mb-6 last:mb-0 space-y-2.5', className)}>
+      {(title || description || action) ? (
+        <header className="flex items-center justify-between gap-3 px-1.5">
+          <div className="min-w-0 flex-1">
+            {title ? (
+              <h2 className="text-[13px] leading-5 font-semibold text-fg tracking-normal">
+                {title}
+              </h2>
+            ) : null}
+            {description ? (
+              <p className="text-[12px] leading-normal text-fg-muted mt-0.5">{description}</p>
+            ) : null}
+          </div>
+          {action ? <div className="flex shrink-0 items-center gap-1.5">{action}</div> : null}
+        </header>
+      ) : null}
+      <div className="rounded-2xl border border-line/70 bg-elevated shadow-xs divide-y divide-line/60 overflow-hidden">
         {children}
       </div>
     </section>
   )
 }
 
+/** A compact setting: label and description on the left, control on the right. */
 export function SettingItem({
   title,
   description,
   children,
   className,
+  align = 'center',
 }: {
   title: ReactNode
   description?: ReactNode
   children?: ReactNode
   className?: string
+  align?: 'center' | 'start'
 }) {
   return (
-    <div className={cn('flex items-center justify-between gap-4 px-3.5 py-2.5', className)}>
-      <div className="min-w-0">
-        <div className="text-[13px] leading-tight font-medium text-fg">{title}</div>
+    <div
+      className={cn(
+        'flex gap-6 px-4.5 py-4 transition-colors duration-150 hover:bg-hover/20',
+        align === 'center' ? 'items-center' : 'items-start',
+        className
+      )}
+    >
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] leading-snug font-medium text-fg">{title}</div>
         {description ? (
-          <p className="mt-1 text-[12px] leading-snug text-fg-muted">{description}</p>
+          <p className="mt-1 text-[12px] leading-relaxed text-fg-muted">{description}</p>
         ) : null}
       </div>
       {children ? <div className="flex shrink-0 items-center gap-2">{children}</div> : null}
@@ -58,59 +79,101 @@ export function SettingItem({
   )
 }
 
+/** A stacked setting for inputs that need the full width. */
 export function SettingField({
   label,
   hint,
   htmlFor,
+  trailing,
   children,
   className,
 }: {
   label: ReactNode
   hint?: ReactNode
   htmlFor?: string
+  trailing?: ReactNode
   children: ReactNode
   className?: string
 }) {
   return (
-    <div className={cn('px-3.5 py-2.5', className)}>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 flex items-baseline gap-2 text-[12.5px] font-medium text-fg"
-      >
-        {label}
-        {hint ? <span className="text-[11.5px] font-normal text-fg-subtle">{hint}</span> : null}
-      </label>
+    <div className={cn('px-4 py-3.5 flex flex-col gap-2 transition-colors duration-150 hover:bg-hover/20', className)}>
+      <div className="flex items-center gap-2">
+        <label htmlFor={htmlFor} className="text-[12.5px] leading-5 font-medium text-fg">
+          {label}
+        </label>
+        {hint ? <span className="text-[11.5px] text-fg-subtle">{hint}</span> : null}
+        {trailing ? <div className="ml-auto flex items-center gap-1.5">{trailing}</div> : null}
+      </div>
       {children}
     </div>
   )
 }
 
-export function EmptyState({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
-  return (
-    <div className="flex flex-col items-center gap-2 px-4 py-8 text-center text-[12.5px] text-fg-subtle">
-      {icon ? <div className="opacity-40">{icon}</div> : null}
-      <span>{children}</span>
-    </div>
-  )
-}
-
-export function Badge({
+export function EmptyState({
+  icon,
+  title,
   children,
-  tone = 'neutral',
+  action,
+  className,
 }: {
-  children: ReactNode
-  tone?: 'neutral' | 'accent'
+  icon?: ReactNode
+  title?: ReactNode
+  children?: ReactNode
+  action?: ReactNode
+  className?: string
 }) {
   return (
-    <span
+    <div
       className={cn(
-        'inline-flex items-center rounded-full border px-1.5 py-px text-[11px] leading-4',
-        tone === 'accent'
-          ? 'border-accent/30 bg-accent-soft text-accent'
-          : 'border-line bg-surface text-fg-muted'
+        'flex flex-col items-center justify-center gap-1 px-6 py-10 text-center font-sans',
+        className
       )}
     >
-      {children}
-    </span>
+      {icon ? (
+        <div className="mb-2 grid size-10 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--gdp-fg)_6%,transparent)] text-fg-subtle [&_svg]:size-5">
+          {icon}
+        </div>
+      ) : null}
+      {title ? <div className="text-[13px] font-medium text-fg">{title}</div> : null}
+      {children ? (
+        <p className="max-w-72 text-[12px] leading-[18px] text-fg-subtle">{children}</p>
+      ) : null}
+      {action ? <div className="mt-3">{action}</div> : null}
+    </div>
   )
 }
+
+/** A quiet inline note — used for status, caveats and hints beneath a group. */
+export function Note({
+  children,
+  tone = 'neutral',
+  icon,
+  className,
+}: {
+  children: ReactNode
+  tone?: 'neutral' | 'success' | 'danger' | 'warn' | 'accent'
+  icon?: ReactNode
+  className?: string
+}) {
+  const toneClass = {
+    neutral: 'text-fg-subtle',
+    success: 'text-success',
+    danger: 'text-danger',
+    warn: 'text-warn',
+    accent: 'text-accent',
+  }[tone]
+  return (
+    <div
+      className={cn(
+        'flex items-start gap-1.5 text-[12px] leading-[18px] [&_svg]:mt-[3px] [&_svg]:size-3',
+        toneClass,
+        className
+      )}
+    >
+      {icon}
+      <span className="min-w-0 break-words">{children}</span>
+    </div>
+  )
+}
+
+export { Badge } from '@/components/ui/badge'

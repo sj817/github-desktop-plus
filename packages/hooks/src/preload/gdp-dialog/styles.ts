@@ -25,34 +25,32 @@ export function injectShellStyles(): void {
     }
 
     #gdp-settings-dialog::backdrop {
-      background: rgba(10, 12, 16, 0.45);
-      backdrop-filter: blur(4px);
+      background: rgba(0, 0, 0, 0.45);
     }
 
-    #gdp-settings-dialog[open]::backdrop { animation: gdp-shell-fade 0.22s ease both; }
+    #gdp-settings-dialog[open]::backdrop { animation: gdp-shell-fade 0.18s ease both; }
     #gdp-settings-dialog[open] .gdp-shell {
-      animation: gdp-shell-pop 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+      animation: gdp-shell-pop 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
     @keyframes gdp-shell-fade { from { opacity: 0; } to { opacity: 1; } }
     @keyframes gdp-shell-pop {
-      from { opacity: 0; transform: scale(0.975) translateY(8px); }
+      from { opacity: 0; transform: scale(0.98) translateY(6px); }
       to   { opacity: 1; transform: none; }
     }
 
     #gdp-settings-dialog .gdp-shell {
       display: flex;
-      width: 880px; max-width: 94vw;
-      height: 610px; max-height: 88vh;
+      width: 850px; max-width: 92vw;
+      height: 570px; max-height: 88vh;
       overflow: hidden;
-      border: 1px solid rgba(127, 137, 149, 0.35);
-      border-radius: 12px;
-      /* Paint GitHub Desktop's own background until the UI takes over, so a
-         dark theme never flashes white while the bundle mounts. */
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+      /* Paint GitHub Desktop's own background until the UI takes over */
       background: var(--background-color, #ffffff);
       box-shadow:
-        0 16px 48px -12px rgba(0, 0, 0, 0.28),
-        0 4px 12px -4px rgba(0, 0, 0, 0.12);
+        0 20px 48px -8px rgba(0, 0, 0, 0.32),
+        0 4px 16px -4px rgba(0, 0, 0, 0.12);
     }
 
     #gdp-settings-dialog .gdp-shell > * { flex: 1 1 auto; min-width: 0; }

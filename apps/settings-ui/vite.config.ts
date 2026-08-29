@@ -5,6 +5,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GDP_SETTINGS_UI_GLOBAL } from '@github-desktop-plus/shared'
 import { SETTINGS_DEV_PORT } from './dev-config.ts'
+import { subsetFontPlugin, getFontFaceCss } from './vite-plugin-font-subset.ts'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 
@@ -22,14 +23,24 @@ function inlineCss(): Plugin {
     apply: 'build',
     enforce: 'post',
     generateBundle(_options, bundle) {
+      const fontCss = getFontFaceCss()
       let css = ''
       for (const [fileName, output] of Object.entries(bundle)) {
         if (output.type === 'asset' && fileName.endsWith('.css')) {
-          css += typeof output.source === 'string' ? output.source : ''
+          const content =
+            typeof output.source === 'string'
+              ? output.source
+              : Buffer.from(output.source).toString('utf8')
+          css += content
           delete bundle[fileName]
         }
       }
       if (css === '') return
+
+      if (fontCss) {
+        // Strip the local file @font-face and prepend the subset inlined @font-face
+        css = fontCss + '\n' + css.replace(/@font-face\s*\{[^}]*font-family:\s*['"]LXGW Neo XiHei['"][^}]*\}/gi, '')
+      }
 
       for (const output of Object.values(bundle)) {
         if (output.type === 'chunk' && output.isEntry) {
@@ -42,7 +53,7 @@ function inlineCss(): Plugin {
 
 export default defineConfig(({ command }) => ({
   root: here,
-  plugins: [react(), tailwindcss(), inlineCss()],
+  plugins: [react(), tailwindcss(), subsetFontPlugin(), inlineCss()],
   resolve: {
     alias: {
       '@': path.resolve(here, 'src'),

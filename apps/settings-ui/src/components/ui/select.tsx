@@ -1,5 +1,5 @@
 import { Select as BaseSelect } from '@base-ui/react/select'
-import { Check, ChevronsUpDown } from 'lucide-react'
+import { Check, ChevronDown } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { usePortalContainer } from '@/bridge/context'
 import { cn } from '@/lib/utils'
@@ -9,6 +9,7 @@ export interface SelectOption<T extends string> {
   label: ReactNode
   /** Falls back to `value` for keyboard type-ahead when the label is a node. */
   text?: string
+  description?: ReactNode
 }
 
 interface SelectProps<T extends string> {
@@ -46,30 +47,30 @@ export function Select<T extends string>({
       <BaseSelect.Trigger
         aria-label={ariaLabel}
         className={cn(
-          'inline-flex h-8 items-center justify-between gap-2 rounded-md border border-line',
-          'bg-surface-alt px-2.5 text-[13px] text-fg transition-colors outline-none select-none',
-          'hover:border-fg-subtle focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/25',
-          'data-[disabled]:opacity-60',
+          'inline-flex h-[32px] items-center justify-between gap-2.5 rounded-lg border border-line bg-elevated',
+          'px-3 text-[12.5px] font-medium text-fg shadow-xs outline-none select-none dark:bg-field',
+          'transition-[border-color,background-color,box-shadow] duration-150',
+          'hover:border-line-strong hover:bg-hover data-[popup-open]:border-accent data-[popup-open]:ring-2 data-[popup-open]:ring-accent/20',
+          'focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20',
+          'data-[disabled]:opacity-50',
           className
         )}
       >
         <BaseSelect.Value className="truncate">
           {selected ? selected.label : <span className="text-fg-subtle">{placeholder}</span>}
         </BaseSelect.Value>
-        <BaseSelect.Icon>
-          <ChevronsUpDown className="size-3.5 text-fg-subtle" />
+        <BaseSelect.Icon className="text-fg-subtle transition-transform duration-200 data-[popup-open]:rotate-180">
+          <ChevronDown className="size-3.5" />
         </BaseSelect.Icon>
       </BaseSelect.Trigger>
 
       <BaseSelect.Portal container={container}>
-        <BaseSelect.Positioner sideOffset={4} alignItemWithTrigger={false} className="z-50">
+        <BaseSelect.Positioner sideOffset={6} alignItemWithTrigger={false} className="z-50">
           <BaseSelect.Popup
             className={cn(
-              'max-h-72 min-w-[var(--anchor-width)] overflow-y-auto rounded-lg border border-line',
-              'bg-canvas p-1 shadow-lg shadow-black/10 outline-none',
-              'origin-[var(--transform-origin)]',
-              'data-[starting-style]:animate-[gdp-pop-in_120ms_ease-out]',
-              'data-[ending-style]:animate-[gdp-pop-out_100ms_ease-in]'
+              'max-h-72 min-w-[var(--anchor-width)] overflow-y-auto rounded-xl border border-line bg-elevated/95 p-1.5 backdrop-blur-md',
+              'shadow-lg outline-none origin-[var(--transform-origin)]',
+              'data-[starting-style]:animate-pop-in data-[ending-style]:animate-pop-out'
             )}
           >
             {options.map(option => (
@@ -78,16 +79,22 @@ export function Select<T extends string>({
                 value={option.value}
                 label={option.text ?? option.value}
                 className={cn(
-                  'relative flex cursor-pointer items-center gap-2 rounded-md py-1.5 pr-2 pl-6',
-                  'text-[13px]',
-                  'text-fg outline-none select-none',
-                  'data-[highlighted]:bg-surface-hover'
+                  'relative flex cursor-pointer items-center gap-2 rounded-lg py-2 pr-2.5 pl-7',
+                  'text-[12.5px] font-medium text-fg outline-none select-none transition-colors duration-100',
+                  'data-[highlighted]:bg-hover'
                 )}
               >
-                <BaseSelect.ItemIndicator className="absolute left-2">
-                  <Check className="size-3.5 text-accent" />
+                <BaseSelect.ItemIndicator className="absolute left-2 text-accent">
+                  <Check className="size-3.5" strokeWidth={2.5} />
                 </BaseSelect.ItemIndicator>
-                <BaseSelect.ItemText className="truncate">{option.label}</BaseSelect.ItemText>
+                <span className="min-w-0 flex-1">
+                  <BaseSelect.ItemText className="block truncate">{option.label}</BaseSelect.ItemText>
+                  {option.description ? (
+                    <span className="block truncate text-[11px] font-normal text-fg-subtle mt-0.5">
+                      {option.description}
+                    </span>
+                  ) : null}
+                </span>
               </BaseSelect.Item>
             ))}
           </BaseSelect.Popup>

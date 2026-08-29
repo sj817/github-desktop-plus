@@ -13,85 +13,150 @@
    GitHub Desktop's theme is what we follow. */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* `inline` keeps the utilities pointing at the --gdp-* variables, so the same
-   compiled CSS re-resolves per theme when the class flips. */
+/*
+ * Design tokens.
+ *
+ * `inline` keeps the utilities pointing at the --gdp-* variables, so the same
+ * compiled CSS re-resolves per theme when the class flips. Most interaction
+ * colours are alpha mixes of the foreground rather than fixed greys, which is
+ * what lets one set of components read correctly on both themes.
+ */
 @theme inline {
   --color-canvas: var(--gdp-canvas);
-  --color-surface: var(--gdp-surface);
-  --color-surface-alt: var(--gdp-surface-alt);
-  --color-surface-hover: var(--gdp-surface-hover);
+  --color-sidebar: var(--gdp-sidebar);
+  --color-elevated: var(--gdp-elevated);
+  --color-field: var(--gdp-field);
+  --color-inset: var(--gdp-inset);
+  --color-hover: var(--gdp-hover);
+  --color-active: var(--gdp-active);
+  --color-selected: var(--gdp-selected);
+
   --color-line: var(--gdp-line);
-  --color-line-soft: var(--gdp-line-soft);
+  --color-line-strong: var(--gdp-line-strong);
+
   --color-fg: var(--gdp-fg);
   --color-fg-muted: var(--gdp-fg-muted);
   --color-fg-subtle: var(--gdp-fg-subtle);
+  --color-fg-faint: var(--gdp-fg-faint);
+
   --color-accent: var(--gdp-accent);
   --color-accent-hover: var(--gdp-accent-hover);
   --color-accent-fg: var(--gdp-accent-fg);
   --color-accent-soft: var(--gdp-accent-soft);
+  --color-ring: var(--gdp-ring);
+
   --color-danger: var(--gdp-danger);
   --color-danger-soft: var(--gdp-danger-soft);
   --color-success: var(--gdp-success);
+  --color-success-soft: var(--gdp-success-soft);
   --color-warn: var(--gdp-warn);
+  --color-warn-soft: var(--gdp-warn-soft);
+
+  --shadow-xs: var(--gdp-shadow-xs);
+  --shadow-sm: var(--gdp-shadow-sm);
+  --shadow-md: var(--gdp-shadow-md);
+  --shadow-lg: var(--gdp-shadow-lg);
 
   --font-sans:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'Helvetica Neue', 'Microsoft YaHei',
+    'MiSans', 'MiSans Normal', 'MiSans Medium',
+    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Display', 'Segoe UI Variable Text',
+    'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Noto Sans SC',
     sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  --font-mono:
+    ui-monospace, 'Cascadia Code', 'JetBrains Mono', 'SF Mono', SFMono-Regular, Menlo, Monaco,
+    Consolas, 'Liberation Mono', monospace;
+
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
+
+  --animate-page-in: gdp-page-in 200ms var(--ease-out-quart) both;
+  --animate-fade-in: gdp-fade-in 160ms var(--ease-out-quart) both;
+  --animate-pop-in: gdp-pop-in 140ms var(--ease-out-quart) both;
+  --animate-pop-out: gdp-pop-out 100ms ease-in both;
+  --animate-toast-in: gdp-toast-in 220ms var(--ease-out-quart) both;
+  --animate-toast-out: gdp-toast-out 160ms ease-in both;
+  --animate-rise-in: gdp-rise-in 200ms var(--ease-out-quart) both;
 }
 
 @layer base {
   /*
-   * Palette tracks GitHub Desktop's own (renderer.css: --background-color
-   * #24292e dark / #fff light, --button-background #0366d6) so the dialog reads
-   * as part of the app rather than a web page dropped into it.
+   * GitHub Desktop native palette. Pure native alignment, no color mismatches.
    */
   #gdp-settings-root {
     --gdp-canvas: #ffffff;
-    --gdp-surface: #f6f8fa;
-    --gdp-surface-alt: #ffffff;
-    --gdp-surface-hover: #eaeef2;
+    --gdp-sidebar: #f6f8fa;
+    --gdp-elevated: #ffffff;
+    --gdp-field: #ffffff;
+    --gdp-inset: #eaeef2;
+    --gdp-fg: #24292f;
+    --gdp-fg-muted: #57606a;
+    --gdp-fg-subtle: #8c959f;
+    --gdp-fg-faint: #afb8c1;
+    --gdp-hover: rgba(208, 215, 222, 0.32);
+    --gdp-active: rgba(208, 215, 222, 0.48);
+    --gdp-selected: #ffffff;
     --gdp-line: #d0d7de;
-    --gdp-line-soft: #e6eaef;
-    --gdp-fg: #1f2328;
-    --gdp-fg-muted: #59636e;
-    --gdp-fg-subtle: #818b98;
+    --gdp-line-strong: #afb8c1;
     --gdp-accent: #0969da;
-    --gdp-accent-hover: #0860ca;
+    --gdp-accent-hover: #085ec4;
     --gdp-accent-fg: #ffffff;
-    --gdp-accent-soft: #ddf4ff;
+    --gdp-accent-soft: rgba(9, 105, 218, 0.08);
+    --gdp-ring: rgba(9, 105, 218, 0.28);
     --gdp-danger: #cf222e;
-    --gdp-danger-soft: #ffebe9;
+    --gdp-danger-soft: rgba(207, 34, 46, 0.08);
     --gdp-success: #1a7f37;
+    --gdp-success-soft: rgba(26, 127, 55, 0.08);
     --gdp-warn: #9a6700;
+    --gdp-warn-soft: rgba(154, 103, 0, 0.08);
+    --gdp-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --gdp-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --gdp-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --gdp-shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.12);
 
     color: var(--gdp-fg);
     background: var(--gdp-canvas);
     font-family: var(--font-sans);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.55;
+    letter-spacing: 0.005em;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    container-type: inline-size;
+    container-name: gdp;
   }
 
+  /* GitHub Desktop dark theme alignment. */
   #gdp-settings-root.dark {
     --gdp-canvas: #24292e;
-    --gdp-surface: #1d2125;
-    --gdp-surface-alt: #2b3137;
-    --gdp-surface-hover: #2f363d;
-    --gdp-line: #444d56;
-    --gdp-line-soft: #32383f;
-    --gdp-fg: #f6f8fa;
-    --gdp-fg-muted: #a8b1bb;
-    --gdp-fg-subtle: #79838e;
+    --gdp-sidebar: #1f2428;
+    --gdp-elevated: #282e35;
+    --gdp-field: #1f2428;
+    --gdp-inset: #1b1f23;
+    --gdp-fg: #f0f6fc;
+    --gdp-fg-muted: #8b949e;
+    --gdp-fg-subtle: #6e7681;
+    --gdp-fg-faint: #484f58;
+    --gdp-hover: rgba(110, 118, 129, 0.16);
+    --gdp-active: rgba(110, 118, 129, 0.24);
+    --gdp-selected: #282e35;
+    --gdp-line: #30363d;
+    --gdp-line-strong: #484f58;
     --gdp-accent: #2f81f7;
-    --gdp-accent-hover: #4c92f8;
+    --gdp-accent-hover: #388bfd;
     --gdp-accent-fg: #ffffff;
-    --gdp-accent-soft: #16334f;
+    --gdp-accent-soft: rgba(47, 129, 247, 0.15);
+    --gdp-ring: rgba(47, 129, 247, 0.35);
     --gdp-danger: #f85149;
-    --gdp-danger-soft: #3d1517;
+    --gdp-danger-soft: rgba(248, 81, 73, 0.12);
     --gdp-success: #3fb950;
+    --gdp-success-soft: rgba(63, 185, 80, 0.12);
     --gdp-warn: #d29922;
+    --gdp-warn-soft: rgba(210, 153, 34, 0.12);
+    --gdp-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+    --gdp-shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --gdp-shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+    --gdp-shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.5);
   }
 
   /*
@@ -104,11 +169,27 @@
   #gdp-settings-root *::before,
   #gdp-settings-root *::after {
     box-sizing: border-box;
+    border-color: var(--gdp-line);
+    font-family: var(--font-sans);
   }
 
-  #gdp-settings-root :where(h1, h2, h3, h4, p, ul, ol, li, figure) {
+  #gdp-settings-root :where(h1, h2, h3, h4, p, ul, ol, li, figure, fieldset) {
     margin: 0;
     padding: 0;
+    font-family: inherit;
+  }
+
+  #gdp-settings-root :where(button, input, textarea, select) {
+    font-family: inherit;
+  }
+
+  #gdp-settings-root :where(code, kbd, pre, .font-mono, [class*="font-mono"]) {
+    font-family: var(--font-mono) !important;
+  }
+
+  #gdp-settings-root :where(fieldset) {
+    border: 0;
+    min-width: 0;
   }
 
   #gdp-settings-root :where(ul, ol) {
@@ -125,6 +206,7 @@
     color: inherit;
     cursor: pointer;
     text-align: inherit;
+    -webkit-app-region: no-drag;
   }
 
   #gdp-settings-root :where(button:disabled) {
@@ -138,12 +220,13 @@
     background: none;
     border: 0;
     margin: 0;
+    min-width: 0;
   }
 
-  #gdp-settings-root :where(input[type='checkbox']) {
-    appearance: auto;
-    accent-color: var(--gdp-accent);
-    cursor: pointer;
+  #gdp-settings-root :where(input[type='number'])::-webkit-inner-spin-button,
+  #gdp-settings-root :where(input[type='number'])::-webkit-outer-spin-button {
+    appearance: none;
+    margin: 0;
   }
 
   #gdp-settings-root :where(svg) {
@@ -157,39 +240,51 @@
     cursor: pointer;
   }
 
-  #gdp-settings-root :where(:focus-visible) {
-    outline: 2px solid var(--gdp-accent);
-    outline-offset: 1px;
-    border-radius: 4px;
+  #gdp-settings-root :where(kbd) {
+    font-family: var(--font-sans);
   }
 
-  /* Scrollbars — GitHub Desktop's own are styled, ours should match. */
+  #gdp-settings-root :where(:focus-visible) {
+    outline: 2px solid var(--gdp-ring);
+    outline-offset: 1px;
+  }
+
+  /* Scrollbars — thin, quiet, only really noticeable on hover. */
   #gdp-settings-root ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
   }
   #gdp-settings-root ::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--gdp-fg) 22%, transparent);
+    background: color-mix(in srgb, var(--gdp-fg) 16%, transparent);
     border: 3px solid transparent;
     border-radius: 8px;
     background-clip: content-box;
   }
   #gdp-settings-root ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--gdp-fg) 38%, transparent);
+    background: color-mix(in srgb, var(--gdp-fg) 30%, transparent);
     border: 3px solid transparent;
     background-clip: content-box;
   }
-  #gdp-settings-root ::-webkit-scrollbar-track {
+  #gdp-settings-root ::-webkit-scrollbar-track,
+  #gdp-settings-root ::-webkit-scrollbar-corner {
     background: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #gdp-settings-root *,
+    #gdp-settings-root *::before,
+    #gdp-settings-root *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
 @layer components {
-  /* Base UI popups fade/scale with these, driven by their data attributes. */
   @keyframes gdp-pop-in {
     from {
       opacity: 0;
-      transform: scale(0.97) translateY(-2px);
+      transform: scale(0.96) translateY(-3px);
     }
     to {
       opacity: 1;
@@ -211,7 +306,27 @@
   @keyframes gdp-page-in {
     from {
       opacity: 0;
-      transform: translateY(5px);
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gdp-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes gdp-rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
     }
     to {
       opacity: 1;
@@ -222,11 +337,58 @@
   @keyframes gdp-toast-in {
     from {
       opacity: 0;
-      transform: translateY(8px) scale(0.97);
+      transform: translateY(10px) scale(0.96);
     }
     to {
       opacity: 1;
       transform: none;
     }
+  }
+
+  @keyframes gdp-toast-out {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(6px) scale(0.98);
+    }
+  }
+
+  @keyframes gdp-pulse-dot {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--gdp-success) 45%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 5px transparent;
+    }
+  }
+
+  @keyframes gdp-shimmer {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
+  }
+
+  /* Live indicator on the logs page. */
+  #gdp-settings-root .gdp-live-dot {
+    animation: gdp-pulse-dot 2s ease-out infinite;
+  }
+
+  /* Loading placeholder blocks. */
+  #gdp-settings-root .gdp-skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--gdp-inset) 0%,
+      color-mix(in srgb, var(--gdp-fg) 9%, transparent) 50%,
+      var(--gdp-inset) 100%
+    );
+    background-size: 200% 100%;
+    animation: gdp-shimmer 1.6s linear infinite;
   }
 }

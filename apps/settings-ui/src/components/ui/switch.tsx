@@ -6,19 +6,24 @@ export function Switch({ className, ...props }: ComponentProps<typeof BaseSwitch
   return (
     <BaseSwitch.Root
       className={cn(
-        'relative inline-flex h-[18px] w-8 shrink-0 cursor-pointer items-center rounded-full',
-        'border border-line bg-surface-hover transition-colors outline-none',
-        'data-[checked]:border-accent data-[checked]:bg-accent',
-        'focus-visible:ring-2 focus-visible:ring-accent/40',
-        'data-[disabled]:cursor-default data-[disabled]:opacity-50',
+        'group/switch relative inline-flex h-[22px] w-[38px] shrink-0 cursor-pointer items-center',
+        'rounded-full bg-[color-mix(in_srgb,var(--gdp-fg)_16%,transparent)] p-[2px]',
+        'shadow-[inset_0_1px_2px_rgba(0,0,0,0.1)] outline-none',
+        'transition-[background-color,box-shadow] duration-200 ease-out',
+        'hover:bg-[color-mix(in_srgb,var(--gdp-fg)_22%,transparent)]',
+        'data-[checked]:bg-accent data-[checked]:hover:bg-accent-hover',
+        'focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2',
+        'data-[disabled]:cursor-default data-[disabled]:opacity-40',
         className
       )}
       {...props}
     >
       <BaseSwitch.Thumb
         className={cn(
-          'block size-3 translate-x-[2px] rounded-full bg-canvas shadow-sm transition-transform',
-          'data-[checked]:translate-x-[16px] data-[checked]:bg-accent-fg'
+          'block size-[18px] rounded-full bg-white',
+          'shadow-[0_1px_3px_rgba(0,0,0,0.25),0_0_0_0.5px_rgba(0,0,0,0.08)]',
+          'transition-transform duration-200 ease-[cubic-bezier(0.34,1.56,0.64,1)]',
+          'data-[checked]:translate-x-[16px]'
         )}
       />
     </BaseSwitch.Root>

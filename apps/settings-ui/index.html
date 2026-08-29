@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GDP 设置（开发）</title>
     <style>
+      @font-face {
+        font-family: 'MiSans';
+        src: url('/src/assets/fonts/MiSans-Normal.ttf') format('truetype');
+        font-weight: 100 400;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: 'MiSans';
+        src: url('/src/assets/fonts/MiSans-Medium.ttf') format('truetype');
+        font-weight: 500 900;
+        font-style: normal;
+        font-display: swap;
+      }
       /* The iframe is the whole viewport; production mounts into a sized box. */
       html,
       body {
@@ -15,6 +29,28 @@
       }
       #gdp-settings-root {
         height: 100%;
+      }
+
+      /* `?mock=1`: stand the root in a box shaped like the production dialog. */
+      body.gdp-mock {
+        display: grid;
+        place-items: center;
+        background: #e9ebef;
+        font-family: system-ui, sans-serif;
+      }
+      body.gdp-mock.dark {
+        background: #15181c;
+      }
+      body.gdp-mock #gdp-settings-root {
+        width: 880px;
+        max-width: 94vw;
+        height: 610px;
+        max-height: 88vh;
+        border-radius: 12px;
+        border: 1px solid rgba(127, 137, 149, 0.35);
+        box-shadow:
+          0 16px 48px -12px rgba(0, 0, 0, 0.28),
+          0 4px 12px -4px rgba(0, 0, 0, 0.12);
       }
     </style>
   </head>

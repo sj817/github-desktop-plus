@@ -29,14 +29,16 @@ export function Slider({
       step={step}
       className={cn('flex w-full items-center', className)}
     >
-      <BaseSlider.Control className="flex w-full items-center py-2">
-        <BaseSlider.Track className="h-1 w-full rounded-full bg-surface-hover select-none">
-          <BaseSlider.Indicator className="rounded-full bg-accent select-none" />
+      <BaseSlider.Control className="group/slider flex w-full cursor-pointer items-center py-2">
+        <BaseSlider.Track className="relative h-1.5 w-full rounded-full bg-inset shadow-[inset_0_1px_2px_rgba(0,0,0,0.08)] select-none">
+          <BaseSlider.Indicator className="h-full rounded-full bg-accent select-none" />
           <BaseSlider.Thumb
             aria-label={ariaLabel}
             className={cn(
-              'size-3.5 rounded-full border border-line bg-canvas shadow-sm outline-none select-none',
-              'focus-visible:ring-2 focus-visible:ring-accent/40'
+              'size-4 rounded-full bg-white border-2 border-accent outline-none select-none',
+              'shadow-sm transition-[transform,box-shadow] duration-150',
+              'group-hover/slider:scale-110 data-[dragging]:scale-120',
+              'focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-1'
             )}
           />
         </BaseSlider.Track>

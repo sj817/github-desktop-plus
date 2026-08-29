@@ -3,7 +3,7 @@ import type { ReactElement, ReactNode } from 'react'
 import { usePortalContainer } from '@/bridge/context'
 
 export function TooltipProvider({ children }: { children: ReactNode }) {
-  return <BaseTooltip.Provider delay={350}>{children}</BaseTooltip.Provider>
+  return <BaseTooltip.Provider delay={400}>{children}</BaseTooltip.Provider>
 }
 
 export function Tooltip({ content, children }: { content: ReactNode; children: ReactElement }) {
@@ -16,9 +16,9 @@ export function Tooltip({ content, children }: { content: ReactNode; children: R
         <BaseTooltip.Positioner sideOffset={6} className="z-60">
           <BaseTooltip.Popup
             className={
-              'rounded-md border border-line bg-canvas px-2 py-1 text-[12px] text-fg-muted ' +
-              'shadow-md shadow-black/10 ' +
-              'data-[starting-style]:animate-[gdp-pop-in_120ms_ease-out]'
+              'rounded-md bg-fg px-2 py-1 text-[11.5px] text-canvas shadow-md ' +
+              'origin-[var(--transform-origin)] ' +
+              'data-[starting-style]:animate-pop-in data-[ending-style]:animate-pop-out'
             }
           >
             {content}
