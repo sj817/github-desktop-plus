@@ -83,6 +83,10 @@
    * GitHub Desktop native palette. Pure native alignment, no color mismatches.
    */
   #gdp-settings-root {
+    /* GitHub Desktop defines --spacing: 10px on :root. Tailwind v4's spacing
+       utilities use the same token, so pin it again at our isolation boundary. */
+    --spacing: 0.25rem;
+
     --gdp-canvas: #ffffff;
     --gdp-sidebar: #f6f8fa;
     --gdp-elevated: #ffffff;
