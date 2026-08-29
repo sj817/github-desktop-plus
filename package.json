@@ -1,6 +1,6 @@
 {
   "name": "github-desktop-plus",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "External enhancement tool for GitHub Desktop — Rust runtime + 0-path Electron hooks",
   "license": "MIT",
@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsx scripts/wsl-agent.ts && tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && cargo build --workspace --release",
-    "check": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && pnpm run typecheck && pnpm -r --if-present run test && cargo fmt --all -- --check && cargo check --workspace",
+    "check": "pnpm run version:check && tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && pnpm run typecheck && pnpm -r --if-present run test && cargo fmt --all -- --check && cargo check --workspace && cargo test --workspace",
     "dev": "tsx scripts/dev.ts",
     "format": "cargo fmt --all",
     "locales:diff": "tsx scripts/i18n/extract.ts diff",
@@ -20,7 +20,8 @@
     "mock:ai": "tsx scripts/mock/ai-server.ts",
     "self-check:desktop": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && tsx scripts/checks/desktop.ts",
     "test": "pnpm -r --if-present run test && cargo test --workspace",
-    "typecheck": "tsx scripts/checks/no-js.ts && tsc -p scripts/tsconfig.json && pnpm -r --if-present run typecheck"
+    "typecheck": "tsx scripts/checks/no-js.ts && tsc -p scripts/tsconfig.json && pnpm -r --if-present run typecheck",
+    "version:check": "tsx scripts/checks/version.ts"
   },
   "devDependencies": {
     "@types/node": "catalog:",
