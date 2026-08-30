@@ -105,7 +105,7 @@ jobs:
 
       - name: Install Inno Setup 7.1.0
         if: github.ref == 'refs/heads/main'
-        run: winget install --id JRSoftware.InnoSetup.7 --exact --version 7.1.0 --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+        run: ./scripts/install-inno.ps1
 
       - name: Build community installer, MSI, and update assets
         if: github.ref == 'refs/heads/main'
