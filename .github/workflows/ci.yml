@@ -73,6 +73,10 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -99,10 +103,14 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: target/release/gdp.exe --version
 
-      - name: Upload gdp.exe artifact
+      - name: Build Velopack installer and update assets
+        if: github.ref == 'refs/heads/main'
+        run: pnpm exec tsx scripts/package-windows.ts
+
+      - name: Upload Windows package artifact
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v4
         with:
-          name: gdp-windows-x64
-          path: target/release/gdp.exe
+          name: github-desktop-plus-windows
+          path: target/velopack/releases/*
           retention-days: 14

@@ -18,6 +18,7 @@
     "locales:extract": "tsx scripts/i18n/extract.ts zh-CN",
     "locales:prepare": "tsx scripts/locales.ts prepare zh-CN",
     "mock:ai": "tsx scripts/mock/ai-server.ts",
+    "package:windows": "pnpm run build && tsx scripts/package-windows.ts",
     "self-check:desktop": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && tsx scripts/checks/desktop.ts",
     "test": "pnpm -r --if-present run test && cargo test --workspace",
     "typecheck": "tsx scripts/checks/no-js.ts && tsc -p scripts/tsconfig.json && pnpm -r --if-present run typecheck",

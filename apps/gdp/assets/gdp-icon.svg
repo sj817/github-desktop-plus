@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="graphite" x1="256" y1="192" x2="716" y2="856" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#55565b"/>
+      <stop offset="0.52" stop-color="#303136"/>
+      <stop offset="1" stop-color="#17181c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="482" y1="524" x2="544" y2="586" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#90cdfd"/>
+      <stop offset="1" stop-color="#4a9ee8"/>
+    </linearGradient>
+    <filter id="soft-shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="9" stdDeviation="12" flood-color="#0b0c10" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <g fill="none" stroke="url(#graphite)" stroke-width="52" stroke-linecap="round" stroke-linejoin="round" filter="url(#soft-shadow)">
+    <path d="M250 226v52c0 129 49 191 129 241l133 83"/>
+    <path d="M774 226v52c0 129-49 191-129 241l-133 83v252"/>
+    <path d="M439 804h146"/>
+  </g>
+
+  <g fill="url(#graphite)" filter="url(#soft-shadow)">
+    <circle cx="250" cy="226" r="36"/>
+    <circle cx="774" cy="226" r="36"/>
+  </g>
+
+  <circle cx="512" cy="602" r="43" fill="#ffffff" fill-opacity="0.92"/>
+  <circle cx="512" cy="602" r="34" fill="url(#accent)"/>
+  <circle cx="501" cy="591" r="8" fill="#ffffff" fill-opacity="0.48"/>
+</svg>

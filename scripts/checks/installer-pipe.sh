@@ -12,13 +12,27 @@ trap cleanup EXIT
 mock_bin="$temp_dir/bin"
 install_dir="$temp_dir/install"
 mock_home="$temp_dir/home"
-fake_asset="$temp_dir/gdp-windows-x64.exe"
+fake_asset="$temp_dir/GitHubDesktopPlus-win-x64-Setup.exe"
 mkdir -p -- "$mock_bin" "$install_dir" "$mock_home"
 
 cat > "$mock_bin/powershell.exe" <<'EOF'
 #!/usr/bin/env bash
+set -Eeuo pipefail
 cat >/dev/null
-printf 'X64\r\n'
+case "$*" in
+  *OSArchitecture*)
+    printf 'X64\r\n'
+    ;;
+  *GetTempPath*)
+    printf '%s\r\n' "$GDP_TEST_WINDOWS_TEMP"
+    ;;
+  *)
+    args=("$@")
+    setup="${args[$((${#args[@]} - 2))]}"
+    install_dir="${args[$((${#args[@]} - 1))]}"
+    "$setup" --silent --installto "$install_dir"
+    ;;
+esac
 EOF
 
 cat > "$mock_bin/curl" <<'EOF'
@@ -48,13 +62,31 @@ EOF
 
 cat > "$mock_bin/wslpath" <<'EOF'
 #!/usr/bin/env bash
-exit 0
+printf '%s\n' "${@: -1}"
 EOF
 
 cat > "$fake_asset" <<'EOF'
 #!/usr/bin/env bash
-cat >/dev/null
+set -Eeuo pipefail
+install_dir=''
+while (($# > 0)); do
+  case "$1" in
+    --installto)
+      install_dir="$2"
+      shift 2
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+[[ -n "$install_dir" ]]
+mkdir -p -- "$install_dir"
+cat > "$install_dir/gdp.exe" <<'GDP'
+#!/usr/bin/env bash
 printf 'gdp 0.2.1\r\n'
+GDP
+chmod 755 "$install_dir/gdp.exe"
 EOF
 
 chmod 755 "$mock_bin/powershell.exe" "$mock_bin/curl" "$mock_bin/wslpath" "$fake_asset"
@@ -67,6 +99,7 @@ output="$(
     GDP_VERSION='v9.8.7' \
     GDP_INSTALL_DIR="$install_dir" \
     GDP_TEST_ASSET="$fake_asset" \
+    GDP_TEST_WINDOWS_TEMP="$temp_dir" \
     bash
 )"
 

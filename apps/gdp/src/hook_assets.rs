@@ -1,9 +1,11 @@
 //! Embedded hook bundle, preload scripts, and shipped locale files.
 //!
 //! Hook bundles and aggregate locale packages are produced at build time by
-//! `build.rs`. At runtime they are extracted to `<exe_dir>/gdp-data/` so
-//! Electron can `require()` them from disk.
+//! `build.rs`. At runtime they are extracted to the user's GDP configuration
+//! directory so Electron can `require()` them from disk without writing into
+//! the versioned application directory.
 
+use gdp_core::platform::config_dir;
 use std::path::{Path, PathBuf};
 
 pub const HOOK_JS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/hook_bundle.js"));
@@ -26,15 +28,16 @@ pub fn write_if_changed(dest: &Path, content: &[u8]) {
     }
 }
 
-/// Extract all embedded hook + locale resources to `<exe_dir>/gdp-data/` and
-/// return the path to the `hooks/` subdirectory.
-pub fn extract_hook_to_disk() -> PathBuf {
-    let exe_dir = std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-        .unwrap_or_else(std::env::temp_dir);
+fn runtime_data_dir() -> PathBuf {
+    config_dir()
+        .unwrap_or_else(|| std::env::temp_dir().join("github-desktop-plus"))
+        .join("gdp-data")
+}
 
-    let data_dir = exe_dir.join("gdp-data");
+/// Extract all embedded hook + locale resources to the user's global GDP data
+/// directory and return the path to the `hooks/` subdirectory.
+pub fn extract_hook_to_disk() -> PathBuf {
+    let data_dir = runtime_data_dir();
     let hooks_dir = data_dir.join("hooks");
     let preload_dir = hooks_dir.join("preload");
     let locales_dir = data_dir.join("locales");
@@ -67,4 +70,15 @@ pub fn extract_hook_to_disk() -> PathBuf {
     write_if_changed(&data_dir.join("package.json"), b"{\"type\":\"commonjs\"}\n");
 
     hooks_dir
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn runtime_assets_live_below_the_user_config_directory() {
+        let expected = Path::new("github-desktop-plus").join("gdp-data");
+        assert!(runtime_data_dir().ends_with(expected));
+    }
 }

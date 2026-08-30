@@ -14,6 +14,10 @@ use crate::launch::load_config;
 use crate::proc::kill_process;
 
 fn main() {
+    // Velopack uses short-lived invocations of the main executable for install,
+    // update, and uninstall hooks. Handle those before clap sees the arguments.
+    velopack::VelopackApp::build().run();
+
     let cli = Cli::parse();
 
     let cmd = cli.command.unwrap_or(Command::Launch {

@@ -49,9 +49,9 @@ Install from WSL with one command (Windows x64, GitHub Desktop, WSL 2, and Windo
 curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
 ```
 
-The installer downloads the latest release asset, verifies its SHA-256 checksum, installs it under Windows `%LOCALAPPDATA%\GitHubDesktopPlus\bin`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
+The bootstrap script downloads the latest Velopack installer, verifies its SHA-256 checksum, installs the app per-user under `%LOCALAPPDATA%\GitHubDesktopPlus`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
 
-For a manual install, download `gdp-windows-x64.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and run the executable from a writable directory.
+For a manual install, download `GitHubDesktopPlus-win-x64-Setup.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and run the one-click installer. It creates stable Desktop and Start Menu shortcuts while keeping versioned application files under `%LOCALAPPDATA%`. Extracted runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
 
 ---
 
@@ -78,6 +78,9 @@ pnpm run typecheck
 
 # Full production build
 pnpm run build
+
+# Build the Velopack Windows installer and portable bundle
+pnpm run package:windows
 ```
 
 ---

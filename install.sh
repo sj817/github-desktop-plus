@@ -16,7 +16,7 @@ Usage: install.sh [options]
 
 Options:
   --release <version>    Install a release such as v0.2.1 (default: latest)
-  --install-dir <path>   Override the WSL installation directory
+  --install-dir <path>   Override the Windows installation directory
   -h, --help             Show this help
 
 Environment variables:
@@ -84,7 +84,7 @@ case "${windows_arch,,}" in
     ;;
 esac
 
-asset_name="gdp-windows-${asset_arch}.exe"
+asset_name="GitHubDesktopPlus-${asset_arch}-Setup.exe"
 if [[ "$release" == latest ]]; then
   asset_base="https://github.com/${repository}/releases/latest/download"
 else
@@ -97,16 +97,18 @@ if [[ -z "$install_dir" ]]; then
       '[Environment]::GetFolderPath([Environment+SpecialFolder]::LocalApplicationData)' </dev/null
   } | tr -d '\r\n')"
   [[ -n "$windows_local_app_data" ]] || die 'could not resolve Windows LocalAppData'
-  install_dir="$(wslpath -u "${windows_local_app_data}\\GitHubDesktopPlus\\bin")"
+  install_dir="$(wslpath -u "${windows_local_app_data}\\GitHubDesktopPlus")"
 fi
 
-temp_dir="$(mktemp -d)"
-staging_path=''
+windows_temp="$({
+  powershell.exe -NoLogo -NoProfile -NonInteractive -Command \
+    '[IO.Path]::GetTempPath()' </dev/null
+} | tr -d '\r\n')"
+[[ -n "$windows_temp" ]] || die 'could not resolve the Windows temporary directory'
+temp_root="$(wslpath -u "$windows_temp")"
+temp_dir="$(mktemp -d --tmpdir="$temp_root" github-desktop-plus.XXXXXX)"
 cleanup() {
   rm -rf -- "$temp_dir"
-  if [[ -n "$staging_path" ]]; then
-    rm -f -- "$staging_path"
-  fi
 }
 trap cleanup EXIT
 
@@ -121,15 +123,43 @@ read -r expected_hash _ < "$temp_dir/$asset_name.sha256"
 actual_hash="$(sha256sum "$temp_dir/$asset_name" | cut -d ' ' -f 1)"
 [[ "${actual_hash,,}" == "${expected_hash,,}" ]] || die 'release checksum verification failed'
 
-mkdir -p -- "$install_dir"
+install_dir_windows="$(wslpath -w "$install_dir")"
+setup_windows="$(wslpath -w "$temp_dir/$asset_name")"
+[[ "$install_dir_windows" != *'"'* ]] || die 'installation path cannot contain a double quote'
+
+install_script="$temp_dir/install.ps1"
+cat > "$install_script" <<'POWERSHELL'
+param(
+  [Parameter(Mandatory = $true)][string] $Setup,
+  [Parameter(Mandatory = $true)][string] $InstallDir
+)
+
+try {
+  foreach ($relativeLauncher in @("gdp.exe", "bin\\gdp.exe")) {
+    $launcher = Join-Path $InstallDir $relativeLauncher
+    if (Test-Path -LiteralPath $launcher) {
+      & $launcher stop 2>$null | Out-Null
+      Start-Sleep -Milliseconds 500
+      break
+    }
+  }
+
+  $arguments = "--silent --installto `"$InstallDir`""
+  $process = Start-Process -FilePath $Setup -ArgumentList $arguments -Wait -PassThru
+  exit $process.ExitCode
+} catch {
+  Write-Error $_
+  exit 1
+}
+POWERSHELL
+install_script_windows="$(wslpath -w "$install_script")"
+
+powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+  -File "$install_script_windows" "$setup_windows" "$install_dir_windows" </dev/null \
+  || die 'Velopack installation failed'
+
 destination="$install_dir/gdp.exe"
-staging_path="$install_dir/.gdp.exe.$$.tmp"
-cp -- "$temp_dir/$asset_name" "$staging_path"
-chmod 755 "$staging_path"
-if ! mv -f -- "$staging_path" "$destination"; then
-  die 'could not replace gdp.exe; close a running GitHub Desktop Plus instance and retry'
-fi
-staging_path=''
+[[ -f "$destination" ]] || die "Velopack did not create the stable launcher: $destination"
 
 launcher_dir="$HOME/.local/bin"
 launcher="$launcher_dir/gdp"
