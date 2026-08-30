@@ -1,6 +1,6 @@
 {
   "name": "@github-desktop-plus/hooks",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "private": true,
   "description": "Electron main-process and renderer hooks for GitHub Desktop Plus",
   "license": "MIT",
