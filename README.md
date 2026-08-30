@@ -49,9 +49,9 @@ Install from WSL with one command (Windows x64, GitHub Desktop, WSL 2, and Windo
 curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
 ```
 
-The bootstrap script downloads the latest Velopack installer, verifies its SHA-256 checksum, installs the app per-user under `%LOCALAPPDATA%\GitHubDesktopPlus`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
+The bootstrap script downloads the latest MSI, verifies its SHA-256 checksum, installs the app per-user under `%LOCALAPPDATA%\GitHubDesktopPlus`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
 
-For a manual install, download `GitHubDesktopPlus-win-x64-Setup.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and run the one-click installer. It creates stable Desktop and Start Menu shortcuts while keeping versioned application files under `%LOCALAPPDATA%`. Extracted runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
+For a manual install, download `GitHubDesktopPlus-win-x64.msi` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and open the installer. The visible Windows Installer wizard lets you review the installation scope and destination before files are changed. It creates stable Desktop and Start Menu shortcuts while extracted runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
 
 ---
 

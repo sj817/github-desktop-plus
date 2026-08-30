@@ -50,9 +50,9 @@ GDP 作为一个轻量级启动引导器，使用 `--inspect-brk=0` 参数唤起
 curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
 ```
 
-安装脚本会从 GitHub Releases 下载最新的 Velopack 安装包、校验 SHA-256，然后按当前用户安装到 `%LOCALAPPDATA%\GitHubDesktopPlus`，并创建 WSL 命令 `~/.local/bin/gdp`。运行 `gdp` 启动增强版 GitHub Desktop；进入界面后按 `Ctrl+Alt+G` 或点击顶部菜单 `GDP` 打开设置面板。
+安装脚本会从 GitHub Releases 下载最新的 MSI、校验 SHA-256，然后按当前用户安装到 `%LOCALAPPDATA%\GitHubDesktopPlus`，并创建 WSL 命令 `~/.local/bin/gdp`。运行 `gdp` 启动增强版 GitHub Desktop；进入界面后按 `Ctrl+Alt+G` 或点击顶部菜单 `GDP` 打开设置面板。
 
-如需手动安装，请从 [Releases](https://github.com/sj817/github-desktop-plus/releases) 同时下载 `GitHubDesktopPlus-win-x64-Setup.exe` 和对应的 `.sha256` 文件，校验后运行单击式安装包。安装程序会创建稳定的桌面和开始菜单快捷方式，版本化应用文件由 `%LOCALAPPDATA%` 统一管理；解压出的运行资源和配置统一放在用户级 `%APPDATA%\github-desktop-plus`，不再写到版本化程序目录旁。
+如需手动安装，请从 [Releases](https://github.com/sj817/github-desktop-plus/releases) 同时下载 `GitHubDesktopPlus-win-x64.msi` 和对应的 `.sha256` 文件，校验后打开安装器。可见的 Windows Installer 向导会在写入文件前显示安装范围和目标位置；安装完成后会创建稳定的桌面和开始菜单快捷方式。解压出的运行资源和配置统一放在用户级 `%APPDATA%\github-desktop-plus`，不再写到版本化程序目录旁。
 
 ---
 

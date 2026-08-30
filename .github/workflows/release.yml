@@ -93,7 +93,7 @@ jobs:
             throw "Expected '$expected', got '$actual'"
           }
 
-      - name: Build Velopack installer and update assets
+      - name: Build Velopack MSI and update assets
         shell: pwsh
         run: pnpm exec tsx scripts/package-windows.ts
 

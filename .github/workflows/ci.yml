@@ -103,7 +103,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: target/release/gdp.exe --version
 
-      - name: Build Velopack installer and update assets
+      - name: Build Velopack MSI and update assets
         if: github.ref == 'refs/heads/main'
         run: pnpm exec tsx scripts/package-windows.ts
 

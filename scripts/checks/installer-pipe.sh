@@ -12,7 +12,7 @@ trap cleanup EXIT
 mock_bin="$temp_dir/bin"
 install_dir="$temp_dir/install"
 mock_home="$temp_dir/home"
-fake_asset="$temp_dir/GitHubDesktopPlus-win-x64-Setup.exe"
+fake_asset="$temp_dir/GitHubDesktopPlus-win-x64.msi"
 mkdir -p -- "$mock_bin" "$install_dir" "$mock_home"
 
 cat > "$mock_bin/powershell.exe" <<'EOF'
@@ -28,9 +28,9 @@ case "$*" in
     ;;
   *)
     args=("$@")
-    setup="${args[$((${#args[@]} - 2))]}"
+    installer="${args[$((${#args[@]} - 2))]}"
     install_dir="${args[$((${#args[@]} - 1))]}"
-    "$setup" --silent --installto "$install_dir"
+    "$installer" "$install_dir"
     ;;
 esac
 EOF
@@ -68,25 +68,15 @@ EOF
 cat > "$fake_asset" <<'EOF'
 #!/usr/bin/env bash
 set -Eeuo pipefail
-install_dir=''
-while (($# > 0)); do
-  case "$1" in
-    --installto)
-      install_dir="$2"
-      shift 2
-      ;;
-    *)
-      shift
-      ;;
-  esac
-done
+install_dir="${1:-}"
 [[ -n "$install_dir" ]]
 mkdir -p -- "$install_dir"
-cat > "$install_dir/gdp.exe" <<'GDP'
+mkdir -p -- "$install_dir/current"
+cat > "$install_dir/current/gdp.exe" <<'GDP'
 #!/usr/bin/env bash
 printf 'gdp 0.2.1\r\n'
 GDP
-chmod 755 "$install_dir/gdp.exe"
+chmod 755 "$install_dir/current/gdp.exe"
 EOF
 
 chmod 755 "$mock_bin/powershell.exe" "$mock_bin/curl" "$mock_bin/wslpath" "$fake_asset"
@@ -103,7 +93,7 @@ output="$(
     bash
 )"
 
-[[ -x "$install_dir/gdp.exe" ]]
+[[ -x "$install_dir/current/gdp.exe" ]]
 [[ -x "$mock_home/.local/bin/gdp" ]]
 [[ "$output" == *'Installed gdp 0.2.1'* ]]
 [[ "$("$mock_home/.local/bin/gdp" --version | tr -d '\r')" == 'gdp 0.2.1' ]]

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="493" height="312" viewBox="0 0 493 312">
+  <defs>
+    <radialGradient id="background" cx="50%" cy="42%" r="72%">
+      <stop stop-color="#ffffff"/>
+      <stop offset=".62" stop-color="#f7fafc"/>
+      <stop offset="1" stop-color="#edf3f7"/>
+    </radialGradient>
+    <linearGradient id="graphite" x1="190" y1="70" x2="300" y2="213" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#55565b"/>
+      <stop offset=".52" stop-color="#303136"/>
+      <stop offset="1" stop-color="#17181c"/>
+    </linearGradient>
+    <filter id="shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#111217" flood-opacity=".14"/>
+    </filter>
+  </defs>
+  <rect width="493" height="312" fill="url(#background)"/>
+  <g fill="none" stroke="url(#graphite)" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#shadow)">
+    <path d="M204 73v8c0 33 15 49 42 66"/>
+    <path d="M289 73v8c0 33-15 49-42 66v51"/>
+    <path d="M229 188h36"/>
+  </g>
+  <circle cx="204" cy="73" r="5.5" fill="#4f5056"/>
+  <circle cx="289" cy="73" r="5.5" fill="#303137"/>
+  <circle cx="247" cy="147" r="8" fill="#ffffff"/>
+  <circle cx="247" cy="147" r="6.2" fill="#65aceb"/>
+  <circle cx="245" cy="145" r="1.5" fill="#ffffff" fill-opacity=".55"/>
+  <text x="246.5" y="239" text-anchor="middle" fill="#202124" font-family="Segoe UI Variable, Segoe UI, sans-serif" font-size="23" font-weight="600" letter-spacing="-.4">GitHub Desktop Plus</text>
+  <text x="246.5" y="265" text-anchor="middle" fill="#74777d" font-family="Segoe UI Variable, Segoe UI, sans-serif" font-size="12.5">A focused enhancement layer for GitHub Desktop</text>
+</svg>

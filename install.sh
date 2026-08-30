@@ -84,7 +84,7 @@ case "${windows_arch,,}" in
     ;;
 esac
 
-asset_name="GitHubDesktopPlus-${asset_arch}-Setup.exe"
+asset_name="GitHubDesktopPlus-${asset_arch}.msi"
 if [[ "$release" == latest ]]; then
   asset_base="https://github.com/${repository}/releases/latest/download"
 else
@@ -124,18 +124,18 @@ actual_hash="$(sha256sum "$temp_dir/$asset_name" | cut -d ' ' -f 1)"
 [[ "${actual_hash,,}" == "${expected_hash,,}" ]] || die 'release checksum verification failed'
 
 install_dir_windows="$(wslpath -w "$install_dir")"
-setup_windows="$(wslpath -w "$temp_dir/$asset_name")"
+installer_windows="$(wslpath -w "$temp_dir/$asset_name")"
 [[ "$install_dir_windows" != *'"'* ]] || die 'installation path cannot contain a double quote'
 
 install_script="$temp_dir/install.ps1"
 cat > "$install_script" <<'POWERSHELL'
 param(
-  [Parameter(Mandatory = $true)][string] $Setup,
+  [Parameter(Mandatory = $true)][string] $Installer,
   [Parameter(Mandatory = $true)][string] $InstallDir
 )
 
 try {
-  foreach ($relativeLauncher in @("gdp.exe", "bin\\gdp.exe")) {
+  foreach ($relativeLauncher in @("current\\gdp.exe", "bin\\gdp.exe")) {
     $launcher = Join-Path $InstallDir $relativeLauncher
     if (Test-Path -LiteralPath $launcher) {
       & $launcher stop 2>$null | Out-Null
@@ -144,8 +144,20 @@ try {
     }
   }
 
-  $arguments = "--silent --installto `"$InstallDir`""
-  $process = Start-Process -FilePath $Setup -ArgumentList $arguments -Wait -PassThru
+  $arguments = @(
+    "/i",
+    "`"$Installer`"",
+    "/qn",
+    "/norestart",
+    "ALLUSERS=2",
+    "MSIINSTALLPERUSER=1",
+    "VELOPACK_INSTALLDIR=`"$InstallDir`""
+  )
+  $msiexec = Join-Path $env:SystemRoot "System32\msiexec.exe"
+  $process = Start-Process -FilePath $msiexec -ArgumentList $arguments -Wait -PassThru
+  if ($process.ExitCode -in @(0, 1641, 3010)) {
+    exit 0
+  }
   exit $process.ExitCode
 } catch {
   Write-Error $_
@@ -155,11 +167,11 @@ POWERSHELL
 install_script_windows="$(wslpath -w "$install_script")"
 
 powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
-  -File "$install_script_windows" "$setup_windows" "$install_dir_windows" </dev/null \
-  || die 'Velopack installation failed'
+  -File "$install_script_windows" "$installer_windows" "$install_dir_windows" </dev/null \
+  || die 'MSI installation failed'
 
-destination="$install_dir/gdp.exe"
-[[ -f "$destination" ]] || die "Velopack did not create the stable launcher: $destination"
+destination="$install_dir/current/gdp.exe"
+[[ -f "$destination" ]] || die "MSI did not install the GDP command: $destination"
 
 launcher_dir="$HOME/.local/bin"
 launcher="$launcher_dir/gdp"

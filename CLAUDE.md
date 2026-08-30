@@ -59,7 +59,7 @@ pnpm install                      # pnpm workspace
 pnpm dev                          # Vite(5273) + hook 构建 + 拉起 GDP 和 GitHub Desktop
 pnpm --filter @github-desktop-plus/settings-ui dev  # 只跑设置界面的 Vite
 pnpm run build                    # 全链路 release 构建
-pnpm run package:windows          # release 构建 + Velopack 安装包/便携包
+pnpm run package:windows          # release 构建 + Velopack MSI/便携包/更新清单
 pnpm run check                    # 前端构建、类型、测试、Rust fmt/check
 pnpm run test                     # workspace 测试 + cargo test
 pnpm run typecheck                # 全部 TS workspace + 零 JavaScript 策略
