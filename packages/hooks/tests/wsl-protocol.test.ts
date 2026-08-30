@@ -1,13 +1,17 @@
 import assert from 'node:assert/strict'
+import type { ChildProcess, ExecFileException } from 'node:child_process'
 import * as fs from 'node:fs'
 import { test } from 'node:test'
-import { stripVTControlCharacters } from 'node:util'
+import { promisify, stripVTControlCharacters } from 'node:util'
 
 import {
   WslAgentClient,
   type WslAgentSpawnOptions,
 } from '../src/preload/wsl/agent-client'
-import { execFileWithAgent } from '../src/preload/wsl/interceptor'
+import {
+  execFileWithAgent,
+  preserveExecFilePromisifyContract,
+} from '../src/preload/wsl/interceptor'
 import {
   encodeWslFrame,
   encodeWslJsonFrame,
@@ -163,6 +167,54 @@ test('keeps explicit execFile buffer output binary', () => {
   assert.deepEqual(Buffer.concat(chunks), binary)
   assert.ok(Buffer.isBuffer(callbackStdout))
   assert.deepEqual(callbackStdout, binary)
+})
+
+test('preserves the native execFile promisify result shape after interception', async () => {
+  let calls = 0
+  const execFile = ((...raw: unknown[]) => {
+    calls += 1
+    const callback = raw.at(-1) as (
+      error: ExecFileException | null,
+      stdout: string | Buffer,
+      stderr: string | Buffer,
+    ) => void
+    callback(null, 'D:\\Program Files\\Git\\cmd\\git.exe\r\n', '')
+    return {} as ChildProcess
+  })
+  preserveExecFilePromisifyContract(execFile)
+
+  const execFileAsync = promisify(
+    execFile as unknown as typeof import('node:child_process').execFile,
+  )
+  const result = await execFileAsync('where.exe', ['git'])
+
+  assert.equal(calls, 1)
+  assert.deepEqual(result, {
+    stdout: 'D:\\Program Files\\Git\\cmd\\git.exe\r\n',
+    stderr: '',
+  })
+})
+
+test('preserves execFile stdout and stderr on promisified failures', async () => {
+  const execFile = ((...raw: unknown[]) => {
+    const callback = raw.at(-1) as (
+      error: ExecFileException | null,
+      stdout: string | Buffer,
+      stderr: string | Buffer,
+    ) => void
+    callback(Object.assign(new Error('failed') as ExecFileException, { code: 1 }), 'partial', 'fatal')
+    return {} as ChildProcess
+  })
+  preserveExecFilePromisifyContract(execFile)
+
+  const execFileAsync = promisify(
+    execFile as unknown as typeof import('node:child_process').execFile,
+  )
+  await assert.rejects(execFileAsync('git', ['status']), error => {
+    assert.equal((error as ExecFileException & { stdout?: string }).stdout, 'partial')
+    assert.equal((error as ExecFileException & { stderr?: string }).stderr, 'fatal')
+    return true
+  })
 })
 
 const integrationDistro = process.env.GDP_WSL_INTEGRATION_DISTRO

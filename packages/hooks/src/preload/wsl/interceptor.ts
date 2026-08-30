@@ -29,6 +29,10 @@ type ExecFileCallback = (
   stderr: string | Buffer,
 ) => void
 
+type ExecFileFunction = (...args: unknown[]) => ChildProcess
+
+const CUSTOM_PROMISIFY = Symbol.for('nodejs.util.promisify.custom')
+
 interface MutableChildProcessModule {
   spawn: (...args: unknown[]) => ChildProcess
   execFile: (...args: unknown[]) => ChildProcess
@@ -192,6 +196,33 @@ export function execFileWithAgent(
   return child
 }
 
+/**
+ * Node's native execFile has a custom promisify implementation which resolves
+ * to `{ stdout, stderr }`. Replacing the function drops that symbol by default,
+ * so consumers such as GitHub Desktop would receive only stdout and then fail
+ * while destructuring the expected object.
+ */
+export function preserveExecFilePromisifyContract(execFile: ExecFileFunction): void {
+  const promisified = (...raw: unknown[]) => new Promise<{
+    stdout: string | Buffer
+    stderr: string | Buffer
+  }>((resolve, reject) => {
+    const callback: ExecFileCallback = (error, stdout, stderr) => {
+      if (error) {
+        reject(Object.assign(error, { stdout, stderr }))
+      } else {
+        resolve({ stdout, stderr })
+      }
+    }
+    Reflect.apply(execFile, childProcess, [...raw, callback])
+  })
+
+  Object.defineProperty(execFile, CUSTOM_PROMISIFY, {
+    configurable: true,
+    value: promisified,
+  })
+}
+
 export function installWslGitInterceptor(): boolean {
   if (process.platform !== 'win32') return false
 
@@ -230,6 +261,8 @@ export function installWslGitInterceptor(): boolean {
       call.callback,
     )
   }
+
+  preserveExecFilePromisifyContract(patchedExecFile)
 
   try {
     // Attempt direct property assignment first (works when properties are writable)

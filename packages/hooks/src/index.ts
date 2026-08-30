@@ -38,6 +38,7 @@ const _path: typeof import('path') = require('path')
  * scripts and mounted directly.
  */
 const SETTINGS_DEV_URL = process.env.GDP_SETTINGS_DEV_URL ?? ''
+delete process.env.GDP_SETTINGS_DEV_URL
 
 type StoredConfig = {
   updates?: {
@@ -855,6 +856,7 @@ function main(): void {
 
   const config = parseConfig()
   const dir = process.env.GDP_HOOK_DIR || __dirname
+  delete process.env.GDP_HOOK_DIR
 
   configureLogLevel(config.logLevel)
   resetLogStream()

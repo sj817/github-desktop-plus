@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsdown",
     "dev": "tsdown --watch",
-    "test": "tsx tests/i18n-lookup.test.ts && tsx tests/open-with.test.ts && tsx tests/git-readonly.test.ts && tsx tests/wsl-path.test.ts && tsx tests/wsl-distributions.test.ts && tsx tests/wsl-git-config.test.ts && tsx tests/wsl-protocol.test.ts",
+    "test": "tsx tests/i18n-lookup.test.ts && tsx tests/open-with.test.ts && tsx tests/git-readonly.test.ts && tsx tests/config.test.ts && tsx tests/wsl-path.test.ts && tsx tests/wsl-distributions.test.ts && tsx tests/wsl-git-config.test.ts && tsx tests/wsl-protocol.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

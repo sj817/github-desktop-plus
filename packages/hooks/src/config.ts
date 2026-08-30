@@ -43,8 +43,13 @@ export function parseConfig(): HookConfig {
     },
   }
 
+  const raw = process.env.GDP_CONFIG
+  // The renderer-facing config is embedded explicitly after parsing. Keeping
+  // the transport copy in process.env would expose it to every terminal or
+  // editor GitHub Desktop launches.
+  delete process.env.GDP_CONFIG
+
   try {
-    const raw = process.env.GDP_CONFIG
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<HookConfig> | null
       if (parsed && typeof parsed === 'object') {

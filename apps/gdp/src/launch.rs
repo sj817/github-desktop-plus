@@ -1,8 +1,9 @@
 //! `gdp launch` (and the legacy `gdp dev`) implementation.
 
+use std::ffi::{OsStr, OsString};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Child, Stdio};
+use std::process::{Child, Command, Stdio};
 use std::time::Duration;
 
 use gdp_core::{
@@ -242,9 +243,79 @@ fn build_hook_config(config: &Config, hooks_dir: &Path) -> String {
     .to_string()
 }
 
+const ALWAYS_PRIVATE_ENVIRONMENT: &[&str] = &["GDP_DAEMON", "NO_COLOR"];
+
+const CODEX_PRIVATE_ENVIRONMENT: &[&str] = &[
+    "CARGO_NET_OFFLINE",
+    "DISABLE_AUTO_UPDATE",
+    "GH_PAGER",
+    "GIT_ALLOW_PROTOCOLS",
+    "GIT_PAGER",
+    "GIT_SSH_COMMAND",
+    "LESS",
+    "LOG_FORMAT",
+    "NODE_REPL_TRUSTED_BROWSER_CLIENT_SHA256S",
+    "NPM_CONFIG_OFFLINE",
+    "PAGER",
+    "PIP_NO_INDEX",
+    "RUST_LOG",
+    "SBX_NONET_ACTIVE",
+    "ZSH_TMUX_AUTOSTART",
+    "ZSH_TMUX_AUTOSTARTED",
+];
+
+#[cfg(windows)]
+const PLATFORM_PRIVATE_ENVIRONMENT: &[&str] =
+    &["COLORTERM", "LANG", "LC_ALL", "LC_CTYPE", "SHELL", "TERM"];
+
+#[cfg(not(windows))]
+const PLATFORM_PRIVATE_ENVIRONMENT: &[&str] = &[];
+
+fn same_environment_key(left: &OsStr, right: &str) -> bool {
+    left.to_string_lossy().eq_ignore_ascii_case(right)
+}
+
+/// GitHub Desktop becomes the parent of user-facing terminals. Preserve the
+/// normal OS/user environment, but do not leak GDP daemon state or transient
+/// Codex automation controls into those terminals.
+fn sanitize_desktop_environment(
+    command: &mut Command,
+    inherited: impl IntoIterator<Item = (OsString, OsString)>,
+) {
+    let inherited: Vec<_> = inherited.into_iter().collect();
+    let launched_from_codex = inherited
+        .iter()
+        .any(|(key, _)| same_environment_key(key, "CODEX_SESSION_ID"));
+
+    for key in ALWAYS_PRIVATE_ENVIRONMENT {
+        command.env_remove(key);
+    }
+
+    if !launched_from_codex {
+        return;
+    }
+
+    for (key, _) in inherited {
+        let private = key
+            .to_string_lossy()
+            .to_ascii_uppercase()
+            .starts_with("CODEX_")
+            || CODEX_PRIVATE_ENVIRONMENT
+                .iter()
+                .any(|candidate| same_environment_key(&key, candidate))
+            || PLATFORM_PRIVATE_ENVIRONMENT
+                .iter()
+                .any(|candidate| same_environment_key(&key, candidate));
+        if private {
+            command.env_remove(key);
+        }
+    }
+}
+
 fn spawn_desktop(target: &DesktopTarget, hooks_dir: &Path, config_json: &str) -> Child {
-    let mut command = std::process::Command::new(&target.real_exe);
+    let mut command = Command::new(&target.real_exe);
     command.arg("--inspect-brk=0");
+    sanitize_desktop_environment(&mut command, std::env::vars_os());
 
     // Opt-in renderer DevTools endpoint, for debugging hooks that patch the
     // page (the main-process inspector above cannot reach the renderer).
@@ -262,6 +333,76 @@ fn spawn_desktop(target: &DesktopTarget, hooks_dir: &Path, config_json: &str) ->
             eprintln!("error: failed to launch GitHub Desktop: {e}");
             std::process::exit(1);
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn command_env<'a>(command: &'a Command, key: &str) -> Option<Option<&'a OsStr>> {
+        command
+            .get_envs()
+            .find(|(candidate, _)| candidate == &OsStr::new(key))
+            .map(|(_, value)| value)
+    }
+
+    #[test]
+    fn desktop_process_does_not_inherit_codex_automation_environment() {
+        let mut command = Command::new("unused");
+        let inherited = [
+            ("CODEX_SESSION_ID", "session"),
+            ("CODEX_APP_TOOLS_PIPE_PATH", "private-pipe"),
+            ("NO_COLOR", "1"),
+            ("TERM", "dumb"),
+            ("GH_PAGER", "cat"),
+            ("GIT_SSH_COMMAND", "cmd /c exit 1"),
+            ("HTTP_PROXY", "http://user-proxy.example"),
+            ("PATH", "C:\\Windows"),
+        ];
+        for (key, value) in inherited {
+            command.env(key, value);
+        }
+
+        sanitize_desktop_environment(
+            &mut command,
+            inherited.map(|(key, value)| (OsString::from(key), OsString::from(value))),
+        );
+
+        assert_eq!(command_env(&command, "NO_COLOR"), Some(None));
+        #[cfg(windows)]
+        assert_eq!(command_env(&command, "TERM"), Some(None));
+        #[cfg(not(windows))]
+        assert_eq!(
+            command_env(&command, "TERM"),
+            Some(Some(OsStr::new("dumb")))
+        );
+        assert_eq!(command_env(&command, "CODEX_SESSION_ID"), Some(None));
+        assert_eq!(
+            command_env(&command, "CODEX_APP_TOOLS_PIPE_PATH"),
+            Some(None)
+        );
+        assert_eq!(command_env(&command, "GH_PAGER"), Some(None));
+        assert_eq!(command_env(&command, "GIT_SSH_COMMAND"), Some(None));
+        assert_eq!(
+            command_env(&command, "HTTP_PROXY"),
+            Some(Some(OsStr::new("http://user-proxy.example")))
+        );
+        assert_eq!(
+            command_env(&command, "PATH"),
+            Some(Some(OsStr::new("C:\\Windows")))
+        );
+    }
+
+    #[test]
+    fn desktop_process_always_drops_gdp_daemon_state_and_no_color() {
+        let mut command = Command::new("unused");
+        command.env("GDP_DAEMON", "1").env("NO_COLOR", "1");
+
+        sanitize_desktop_environment(&mut command, []);
+
+        assert_eq!(command_env(&command, "GDP_DAEMON"), Some(None));
+        assert_eq!(command_env(&command, "NO_COLOR"), Some(None));
+    }
 }
 
 fn write_pid_files(cfg_dir: Option<&PathBuf>, desktop_pid: u32) {
