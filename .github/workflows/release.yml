@@ -93,7 +93,10 @@ jobs:
             throw "Expected '$expected', got '$actual'"
           }
 
-      - name: Build Velopack MSI and update assets
+      - name: Install Inno Setup 7.1.0
+        run: winget install --id JRSoftware.InnoSetup.7 --exact --version 7.1.0 --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+
+      - name: Build community installer, MSI, and update assets
         shell: pwsh
         run: pnpm exec tsx scripts/package-windows.ts
 

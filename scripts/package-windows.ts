@@ -28,12 +28,23 @@ const releases = path.join(target, 'releases')
 const sourceExe = path.join(root, 'target', 'release', 'gdp.exe')
 const stagedExe = path.join(staging, 'gdp.exe')
 const msiName = 'GitHubDesktopPlus-win-x64.msi'
+const setupName = 'GitHubDesktopPlus-win-x64-Setup.exe'
 const installerIcon = path.join(root, 'apps', 'gdp', 'assets', 'gdp.ico')
 const installerSplash = path.join(root, 'apps', 'gdp', 'assets', 'installer-splash.png')
-const installerWelcome = path.join(root, 'apps', 'gdp', 'assets', 'installer-welcome.md')
-const installerConclusion = path.join(root, 'apps', 'gdp', 'assets', 'installer-conclusion.md')
-const msiBanner = path.join(root, 'apps', 'gdp', 'assets', 'msi-banner.bmp')
-const msiLogo = path.join(root, 'apps', 'gdp', 'assets', 'msi-logo.bmp')
+const installerScript = path.join(root, 'installer', 'windows', 'GitHubDesktopPlus.iss')
+
+const innoCandidates = [
+  process.env.INNO_SETUP_COMPILER,
+  process.env.LOCALAPPDATA
+    ? path.join(process.env.LOCALAPPDATA, 'Programs', 'Inno Setup 7', 'ISCC.exe')
+    : undefined,
+  process.env.ProgramFiles
+    ? path.join(process.env.ProgramFiles, 'Inno Setup 7', 'ISCC.exe')
+    : undefined,
+  process.env['ProgramFiles(x86)']
+    ? path.join(process.env['ProgramFiles(x86)'], 'Inno Setup 7', 'ISCC.exe')
+    : undefined,
+].filter((candidate): candidate is string => Boolean(candidate))
 
 if (process.platform !== 'win32') {
   throw new Error('Windows packages must be built on Windows')
@@ -46,6 +57,22 @@ const manifest = JSON.parse(
 await stat(sourceExe).catch(() => {
   throw new Error(`release binary is missing: ${sourceExe}`)
 })
+await stat(installerScript).catch(() => {
+  throw new Error(`Inno Setup script is missing: ${installerScript}`)
+})
+
+let innoCompiler: string | undefined
+for (const candidate of innoCandidates) {
+  if (await stat(candidate).then(() => true).catch(() => false)) {
+    innoCompiler = candidate
+    break
+  }
+}
+if (!innoCompiler) {
+  throw new Error(
+    'Inno Setup 7 compiler was not found; install JRSoftware.InnoSetup.7 or set INNO_SETUP_COMPILER',
+  )
+}
 
 const { stdout: binaryVersion } = await execa(sourceExe, ['--version'])
 const expectedVersion = `gdp ${manifest.version}`
@@ -89,15 +116,7 @@ await execa('dotnet', [
   '#7DB6E8',
   '--msi',
   '--instLocation',
-  'Either',
-  '--instWelcome',
-  installerWelcome,
-  '--instConclusion',
-  installerConclusion,
-  '--msiBanner',
-  msiBanner,
-  '--msiLogo',
-  msiLogo,
+  'PerUser',
   '--outputDir',
   releases,
 ], { cwd: root, stdio: 'inherit' })
@@ -110,29 +129,51 @@ if (setupCandidates.length !== 1) {
 
 const generatedSetup = path.join(releases, setupCandidates[0]!)
 const generatedMsi = path.join(releases, msiName)
+if (path.basename(generatedSetup) !== setupName) {
+  throw new Error(`expected '${setupName}', got '${path.basename(generatedSetup)}'`)
+}
 await stat(generatedMsi).catch(() => {
   throw new Error(`MSI installer is missing: ${generatedMsi}`)
 })
 
-// Setup.exe is intentionally a no-questions one-click bootstrapper. Publishing
-// it beside the MSI makes a double-click look like the app simply launched, so
-// only expose the MSI as the interactive Windows installer.
+const msiBytes = await readFile(generatedMsi)
+// Velopack's Setup.exe is intentionally one-click. Replace it with an Inno
+// Setup wizard while keeping the generated MSI as the transactional payload.
 await rm(generatedSetup, { force: true })
+await execa(innoCompiler, [
+  `/DAppVersion=${manifest.version}`,
+  `/DSourceMsi=${generatedMsi}`,
+  `/DOutputDir=${releases}`,
+  `/DOutputBaseFilename=${path.parse(setupName).name}`,
+  `/DSetupIcon=${installerIcon}`,
+  installerScript,
+], { cwd: root, stdio: 'inherit' })
+await stat(generatedSetup).catch(() => {
+  throw new Error(`Inno Setup installer is missing: ${generatedSetup}`)
+})
+
 const assetManifestPath = path.join(releases, 'assets.win-x64.json')
 const assetManifest = JSON.parse(
   await readFile(assetManifestPath, 'utf8'),
 ) as PackagedAsset[]
-const publishedAssets = assetManifest.filter(asset => asset.Type !== 'Installer')
-if (!publishedAssets.some(asset => asset.RelativeFileName === msiName)) {
+if (!assetManifest.some(asset => asset.RelativeFileName === msiName)) {
   throw new Error(`asset manifest does not contain '${msiName}'`)
 }
-await writeFile(assetManifestPath, JSON.stringify(publishedAssets), 'utf8')
+if (!assetManifest.some(asset => asset.RelativeFileName === setupName && asset.Type === 'Installer')) {
+  throw new Error(`asset manifest does not contain '${setupName}'`)
+}
 
-const msiBytes = await readFile(generatedMsi)
 const msiHash = createHash('sha256').update(msiBytes).digest('hex')
 await writeFile(
   `${generatedMsi}.sha256`,
   `${msiHash}  ${msiName}\n`,
+  'ascii',
+)
+const setupBytes = await readFile(generatedSetup)
+const setupHash = createHash('sha256').update(setupBytes).digest('hex')
+await writeFile(
+  `${generatedSetup}.sha256`,
+  `${setupHash}  ${setupName}\n`,
   'ascii',
 )
 await copyFile(path.join(root, 'install.sh'), path.join(releases, 'install.sh'))

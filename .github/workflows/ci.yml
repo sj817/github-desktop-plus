@@ -103,7 +103,11 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: target/release/gdp.exe --version
 
-      - name: Build Velopack MSI and update assets
+      - name: Install Inno Setup 7.1.0
+        if: github.ref == 'refs/heads/main'
+        run: winget install --id JRSoftware.InnoSetup.7 --exact --version 7.1.0 --source winget --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+
+      - name: Build community installer, MSI, and update assets
         if: github.ref == 'refs/heads/main'
         run: pnpm exec tsx scripts/package-windows.ts
 

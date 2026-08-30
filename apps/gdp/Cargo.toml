@@ -25,3 +25,6 @@ windows-sys = { version = "0.59", features = ["Win32_UI_WindowsAndMessaging", "W
 
 [build-dependencies]
 serde_json.workspace = true
+
+[target.'cfg(windows)'.build-dependencies]
+winresource = { version = "0.1.31", default-features = false }

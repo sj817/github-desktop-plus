@@ -94,6 +94,16 @@ fn main() {
     let manifest_dir = Path::new(&manifest_dir);
     let repo_root = manifest_dir.join("../..");
 
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    if target_os == "windows" {
+        let icon = manifest_dir.join("assets/gdp.ico");
+        winresource::WindowsResource::new()
+            .set_icon(icon.to_str().expect("Windows icon path must be UTF-8"))
+            .compile()
+            .expect("compile Windows executable resources");
+        println!("cargo:rerun-if-changed={}", icon.display());
+    }
+
     bundle_locale(
         out_dir,
         &manifest_dir.join("resources"),
@@ -146,7 +156,6 @@ fn main() {
     );
 
     let profile = std::env::var("PROFILE").unwrap_or_default();
-    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
     let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
     let required_agent_is_present = match target_arch.as_str() {
         "x86_64" => has_x86_64_agent,

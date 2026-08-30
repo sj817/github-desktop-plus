@@ -51,7 +51,7 @@ curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download
 
 The bootstrap script downloads the latest MSI, verifies its SHA-256 checksum, installs the app per-user under `%LOCALAPPDATA%\GitHubDesktopPlus`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
 
-For a manual install, download `GitHubDesktopPlus-win-x64.msi` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases), verify the checksum, and open the installer. The visible Windows Installer wizard lets you review the installation scope and destination before files are changed. It creates stable Desktop and Start Menu shortcuts while extracted runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
+For a manual install, download `GitHubDesktopPlus-win-x64-Setup.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases). The community-built Inno Setup wizard lets you choose the destination before anything is installed, follows Windows light or dark mode, and never launches the app unless you select that option on the final page. Its embedded MSI provides transactional installation and rollback. The standalone `.msi` remains available for WSL and managed deployment. Stable Desktop and Start Menu shortcuts are created while runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
 
 ---
 
@@ -79,7 +79,7 @@ pnpm run typecheck
 # Full production build
 pnpm run build
 
-# Build the Velopack Windows installer and portable bundle
+# Build the Inno Setup wizard, MSI, and portable bundle
 pnpm run package:windows
 ```
 
