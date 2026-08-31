@@ -21,6 +21,58 @@ GitHub Desktop Plus (GDP) 在启动时通过官方 V8 Inspector 调试协议（`
 
 ---
 
+## 界面截图
+
+以下均为 GDP 托管的 GitHub Desktop 3.6 实机截图，未经修图，语言包为内置的 `zh-CN`。
+
+**汉化界面与 `GDP` 菜单。** 菜单栏、侧边栏、空状态与对话框在运行时完成翻译；菜单栏额外多出的 `GDP` 项用于打开设置面板。
+
+![GDP 托管下的 GitHub Desktop，界面已完整汉化](docs/screenshots/overview.png)
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>自定义 AI 提交信息。</strong> 提交框里原生的 Copilot 按钮改为调用 GDP 中配置的端点，模型返回后自动填入摘要与描述。<br><br>
+      <img src="docs/screenshots/ai-commit.png" alt="提交框正在通过自定义 AI 端点生成提交信息">
+    </td>
+    <td width="50%" valign="top">
+      <strong>打开方式增强。</strong> 配置过的编辑器、终端与 WSL 发行版会出现在仓库右键菜单中，与 GitHub Desktop 原生条目并列。<br><br>
+      <img src="docs/screenshots/open-with.png" alt="仓库右键菜单中由 GDP 注入的打开方式条目">
+    </td>
+  </tr>
+</table>
+
+### GDP 设置面板（`Ctrl+Alt+G`）
+
+设置面板是挂载在 GitHub Desktop 自身窗口内的 `<dialog>`，修改直接写入配置文件，Hook 侧无需重启即可读到。
+
+![常规页：界面翻译、语言包、Copilot 解锁、更新与遥测拦截](docs/screenshots/settings-general.png)
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>打开方式。</strong> 自动探测与手动添加的启动项，支持拖拽排序；参数中的 <code>%TARGET_PATH%</code> 会在调用时替换为仓库路径。<br><br>
+      <img src="docs/screenshots/settings-open-with.png" alt="打开方式设置页">
+    </td>
+    <td width="50%" valign="top">
+      <strong>AI 提交。</strong> Base URL 预设、模型名称、就地连通性测试，以及可切换的 System Prompt 风格。<br><br>
+      <img src="docs/screenshots/settings-ai.png" alt="AI 提交设置页">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>语言包。</strong> 已安装语言包、JSON 导入与新语言脚手架；编辑 JSON 文件后即时热生效。<br><br>
+      <img src="docs/screenshots/settings-locales.png" alt="语言包设置页">
+    </td>
+    <td width="50%" valign="top">
+      <strong>日志。</strong> Hook 的实时输出（i18n、菜单、更新与遥测决策），带级别筛选与搜索。<br><br>
+      <img src="docs/screenshots/settings-logs.png" alt="实时日志页">
+    </td>
+  </tr>
+</table>
+
+---
+
 ## 运行原理
 
 GDP 作为一个轻量级启动引导器，使用 `--inspect-brk=0` 参数唤起 GitHub Desktop，通过 Chrome DevTools Protocol (CDP) 建立连接，并在主进程和渲染进程脚本执行前注入 Hook：

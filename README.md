@@ -20,6 +20,58 @@ GitHub Desktop Plus (GDP) extends GitHub Desktop at runtime via the official V8 
 
 ---
 
+## Screenshots
+
+All images below are unedited captures of GitHub Desktop 3.6 running under GDP with the bundled `zh-CN` language pack.
+
+**Localized UI and the `GDP` menu.** Menus, sidebars, empty states and dialogs are translated at runtime; the extra `GDP` entry in the menu bar opens the settings panel.
+
+![GitHub Desktop running under GDP with a fully localized UI](docs/screenshots/overview.png)
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Custom AI commits.</strong> The native Copilot button in the commit box now calls the endpoint configured in GDP; the summary and description fields are filled in when the model replies.<br><br>
+      <img src="docs/screenshots/ai-commit.png" alt="Commit box generating a message through a custom AI endpoint">
+    </td>
+    <td width="50%" valign="top">
+      <strong>Open With+.</strong> Every configured editor, terminal and WSL distro shows up in the repository context menu next to GitHub Desktop's own entries.<br><br>
+      <img src="docs/screenshots/open-with.png" alt="Repository context menu with GDP-injected Open With entries">
+    </td>
+  </tr>
+</table>
+
+### GDP settings (`Ctrl+Alt+G`)
+
+The settings panel is a `<dialog>` mounted inside GitHub Desktop's own window. Changes are written straight to the config file and picked up by the hooks without a restart.
+
+![General tab: UI translation, language pack, Copilot unlock, update and telemetry blocking](docs/screenshots/settings-general.png)
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Open With.</strong> Auto-detected and hand-added launchers with drag-and-drop ordering; <code>%TARGET_PATH%</code> is replaced with the repository path.<br><br>
+      <img src="docs/screenshots/settings-open-with.png" alt="Open With settings tab">
+    </td>
+    <td width="50%" valign="top">
+      <strong>AI commit.</strong> Base URL presets, model name, an in-place connectivity test and selectable System Prompt styles.<br><br>
+      <img src="docs/screenshots/settings-ai.png" alt="AI commit settings tab">
+    </td>
+  </tr>
+  <tr>
+    <td width="50%" valign="top">
+      <strong>Language packs.</strong> Installed packs, JSON import, and a scaffold for a new locale; edits to the JSON files hot-reload.<br><br>
+      <img src="docs/screenshots/settings-locales.png" alt="Language pack settings tab">
+    </td>
+    <td width="50%" valign="top">
+      <strong>Logs.</strong> Live hook output (i18n, menu, update and telemetry decisions) with level filters and search.<br><br>
+      <img src="docs/screenshots/settings-logs.png" alt="Live hook log tab">
+    </td>
+  </tr>
+</table>
+
+---
+
 ## How It Works
 
 GDP acts as a lightweight launcher (< 10MB memory). It starts GitHub Desktop with `--inspect-brk=0`, attaches via the Chrome DevTools Protocol (CDP), and injects runtime hooks into the main and renderer processes before scripts execute:
