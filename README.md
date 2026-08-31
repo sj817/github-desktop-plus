@@ -1,84 +1,58 @@
 # GitHub Desktop Plus
 
-An external enhancement tool and hook suite for GitHub Desktop.
-
-GitHub Desktop Plus (GDP) extends GitHub Desktop at runtime via the official V8 Inspector debugging interface (`--inspect-brk=0`). It unlocks power-user features—custom AI commits, multiple editors/terminals, full i18n localization, and update/telemetry controls—**without modifying or patching official GitHub Desktop files**.
+Supercharge your GitHub Desktop experience — custom AI commit generation, multiple external editors & terminals, full i18n localization, and WSL 2 integration, **without patching official binaries**.
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 ---
 
-## Enhanced Capabilities
+## Features
 
-- **Custom AI Commits**: Replaces the native Copilot commit button action with your own AI endpoint. Compatible with any OpenAI-compatible API (OpenAI, DeepSeek, Ollama, SiliconFlow), with custom system prompts and live latency testing.
-- **Multiple Editors & Terminals (Open With+)**: Configure unlimited external editors and terminals in the repository context menu. Auto-detects VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, and custom CLI tools, with Framer Motion drag-and-drop ordering.
-- **Full UI Localization (i18n)**: Complete translation for menus, context menus, and UI dialogs with country flag previews. Includes hot-reloadable JSON translation packs.
-- **WSL 2 Integration**: Manage WSL-hosted repositories from Windows with transparent `/mnt/c/` ↔ `\\wsl$\` path translation.
-- **Telemetry & Update Controls**: Block background telemetry tracking and suppress automatic updates with a single toggle.
-- **Embedded Settings Modal**: Press `Ctrl+Alt+G` or click `GDP` in the menu bar to open a clean React 19 settings panel. All settings apply instantly without restarting.
-- **Zero Binary Modification**: Injected at launch using standard V8 debugging protocols. Leaves your official GitHub Desktop installation 100% clean and intact.
+- **Custom AI Commits**: Replace the native Copilot button with your own AI endpoint. Works with any OpenAI-compatible API (DeepSeek, Ollama, OpenAI, SiliconFlow, etc.), with custom system prompts and latency testing.
+- **Open With+ (Multi-Editor & Terminal)**: Launch unlimited editors and terminals directly from the repository context menu (VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, etc.) with drag-and-drop reordering.
+- **Full i18n & Localization**: Built-in runtime translation architecture. Currently ships with Simplified Chinese (`zh-CN`), with instant hot-reloading and open community contributions for other languages.
+- **WSL 2 Integration**: Seamlessly manage repositories hosted inside WSL from Windows with automatic `/mnt/c/` ↔ `\\wsl$\` path translation.
+- **Privacy & Version Control**: Block background telemetry tracking and disable silent automatic updates with a single toggle.
+- **Embedded Settings Panel**: Press `Ctrl+Alt+G` or click `GDP` in the menu bar to access settings. All changes apply instantly without restarting.
+- **Zero Binary Modification**: Injected at launch via the official V8 Inspector protocol. Leaves your official GitHub Desktop installation 100% clean and intact.
 
 ---
 
 ## Screenshots
 
-All images below are unedited captures of GitHub Desktop 3.6 running under GDP with the bundled `zh-CN` language pack.
+### Localized UI & GDP Menu
+Full runtime UI translation with a dedicated `GDP` menu entry.
 
-**Localized UI and the `GDP` menu.** Menus, sidebars, empty states and dialogs are translated at runtime; the extra `GDP` entry in the menu bar opens the settings panel.
+![GitHub Desktop running with GDP](docs/screenshots/overview.png)
 
-![GitHub Desktop running under GDP with a fully localized UI](docs/screenshots/overview.png)
+### Key Features
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>Custom AI commits.</strong> The native Copilot button in the commit box now calls the endpoint configured in GDP; the summary and description fields are filled in when the model replies.<br><br>
-      <img src="docs/screenshots/ai-commit.png" alt="Commit box generating a message through a custom AI endpoint">
-    </td>
-    <td width="50%" valign="top">
-      <strong>Open With+.</strong> Every configured editor, terminal and WSL distro shows up in the repository context menu next to GitHub Desktop's own entries.<br><br>
-      <img src="docs/screenshots/open-with.png" alt="Repository context menu with GDP-injected Open With entries">
-    </td>
-  </tr>
-</table>
+| Custom AI Commits | Open With+ (Multi-Editor & Terminal) |
+| :---: | :---: |
+| Native Copilot button calls your custom AI endpoint | Launch VS Code, Cursor, terminals, or WSL from the context menu |
+| ![Custom AI commits](docs/screenshots/ai-commit.png) | ![Open With context menu](docs/screenshots/open-with.png) |
 
-### GDP settings (`Ctrl+Alt+G`)
+### Embedded Settings Modal (`Ctrl+Alt+G`)
 
-The settings panel is a `<dialog>` mounted inside GitHub Desktop's own window. Changes are written straight to the config file and picked up by the hooks without a restart.
+Open settings on demand with instant live updates:
 
-![General tab: UI translation, language pack, Copilot unlock, update and telemetry blocking](docs/screenshots/settings-general.png)
+![General Settings](docs/screenshots/settings-general.png)
 
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>Open With.</strong> Auto-detected and hand-added launchers with drag-and-drop ordering; <code>%TARGET_PATH%</code> is replaced with the repository path.<br><br>
-      <img src="docs/screenshots/settings-open-with.png" alt="Open With settings tab">
-    </td>
-    <td width="50%" valign="top">
-      <strong>AI commit.</strong> Base URL presets, model name, an in-place connectivity test and selectable System Prompt styles.<br><br>
-      <img src="docs/screenshots/settings-ai.png" alt="AI commit settings tab">
-    </td>
-  </tr>
-  <tr>
-    <td width="50%" valign="top">
-      <strong>Language packs.</strong> Installed packs, JSON import, and a scaffold for a new locale; edits to the JSON files hot-reload.<br><br>
-      <img src="docs/screenshots/settings-locales.png" alt="Language pack settings tab">
-    </td>
-    <td width="50%" valign="top">
-      <strong>Logs.</strong> Live hook output (i18n, menu, update and telemetry decisions) with level filters and search.<br><br>
-      <img src="docs/screenshots/settings-logs.png" alt="Live hook log tab">
-    </td>
-  </tr>
-</table>
+| Open With Settings | AI Commit Settings |
+| :---: | :---: |
+| ![Open With settings tab](docs/screenshots/settings-open-with.png) | ![AI commit settings tab](docs/screenshots/settings-ai.png) |
+| **Language Packs & Hot Reload** | **Live Hook Logs** |
+| ![Language packs tab](docs/screenshots/settings-locales.png) | ![Live logs tab](docs/screenshots/settings-logs.png) |
 
 ---
 
 ## How It Works
 
-GDP acts as a lightweight launcher (< 10MB memory). It starts GitHub Desktop with `--inspect-brk=0`, attaches via the Chrome DevTools Protocol (CDP), and injects runtime hooks into the main and renderer processes before scripts execute:
+GDP acts as a lightweight Rust launcher (< 10MB memory overhead). It launches GitHub Desktop with `--inspect-brk=0`, attaches via the Chrome DevTools Protocol (CDP), and injects runtime hooks into the main and renderer processes:
 
 ```text
 ┌───────────────────────────┐         ┌──────────────────────────────┐
-│  gdp (Rust Launcher)      │   CDP   │  GitHub Desktop (Electron)   │
+│  GDP (Rust Launcher)      │   CDP   │  GitHub Desktop (Electron)   │
 │  • Embedded Hook Bundles  │────────→│  • Main Process Hook         │
 │  • Embedded Settings UI   │         │    - Telemetry / Update Block│
 │  • Embedded Locales       │         │    - AI Dispatcher & IPC     │
@@ -89,21 +63,55 @@ GDP acts as a lightweight launcher (< 10MB memory). It starts GitHub Desktop wit
 └───────────────────────────┘         └──────────────────────────────┘
 ```
 
-All IPC communication (settings, logs, AI requests, locales) runs directly over typed Electron IPC inside the process. No local HTTP server is required.
+All IPC communication (settings, logs, AI requests, locales) runs directly inside the Electron process via typed IPC — no local HTTP server required.
+
+---
+
+## Localization & Contributing Translations
+
+GDP provides full runtime i18n support (intercepting and translating native application menus, DOM elements, dialogs, and context menus) with hot-reloading.
+
+Currently, **Simplified Chinese (`zh-CN`)** is built-in and maintained. We warmly welcome community contributions for other languages (Traditional Chinese, Japanese, Korean, Spanish, French, German, etc.)!
+
+### How to Contribute a Language Pack
+
+- **Option 1 (In-App UI)**:
+  1. Press `Ctrl+Alt+G` to open Settings and go to the **Language Packs** tab.
+  2. Click to scaffold a new locale or import a JSON translation pack.
+  3. Edit strings and test them live with instant hot-reloading.
+  4. Export the JSON and submit a Pull Request to this repo.
+
+- **Option 2 (Directly in the Codebase)**:
+  1. Check the modular JSON files under [`apps/gdp/resources/locales/zh-CN/`](apps/gdp/resources/locales/zh-CN).
+  2. Create a new directory under `apps/gdp/resources/locales/<locale-code>` (e.g. `ja-JP`, `zh-TW`).
+  3. Translate the keys, verify with `pnpm locales:prepare <locale>`, and submit a PR.
 
 ---
 
 ## Installation & Usage
 
-Install from WSL with one command (Windows x64, GitHub Desktop, WSL 2, and Windows interop are required):
+### Option 1: Windows Installer (Recommended)
+
+1. Download `GitHubDesktopPlus-win-x64-Setup.exe` from [Releases](https://github.com/sj817/github-desktop-plus/releases).
+2. Run the installer (supports custom install directories and dark mode).
+3. Launch **GitHub Desktop Plus** from your Desktop or Start Menu.
+
+> [!NOTE]
+> Configuration and runtime data are stored in `%APPDATA%\github-desktop-plus`, keeping your settings safe across updates.
+
+### Option 2: WSL One-Line Install
+
+If you develop inside WSL 2, install with one command:
 
 ```bash
 curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
 ```
 
-The bootstrap script downloads the latest MSI, verifies its SHA-256 checksum, installs the app per-user under `%LOCALAPPDATA%\GitHubDesktopPlus`, and creates the WSL command `~/.local/bin/gdp`. Run `gdp` to launch GitHub Desktop, then press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings.
+This installs GDP and creates the `gdp` CLI command in `~/.local/bin`. Run `gdp` in your terminal to launch.
 
-For a manual install, download `GitHubDesktopPlus-win-x64-Setup.exe` and its `.sha256` file from [Releases](https://github.com/sj817/github-desktop-plus/releases). The community-built Inno Setup wizard lets you choose the destination before anything is installed, follows Windows light or dark mode, and never launches the app unless you select that option on the final page. Its embedded MSI provides transactional installation and rollback. The standalone `.msi` remains available for WSL and managed deployment. Stable Desktop and Start Menu shortcuts are created while runtime resources and configuration stay user-global under `%APPDATA%\github-desktop-plus`, never beside the versioned executable.
+### Shortcuts
+
+- **`Ctrl+Alt+G`**: Open / close the GDP settings modal (or click `GDP` in the menu bar).
 
 ---
 
@@ -131,9 +139,15 @@ pnpm run typecheck
 # Full production build
 pnpm run build
 
-# Build the Inno Setup wizard, MSI, and portable bundle
+# Build Windows installer and portable packages
 pnpm run package:windows
 ```
+
+---
+
+## Supporting the Project
+
+If you find GitHub Desktop Plus helpful, please consider giving it a Star on GitHub! Your support keeps this project active and growing.
 
 ---
 
@@ -148,3 +162,5 @@ GitHub Desktop itself is licensed under the [MIT License](https://github.com/des
 ## License
 
 [MIT](LICENSE)
+
+
