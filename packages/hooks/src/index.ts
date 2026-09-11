@@ -25,8 +25,8 @@ import {
   RESERVED_LOCALE_KEYS,
   collectAliases,
   applyAliases,
-  lookupTranslation,
 } from './i18n-lookup'
+import { translateMenuItem, type MenuItem } from './menu-i18n'
 
 const _fs: typeof import('fs') = require('fs')
 const _path: typeof import('path') = require('path')
@@ -148,16 +148,6 @@ function _watchLocaleReload(dataDir: string): void {
 //    This is how the community tool achieves accurate menu translation.
 //    Menus are created in main process via Electron Menu API, not in DOM.
 // ---------------------------------------------------------------------------
-interface MenuItem {
-  id?: string
-  label?: string
-  submenu?: MenuItem[]
-  role?: string
-  type?: string
-  enabled?: boolean
-  accelerator?: string
-  click?: () => void
-}
 
 interface TrackedWebContents {
   executeJavaScript(code: string): Promise<unknown>
@@ -231,89 +221,6 @@ function loadMenuTranslations(dir: string, locale: string, dataDir: string): Rec
   applyAliases(translations, aliasPairs)
   gdpLog(`Loaded ${Object.keys(translations).length} menu translations from aggregate package`, 'info', 'menu')
   return translations
-}
-
-function buildTranslationPattern(pattern: string): {
-  readonly regex: RegExp
-  readonly names: ReadonlyArray<string>
-} | null {
-  const token = /(\{\{(\w+)\}\}|\{(\w+)\})/g
-  const names = new Array<string>()
-  let cursor = 0
-  let regexSource = ''
-
-  for (const match of pattern.matchAll(token)) {
-    const raw = match[0]
-    const name = match[2] ?? match[3]
-    const index = match.index ?? -1
-    if (!raw || !name || index < 0) {
-      continue
-    }
-
-    regexSource += pattern
-      .slice(cursor, index)
-      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-    regexSource += '(.+)'
-    names.push(name)
-    cursor = index + raw.length
-  }
-
-  if (names.length === 0) {
-    return null
-  }
-
-  regexSource += pattern.slice(cursor).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  return {
-    regex: new RegExp(`^${regexSource}$`),
-    names,
-  }
-}
-
-function translateLabel(
-  label: string,
-  translations: Record<string, string>
-): string | null {
-  const direct = lookupTranslation(translations, label)
-  if (direct !== undefined) {
-    return direct.value
-  }
-
-  for (const [pattern, replacement] of Object.entries(translations).sort((a, b) => b[0].length - a[0].length)) {
-    const compiled = buildTranslationPattern(pattern)
-    if (compiled === null) {
-      continue
-    }
-
-    const match = label.match(compiled.regex)
-    if (match === null) {
-      continue
-    }
-
-    let translated = replacement
-    compiled.names.forEach((name, index) => {
-      const value = match[index + 1] ?? ''
-      translated = translated.replace(`{{${name}}}`, value)
-      translated = translated.replace(`{${name}}`, value)
-    })
-    return translated
-  }
-
-  return null
-}
-
-function translateMenuItem(item: MenuItem, translations: Record<string, string>): void {
-  if (item.label) {
-    const translated = translateLabel(item.label, translations)
-    if (translated) {
-      gdpLog(`Menu: "${item.label}" → "${translated}"`, 'info', 'menu')
-      item.label = translated
-    }
-  }
-  if (item.submenu && Array.isArray(item.submenu)) {
-    for (const sub of item.submenu) {
-      translateMenuItem(sub, translations)
-    }
-  }
 }
 
 // setupMenuI18n removed — replaced by setupGDPMenu which handles both i18n and GDP menu injection

@@ -81,5 +81,8 @@ cargo test --workspace
 ## 不要做的事
 
 - **不要再引入本地 HTTP 服务**。控制面板早期是 `127.0.0.1:7788` 上的 web 应用，已经全量迁到 Electron IPC，相关的 webui、hyper/tokio 依赖都已删除。
+- **不要在主进程 hook 的热路径里做同步 I/O 或逐项打日志**。主进程线程就是浏览器 UI 线程，它一阻塞整个应用的输入都会停；而 `Menu.buildFromTemplate` 补丁在 GitHub Desktop 每次刷新仓库、每次在 Changes 里选文件时都会跑一遍（约 66 个菜单项）。曾经每个菜单项 `gdpLog` 一次、`gdpLog` 又同步 `appendFileSync`，实测每次重建卡主线程 30–300ms。`gdpLog` 现已改为异步队列，但仍不要按菜单项、按 DOM 变更这种粒度调用它。
+- **渲染进程的 MutationObserver 回调对每次 React 提交同步执行**。新增观察者一律用 `preload/lib/mutation-filter.ts` 的 `mutationsTouchSelector` 粗筛，不要在回调里对每个插入子树做 `querySelector`，也不要在每个文本节点上跑全量正则。
+- **不要用 `taskkill /F` 直接杀 GitHub Desktop**。渲染进程里正在跑的 git 会被一起杀掉，`.git/index.lock` 就留在仓库里了。走 `proc::stop_process` / `kill_github_desktop_if_running`（先 WM_CLOSE，等 10 秒再强杀）。
 - **不要手改 `target/`**，Rust 产物和聚合语言包都会在构建时重写。
 - **不要在 `crates/gdp-core` 里手写目录树或模块清单**。以前那份硬编码的 `PROJECT_TREE` 一次重构就过期了，已经删掉；架构信息写进 `docs/architecture.md`。
