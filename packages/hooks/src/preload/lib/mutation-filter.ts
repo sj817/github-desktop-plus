@@ -1,16 +1,30 @@
+/**
+ * Does any of these mutations land inside (or introduce) an element matching
+ * `selector`?
+ *
+ * Every renderer hook that decorates one specific piece of GitHub Desktop's UI
+ * observes the whole document, and those observers all fire for the same DOM
+ * churn — diff rows, commit lists, file lists — that has nothing to do with
+ * them. So the common case is answered with one `querySelectorAll` per batch
+ * and a `contains` per record, rather than a `closest` per record plus a
+ * `querySelector` over every inserted subtree.
+ */
 export function mutationsTouchSelector(
   mutations: readonly MutationRecord[],
   selector: string,
 ): boolean {
-  for (const mutation of mutations) {
-    const target = mutation.target instanceof Element
-      ? mutation.target
-      : mutation.target.parentElement
-    if (target?.closest(selector)) return true
+  const scopes = document.querySelectorAll(selector)
+  if (scopes.length === 0) return false
 
+  for (const mutation of mutations) {
+    for (const scope of scopes) {
+      if (scope.contains(mutation.target)) return true
+    }
     for (const node of mutation.addedNodes) {
       if (!(node instanceof Element)) continue
-      if (node.matches(selector) || node.querySelector(selector)) return true
+      for (const scope of scopes) {
+        if (node === scope || node.contains(scope)) return true
+      }
     }
   }
   return false
