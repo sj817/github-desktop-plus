@@ -11,7 +11,7 @@ use gdp_core::{config::Config, detector::find_github_desktop, platform::config_d
 
 use crate::cli::{Cli, Command, ConfigAction};
 use crate::launch::load_config;
-use crate::proc::kill_process;
+use crate::proc::{CLOSE_GRACE, kill_process, stop_process};
 
 fn main() {
     // Velopack uses short-lived invocations of the main executable for install,
@@ -49,14 +49,22 @@ fn stop() {
     let cfg_dir = config_dir();
     let mut killed_any = false;
     if let Some(ref dir) = cfg_dir {
-        for (label, file) in [
-            ("GitHub Desktop", "gdp.pid"),
-            ("GDP daemon", "gdp-daemon.pid"),
+        // GitHub Desktop is asked to close and given time to finish whatever
+        // git is doing (see proc::stop_process); the daemon is our own idle
+        // watcher, so a plain kill is fine there.
+        for (label, file, graceful) in [
+            ("GitHub Desktop", "gdp.pid", true),
+            ("GDP daemon", "gdp-daemon.pid", false),
         ] {
             let pid_path = dir.join(file);
             if let Ok(s) = std::fs::read_to_string(&pid_path) {
                 if let Ok(pid) = s.trim().parse::<u32>() {
-                    if kill_process(pid) {
+                    let stopped = if graceful {
+                        stop_process(pid, CLOSE_GRACE)
+                    } else {
+                        kill_process(pid)
+                    };
+                    if stopped {
                         println!("✓ Stopped {label} (PID: {pid})");
                         killed_any = true;
                     } else {

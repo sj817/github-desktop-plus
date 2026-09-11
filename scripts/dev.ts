@@ -41,6 +41,28 @@ function gdpConfigDir(): string | null {
     : path.join(homedir(), '.config', 'github-desktop-plus')
 }
 
+function readPidFile(file: string): { pid: number; pidPath: string } | null {
+  const dir = gdpConfigDir()
+  if (!dir) return null
+  const pidPath = path.join(dir, file)
+  let pid: number
+  try {
+    pid = parseInt(readFileSync(pidPath, 'utf8').trim(), 10)
+  } catch {
+    return null
+  }
+  return Number.isFinite(pid) && pid > 0 ? { pid, pidPath } : null
+}
+
+function isAlive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
 // Kill a process recorded in one of GDP's PID files, directly — no `cargo run`.
 // This is the crux of the HMR fix: `cargo run -- stop` would first rebuild
 // gdp.exe, which is locked by the running daemon we're trying to stop, causing
@@ -48,30 +70,57 @@ function gdpConfigDir(): string | null {
 // and terminals launched from Desktop are detached user processes and must
 // survive a GDP hot restart.
 function killByPidFile(file: string): void {
-  const dir = gdpConfigDir()
-  if (!dir) return
-  const pidPath = path.join(dir, file)
-  let pid: number
-  try {
-    pid = parseInt(readFileSync(pidPath, 'utf8').trim(), 10)
-  } catch {
-    return
-  }
-  if (!Number.isFinite(pid) || pid <= 0) return
+  const entry = readPidFile(file)
+  if (!entry) return
   try {
     if (isWin) {
-      execaSync('taskkill', ['/F', '/PID', String(pid)], {
+      execaSync('taskkill', ['/F', '/PID', String(entry.pid)], {
         stdio: 'ignore',
         reject: false,
       })
     } else {
-      process.kill(pid, 'SIGKILL')
+      process.kill(entry.pid, 'SIGKILL')
     }
   } catch {
     // Already gone.
   }
   try {
-    rmSync(pidPath)
+    rmSync(entry.pidPath)
+  } catch {
+    // noop
+  }
+}
+
+// GitHub Desktop is asked to close (WM_CLOSE / SIGTERM) and given time to
+// finish: a forced kill also takes down the git processes the renderer has
+// in flight, and a checkout or diff killed mid-write leaves .git/index.lock
+// behind — every hot restart of GDP would then risk breaking the repository
+// that is open in Desktop. Force is only the fallback for a hung instance.
+async function closeByPidFile(file: string, graceMs = 10000): Promise<void> {
+  const entry = readPidFile(file)
+  if (!entry) return
+  if (isAlive(entry.pid)) {
+    try {
+      if (isWin) {
+        execaSync('taskkill', ['/PID', String(entry.pid)], { stdio: 'ignore', reject: false })
+      } else {
+        process.kill(entry.pid, 'SIGTERM')
+      }
+    } catch {
+      // Already gone.
+    }
+    const start = Date.now()
+    while (isAlive(entry.pid) && Date.now() - start < graceMs) {
+      await delay(150)
+    }
+    if (isAlive(entry.pid)) {
+      console.warn(`[dev] GitHub Desktop (PID ${entry.pid}) ignored the close request — terminating it`)
+      killByPidFile(file)
+      return
+    }
+  }
+  try {
+    rmSync(entry.pidPath)
   } catch {
     // noop
   }
@@ -180,10 +229,10 @@ function pnpm(args: readonly string[]): ResultPromise {
 }
 
 async function stopGdp(): Promise<void> {
-  // Stop the daemon + its GitHub Desktop directly via the PID files, then wait
-  // for the OS to release the lock on gdp.exe so the next `cargo build` can
-  // overwrite it. No manual close/reopen required.
-  killByPidFile('gdp.pid')
+  // Stop GitHub Desktop (gracefully) and the daemon directly via the PID files,
+  // then wait for the OS to release the lock on gdp.exe so the next
+  // `cargo build` can overwrite it. No manual close/reopen required.
+  await closeByPidFile('gdp.pid')
   killByPidFile('gdp-daemon.pid')
 
   if (gdpProcess && !gdpProcess.nodeChildProcess.killed) {

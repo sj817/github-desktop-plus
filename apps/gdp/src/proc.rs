@@ -4,7 +4,7 @@
 //! and the real Electron binary, and parsing inspector WebSocket URLs.
 
 use std::path::{Path, PathBuf};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Extract the full WebSocket debugger URL from a `Debugger listening on ws://...` line.
 pub fn parse_debugger_ws_url(line: &str) -> Option<String> {
@@ -143,6 +143,68 @@ pub fn kill_process(_pid: u32) -> bool {
     false
 }
 
+/// Ask a process to close — the same request the title-bar ✕ makes. GitHub
+/// Desktop then goes through Electron's normal quit path, so any git child
+/// that is mid-write finishes instead of being killed with a stale
+/// `.git/index.lock` left behind.
+#[cfg(windows)]
+pub fn request_close(pid: u32) -> bool {
+    std::process::Command::new("taskkill")
+        .args(["/PID", &pid.to_string()])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+#[cfg(unix)]
+pub fn request_close(pid: u32) -> bool {
+    kill_process(pid)
+}
+
+#[cfg(not(any(windows, unix)))]
+pub fn request_close(_pid: u32) -> bool {
+    false
+}
+
+/// Poll until the process is gone or `timeout` elapses.
+pub fn wait_for_exit(pid: u32, timeout: Duration) -> bool {
+    let deadline = Instant::now() + timeout;
+    while is_process_alive(pid) {
+        if Instant::now() >= deadline {
+            return false;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    true
+}
+
+/// How long a graceful close gets before falling back to a forced kill.
+pub const CLOSE_GRACE: Duration = Duration::from_secs(10);
+
+/// Close gracefully; force only when the process ignores the request.
+/// Returns whether the process was running.
+pub fn stop_process(pid: u32, grace: Duration) -> bool {
+    if !is_process_alive(pid) {
+        return false;
+    }
+    if request_close(pid) && wait_for_exit(pid, grace) {
+        return true;
+    }
+    force_kill(pid)
+}
+
+#[cfg(unix)]
+fn force_kill(pid: u32) -> bool {
+    unsafe { libc::kill(pid as i32, libc::SIGKILL) == 0 }
+}
+
+#[cfg(not(unix))]
+fn force_kill(pid: u32) -> bool {
+    kill_process(pid)
+}
+
 /// Returns true if the process with the given PID is still alive.
 #[cfg(windows)]
 pub fn is_process_alive(pid: u32) -> bool {
@@ -217,47 +279,93 @@ pub fn daemonize_and_exit() {
 #[cfg(not(any(windows, unix)))]
 pub fn daemonize_and_exit() {}
 
-/// Kill any running instances of GitHub Desktop before launching a new one.
-/// Prevents port conflicts when `--inspect-brk=0` is used.
+/// Whether any `GitHubDesktop.exe` process (main, renderer, GPU, …) is running.
+#[cfg(windows)]
+fn github_desktop_running() -> bool {
+    std::process::Command::new("tasklist")
+        .args(["/FI", "IMAGENAME eq GitHubDesktop.exe", "/NH", "/FO", "CSV"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains("GitHubDesktop.exe"))
+        .unwrap_or(false)
+}
+
+#[cfg(unix)]
+fn github_desktop_running() -> bool {
+    std::process::Command::new("pgrep")
+        .args(["-f", "GitHubDesktop"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+#[cfg(not(any(windows, unix)))]
+fn github_desktop_running() -> bool {
+    false
+}
+
+/// Stop any running GitHub Desktop before launching a hooked one: the app is
+/// single-instance, so a second launch would only hand off to the existing,
+/// unhooked window.
+///
+/// The close is graceful first. A forced kill takes the renderer's git
+/// children down with it (libuv keeps them in a job object), and a `git diff`
+/// or checkout killed mid-write leaves `.git/index.lock` behind — after which
+/// GitHub Desktop refuses to touch the repository until the lock is deleted by
+/// hand. Force is the fallback only for processes that ignore the request.
 pub fn kill_github_desktop_if_running() {
+    if !github_desktop_running() {
+        return;
+    }
+    eprintln!("info: GitHub Desktop is already running — asking it to close …");
+
     #[cfg(windows)]
     {
-        let check = std::process::Command::new("tasklist")
-            .args(["/FI", "IMAGENAME eq GitHubDesktop.exe", "/NH", "/FO", "CSV"])
-            .stdout(std::process::Stdio::piped())
+        // Without /F this posts WM_CLOSE to every window the image owns; only
+        // the main process has one, and closing it quits the whole app.
+        let _ = std::process::Command::new("taskkill")
+            .args(["/IM", "GitHubDesktop.exe"])
+            .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
-            .output();
-
-        let is_running = check
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.contains("GitHubDesktop.exe"))
-            .unwrap_or(false);
-
-        if is_running {
-            eprintln!("info: GitHub Desktop is already running — terminating before launch …");
-            let killed = std::process::Command::new("taskkill")
-                .args(["/F", "/IM", "GitHubDesktop.exe"])
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
-                .status()
-                .map(|s| s.success())
-                .unwrap_or(false);
-
-            if killed {
-                std::thread::sleep(std::time::Duration::from_millis(800));
-                eprintln!("info: existing GitHub Desktop processes terminated.");
-            } else {
-                eprintln!("warning: could not terminate existing GitHub Desktop processes.");
-            }
-        }
+            .status();
     }
-
     #[cfg(unix)]
     {
         let _ = std::process::Command::new("pkill")
-            .args(["-f", "GitHubDesktop"])
+            .args(["-TERM", "-f", "GitHubDesktop"])
             .status();
-        std::thread::sleep(std::time::Duration::from_millis(500));
     }
+
+    let deadline = Instant::now() + CLOSE_GRACE;
+    while Instant::now() < deadline && github_desktop_running() {
+        std::thread::sleep(Duration::from_millis(150));
+    }
+
+    if !github_desktop_running() {
+        eprintln!("info: existing GitHub Desktop closed.");
+        return;
+    }
+
+    eprintln!(
+        "warning: GitHub Desktop did not close within {}s — terminating it.",
+        CLOSE_GRACE.as_secs()
+    );
+    #[cfg(windows)]
+    {
+        let _ = std::process::Command::new("taskkill")
+            .args(["/F", "/IM", "GitHubDesktop.exe"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status();
+    }
+    #[cfg(unix)]
+    {
+        let _ = std::process::Command::new("pkill")
+            .args(["-KILL", "-f", "GitHubDesktop"])
+            .status();
+    }
+    std::thread::sleep(Duration::from_millis(800));
 }
