@@ -7,7 +7,7 @@
  * installed candidates and launches the one the user picked.
  *
  * The renderer half (preload/open-with.ts) injects the menu entries and calls
- * `gdp:open-with-launch` with the item id + repository path.
+ * `gdp:open-with-launch` with the item id and repository or file target.
  */
 
 import * as fs from 'fs'
@@ -15,19 +15,21 @@ import * as os from 'os'
 import * as path from 'path'
 import * as cp from 'child_process'
 import { gdpLog } from './logger'
+import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
+import { parseWslRepositoryPath } from './preload/wsl/path'
 
-/** Placeholder replaced with the repository path — same token GD uses. */
+/** Placeholder replaced with the editor's file/folder or shell's directory. */
 export const TARGET_PATH_TOKEN = '%TARGET_PATH%'
 
 export interface OpenWithItem {
   id: string
   label: string
   path: string
-  /** Command line; `%TARGET_PATH%` is replaced with the repository path. */
+  /** `%TARGET_PATH%` is the selected file for editors, its directory for shells. */
   args: string
   /** 'editor' | 'shell' — decides which native entry the item sits next to. */
   group: string
-  /** Launch through `start` so console programs get their own window. */
+  /** Give console programs their own visible window on Windows. */
   console: boolean
   enabled: boolean
 }
@@ -405,7 +407,7 @@ function detectWslDistros(): DetectedItem[] {
     id: `wsl-${distro.toLowerCase()}`,
     label: `WSL (${distro})`,
     path: wsl,
-    args: `-d ${distro} --cd "${TARGET_PATH_TOKEN}"`,
+    args: `-d "${distro}" --cd "${TARGET_PATH_TOKEN}"`,
     group: 'shell' as const,
     console: true,
   }))
@@ -470,9 +472,79 @@ function expandTarget(tokens: readonly string[], targetPath: string): string[] {
   return tokens.map(token => token.split(TARGET_PATH_TOKEN).join(targetPath))
 }
 
-/** `.cmd` / `.bat` shims cannot be spawned directly on Windows. */
-function needsShell(exe: string): boolean {
-  return process.platform === 'win32' && /\.(cmd|bat)$/i.test(exe)
+function targetPathApi(value: string): typeof path.win32 {
+  return /^(?:[a-z]:[\\/]|\\\\|\/\/)/i.test(value) ? path.win32 : path.posix
+}
+
+/** File targets must remain inside the model's repository, including UNC roots. */
+export function resolveOpenWithTarget(request: OpenWithLaunchRequest): { path: string; kind: 'file' | 'repository' } | null {
+  if (typeof request.path !== 'string' || !request.path || request.path.includes('\0')) return null
+  if (request.kind !== undefined && request.kind !== 'repository' && request.kind !== 'file') return null
+  if (request.kind !== 'file') {
+    return targetPathApi(request.path).isAbsolute(request.path) ? { path: request.path, kind: 'repository' } : null
+  }
+  const root = request.repositoryPath
+  if (typeof root !== 'string' || !root || root.includes('\0')) return null
+  const api = targetPathApi(root)
+  if (!api.isAbsolute(root) || api.isAbsolute(request.path)) return null
+  const fullPath = api.resolve(root, request.path)
+  const relative = api.relative(root, fullPath)
+  if (!relative || relative === '..' || relative.startsWith('..' + api.sep) || api.isAbsolute(relative)) return null
+  return { path: fullPath, kind: 'file' }
+}
+
+export interface OpenWithCommand {
+  command: string
+  args: string[]
+  options: cp.SpawnOptions
+}
+
+/** Separate argv from display paths. This also keeps file names with shell
+ * metacharacters out of cmd.exe when launching ordinary .exe applications. */
+export function buildOpenWithCommand(
+  item: OpenWithItem,
+  targetPath: string,
+  kind: 'repository' | 'file' = 'repository',
+  platform: NodeJS.Platform = process.platform,
+): OpenWithCommand {
+  const api = targetPathApi(targetPath)
+  const directory = kind === 'file' ? api.dirname(targetPath) : targetPath
+  let expandedTarget = item.group === 'shell' ? directory : targetPath
+  const argsTemplate = item.args && item.args.trim() !== ''
+    ? item.args : item.group === 'shell' ? '' : `"${TARGET_PATH_TOKEN}"`
+  let tokens = tokenizeArgs(argsTemplate)
+  const wsl = platform === 'win32' && path.win32.basename(item.path).toLowerCase() === 'wsl.exe'
+  const wslPath = wsl ? parseWslRepositoryPath(expandedTarget) : null
+  if (wslPath) {
+    const distroIndex = tokens.findIndex(token => token === '-d' || token === '--distribution')
+    const distro = distroIndex >= 0 ? tokens[distroIndex + 1] : tokens.find(token => token.startsWith('--distribution='))?.slice('--distribution='.length)
+    if (distro && distro.toLowerCase() !== wslPath.distro.toLowerCase()) throw new Error(`文件位于 ${wslPath.distro}，请选择对应的 WSL 终端`)
+    if (!distro) tokens = ['-d', wslPath.distro, ...tokens]
+    expandedTarget = wslPath.linuxPath
+    if (!tokens.some(token => token === '--cd' || token.startsWith('--cd='))) tokens = ['--cd', expandedTarget, ...tokens]
+  }
+  const args = expandTarget(tokens, expandedTarget)
+  const options: cp.SpawnOptions = { detached: true, stdio: 'ignore' }
+  if (platform === 'win32') options.windowsHide = !item.console
+
+  if (platform === 'win32' && /\.(cmd|bat)$/i.test(item.path)) {
+    // Batch shims require cmd.exe; reject path characters which cmd expands
+    // even inside quotes, rather than letting a file name become shell syntax.
+    if (/["%\r\n]/.test(targetPath)) throw new Error('此文件路径不能通过批处理启动器打开，请选择程序的 .exe')
+    const quoted = args.map(arg => `"${arg.replaceAll('"', '\\"')}"`).join(' ')
+    return {
+      command: process.env.ComSpec || 'cmd.exe',
+      args: ['/d', '/v:off', '/s', '/c', `start "" /D "${directory}" "${item.path}" ${quoted}`.trim()],
+      options: { ...options, windowsVerbatimArguments: true, windowsHide: true },
+    }
+  }
+  if (platform === 'darwin' && item.path.endsWith('.app')) {
+    return { command: 'open', args: ['-a', item.path, ...args], options }
+  }
+  // On Windows detached console programs receive their own window. WSL's
+  // --cd handles Windows drive paths; UNC paths use the Linux path above.
+  if (item.group === 'shell') options.cwd = wslPath ? os.homedir() : directory
+  return { command: item.path, args, options }
 }
 
 function waitForSpawn(child: cp.ChildProcess): Promise<void> {
@@ -488,44 +560,15 @@ function waitForSpawn(child: cp.ChildProcess): Promise<void> {
 export async function launchOpenWith(
   item: OpenWithItem,
   targetPath: string,
+  kind: 'repository' | 'file' = 'repository',
 ): Promise<{ ok: boolean; reason?: string }> {
   if (!item.path) return { ok: false, reason: 'no_path' }
   if (!targetPath) return { ok: false, reason: 'no_target' }
-  if (!fs.existsSync(item.path)) return { ok: false, reason: 'executable_missing' }
-
-  const argsTemplate = item.args && item.args.trim() !== ''
-    ? item.args
-    : item.group === 'shell' ? '' : `"${TARGET_PATH_TOKEN}"`
-  const args = expandTarget(tokenizeArgs(argsTemplate), targetPath)
+  if (!await fs.promises.access(item.path).then(() => true, () => false)) return { ok: false, reason: 'executable_missing' }
 
   try {
-    let child: cp.ChildProcess
-    if (process.platform === 'win32' && (item.console || needsShell(item.path))) {
-      // `start` gives console programs their own window and `/D` sets the
-      // working directory without relying on spawn's cwd (which rejects UNC).
-      const comspec = process.env.ComSpec || 'cmd.exe'
-      const quoted = args.map(a => (/\s/.test(a) ? `"${a}"` : a)).join(' ')
-      const line = `start "" /D "${targetPath}" "${item.path}" ${quoted}`.trim()
-      child = cp.spawn(comspec, ['/d', '/s', '/c', line], {
-        detached: true,
-        stdio: 'ignore',
-        windowsVerbatimArguments: true,
-        windowsHide: true,
-      })
-    } else if (process.platform === 'darwin' && item.path.endsWith('.app')) {
-      child = cp.spawn('open', ['-a', item.path, ...args], {
-        detached: true,
-        stdio: 'ignore',
-      })
-    } else {
-      // This mirrors GitHub Desktop's official editor launcher: detached,
-      // ignored stdio, and unref after attaching the spawn/error listeners.
-      child = cp.spawn(item.path, args, {
-        detached: true,
-        stdio: 'ignore',
-        ...(item.group === 'shell' ? { cwd: targetPath } : {}),
-      })
-    }
+    const launch = buildOpenWithCommand(item, targetPath, kind)
+    const child = cp.spawn(launch.command, launch.args, launch.options)
     await waitForSpawn(child)
     gdpLog(`open-with: launched "${item.label}" for ${targetPath}`, 'info', 'system')
     return { ok: true }

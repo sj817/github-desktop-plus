@@ -39,6 +39,8 @@ const _path: typeof import('path') = require('path')
  */
 const SETTINGS_DEV_URL = process.env.GDP_SETTINGS_DEV_URL ?? ''
 delete process.env.GDP_SETTINGS_DEV_URL
+const LAUNCHER_PATH = process.env.GDP_LAUNCHER_PATH ?? ''
+delete process.env.GDP_LAUNCHER_PATH
 
 type StoredConfig = {
   updates?: {
@@ -1008,6 +1010,7 @@ function main(): void {
       electron.BrowserWindow as GDPBrowserWindowConstructor,
       activeWebContents,
       applyConfigAndPush,
+      LAUNCHER_PATH,
     )
   }
 

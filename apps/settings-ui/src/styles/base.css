@@ -1,0 +1,47 @@
+/* This UI is injected into GitHub Desktop. Never reset the host document. */
+#gdp-settings-root {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  container: gdp / size;
+  color: var(--gdp-fg);
+  background: var(--gdp-canvas);
+  font: 14px/1.6 var(--gdp-font);
+  -webkit-font-smoothing: antialiased;
+}
+#gdp-settings-root,
+#gdp-settings-root *,
+#gdp-settings-root *::before,
+#gdp-settings-root *::after { box-sizing: border-box; }
+#gdp-settings-root :where(h1, h2, h3, p, ul, ol, figure, fieldset, pre) { margin: 0; padding: 0; }
+#gdp-settings-root :where(ul, ol) { list-style: none; }
+#gdp-settings-root :where(button, input, textarea, select) {
+  appearance: none; font: inherit; color: inherit; margin: 0; border: 0; background: none; min-width: 0;
+}
+#gdp-settings-root :where(button) { padding: 0; text-align: inherit; cursor: pointer; -webkit-app-region: no-drag; }
+#gdp-settings-root :where(button:disabled) { cursor: default; }
+#gdp-settings-root :where(fieldset) { min-width: 0; border: 0; }
+#gdp-settings-root :where(svg) { display: block; flex: none; }
+#gdp-settings-root :where(img) { display: block; max-width: 100%; }
+#gdp-settings-root :where(a) { color: var(--gdp-accent); text-decoration: none; }
+#gdp-settings-root :where(code, kbd, pre) { font-family: var(--gdp-mono); }
+#gdp-settings-root :where(:focus-visible) { outline: 2px solid var(--gdp-ring); outline-offset: 3px; }
+#gdp-settings-root ::selection { background: var(--gdp-ring); }
+#gdp-settings-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+#gdp-settings-root ::-webkit-scrollbar-thumb {
+  border: 2px solid transparent; border-radius: 99px; background: color-mix(in srgb, var(--gdp-fg) 20%, transparent); background-clip: content-box;
+}
+#gdp-settings-root ::-webkit-scrollbar-track,
+#gdp-settings-root ::-webkit-scrollbar-corner { background: transparent; }
+#gdp-settings-root .gdp-spin { animation: gdp-spin 1s linear infinite; }
+#gdp-settings-root .gdp-skeleton { border-radius: 10px; background: var(--gdp-inset); animation: gdp-skeleton 1.4s ease-in-out infinite alternate; }
+@keyframes gdp-spin { to { transform: rotate(360deg); } }
+@keyframes gdp-skeleton { to { opacity: .4; } }
+@keyframes gdp-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  #gdp-settings-root *, #gdp-settings-root *::before, #gdp-settings-root *::after {
+    animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important;
+  }
+}

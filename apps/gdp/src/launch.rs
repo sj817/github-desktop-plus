@@ -326,6 +326,10 @@ fn spawn_desktop(target: &DesktopTarget, hooks_dir: &Path, config_json: &str) ->
     command
         .env("GDP_CONFIG", config_json)
         .env("GDP_HOOK_DIR", hooks_dir.to_str().unwrap_or_default())
+        .env(
+            "GDP_LAUNCHER_PATH",
+            std::env::current_exe().unwrap_or_default(),
+        )
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .spawn()

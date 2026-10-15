@@ -12,6 +12,8 @@ import * as path from 'path'
 import * as https from 'https'
 import * as http from 'http'
 import * as cp from 'child_process'
+import { version } from '../package.json'
+import { GdpUpdater } from './updater'
 import { gdpLog, LOG_JSON_FILE, setLogBroadcast, type LogEntry } from './logger'
 import {
   detectOpenWith,
@@ -19,8 +21,10 @@ import {
   normalizeItem,
   labelForExecutable,
   defaultBrowseDir,
+  resolveOpenWithTarget,
   type OpenWithItem,
 } from './open-with'
+import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
 
 // ── Electron types (used as any in main-process hooks) ─────────────────────
 
@@ -240,7 +244,35 @@ export function setupGdpIpc(
   BrowserWindow: BrowserWindowLike,
   activeWebContents: TrackedWebContents[],
   onConfigWritten?: (parsed: StoredConfig) => void,
+  launcherPath = '',
 ): void {
+  const updater = new GdpUpdater({
+    version,
+    directory: path.join(dataDir, 'updates'),
+    supported: process.platform === 'win32' && process.arch === 'x64',
+    publish: state => {
+      for (const wc of activeWebContents) {
+        try { if (!wc.isDestroyed()) wc.send('gdp:update-state', state) } catch { /* window closed */ }
+      }
+    },
+    openInstaller: file => new Promise<void>((resolve, reject) => {
+      // Keep custom installation locations. Portable launchers use the wizard's
+      // normal destination choice rather than replacing an arbitrary directory.
+      const currentDir = path.dirname(launcherPath)
+      const args = path.basename(currentDir).toLowerCase() === 'current' && path.basename(launcherPath).toLowerCase() === 'gdp.exe'
+        ? [`/DIR=${path.dirname(currentDir)}`] : []
+      const child = cp.spawn(file, args, { detached: true, stdio: 'ignore' })
+      child.once('error', reject)
+      child.once('spawn', () => child.unref())
+      child.once('exit', code => code === 0 || code === 3010 ? resolve() : reject(new Error(`安装向导已退出（${code ?? 'unknown'}）`)))
+    }),
+  })
+  ipcMain.handle('gdp:update-state', () => updater.snapshot())
+  ipcMain.handle('gdp:update-check', (_event, mirror) => updater.check(mirror))
+  ipcMain.handle('gdp:update-download', (_event, mirror) => updater.download(mirror))
+  ipcMain.handle('gdp:update-cancel', () => updater.cancel())
+  ipcMain.handle('gdp:update-install', () => updater.install())
+
   // Broadcast log entries to all active renderers (for the dialog Logs tab)
   setLogBroadcast((entry: LogEntry) => {
     const alive = activeWebContents.filter(wc => !wc.isDestroyed())
@@ -292,10 +324,10 @@ export function setupGdpIpc(
     }
   })
 
-  ipcMain.handle('gdp:open-with-launch', (_event, payload?: { id?: string; path?: string }) => {
-    const id = payload?.id ?? ''
-    const targetPath = payload?.path ?? ''
-    if (!id || !targetPath) return { ok: false, reason: 'bad_request' }
+  ipcMain.handle('gdp:open-with-launch', (_event, payload?: OpenWithLaunchRequest) => {
+    if (!payload || typeof payload.id !== 'string' || !payload.id) return { ok: false, reason: 'bad_request' }
+    const target = resolveOpenWithTarget(payload)
+    if (!target) return { ok: false, reason: 'bad_target' }
 
     const stored = readConfigFromDisk(configPath)
     const rawItems = (stored.open_with as { items?: unknown[] } | undefined)?.items ?? []
@@ -303,9 +335,9 @@ export function setupGdpIpc(
       .map((raw, i) => normalizeItem(raw, i))
       .filter((item): item is OpenWithItem => item !== null)
 
-    const item = items.find(i => i.id === id)
-    if (!item) return { ok: false, reason: 'unknown_item' }
-    return launchOpenWith(item, targetPath)
+    const item = items.find(i => i.id === payload.id)
+    if (!item || !item.enabled) return { ok: false, reason: 'unknown_or_disabled_item' }
+    return launchOpenWith(item, target.path, target.kind)
   })
 
   // Manual "add a launcher we did not detect" path.

@@ -48,7 +48,6 @@ export function mount(
   // All CSS is scoped to this id, and the container doubles as the portal
   // target for popups, so it has to be positioned.
   container.id = ROOT_ID
-  container.classList.add('relative', 'h-full', 'overflow-hidden')
 
   const applyTheme = (): void => {
     container.classList.toggle('dark', bridge.getTheme() === 'dark')

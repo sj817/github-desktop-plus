@@ -7,6 +7,8 @@ pub struct Config {
     #[serde(default)]
     pub updates: UpdatesConfig,
     #[serde(default)]
+    pub downloads: DownloadsConfig,
+    #[serde(default)]
     pub telemetry: TelemetryConfig,
     #[serde(default)]
     pub logging: LoggingConfig,
@@ -45,8 +47,7 @@ impl Default for CopilotConfig {
 ///
 /// Note: `temperature` and `max_tokens` are intentionally NOT configurable — for
 /// commit messages you want consistency, not creativity, and a short output;
-/// they are fixed internally in the hook that builds the request. `timeout_secs`
-/// is kept as a file-only escape hatch (not surfaced in the settings UI).
+/// they are fixed internally in the hook that builds the request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AiConfig {
     #[serde(default)]
@@ -128,7 +129,7 @@ pub struct OpenWithItem {
     /// "editor" or "shell" — decides which native entry it sits next to.
     #[serde(default = "default_open_with_group")]
     pub group: String,
-    /// Launch through the shell's `start` so console programs get a window.
+    /// Give console programs their own visible window on Windows.
     #[serde(default)]
     pub console: bool,
     #[serde(default = "default_true")]
@@ -144,6 +145,25 @@ pub struct UpdatesConfig {
     pub disabled: bool,
     #[serde(default = "default_true")]
     pub block_manual_check: bool,
+}
+
+/// Download route for GDP's own updates, independent of the upstream blocker.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadsConfig {
+    #[serde(default = "default_download_mirror")]
+    pub mirror: String,
+}
+
+fn default_download_mirror() -> String {
+    "auto".to_string()
+}
+
+impl Default for DownloadsConfig {
+    fn default() -> Self {
+        Self {
+            mirror: default_download_mirror(),
+        }
+    }
 }
 
 fn default_true() -> bool {
@@ -227,6 +247,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             updates: UpdatesConfig::default(),
+            downloads: DownloadsConfig::default(),
             telemetry: TelemetryConfig::default(),
             logging: LoggingConfig::default(),
             i18n: I18nConfig::default(),
@@ -300,6 +321,7 @@ mod tests {
         let c = Config::default();
         assert!(c.updates.disabled);
         assert!(c.updates.block_manual_check);
+        assert_eq!(c.downloads.mirror, "auto");
         assert!(c.telemetry.disabled);
         assert!(c.i18n.enabled);
         assert_eq!(c.i18n.locale, "zh-CN");
@@ -332,11 +354,13 @@ mod tests {
         c.i18n.locale = "en-US".into();
         c.ui.recent_repos_limit = 9;
         c.logging.level = "info".into();
+        c.downloads.mirror = "ghfast.top".into();
         c.save(&dir).expect("save");
         let loaded = Config::load(&dir).expect("load back");
         assert_eq!(loaded.i18n.locale, "en-US");
         assert_eq!(loaded.ui.recent_repos_limit, 9);
         assert_eq!(loaded.logging.level, "info");
+        assert_eq!(loaded.downloads.mirror, "ghfast.top");
         let _ = std::fs::remove_dir_all(&dir);
     }
 

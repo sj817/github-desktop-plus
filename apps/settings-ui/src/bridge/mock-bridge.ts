@@ -8,7 +8,9 @@ import type {
   LogEntry,
   StoredConfig,
   Theme,
+  UpdateState,
 } from '@github-desktop-plus/shared'
+import { version } from '../../package.json'
 
 /**
  * Development-only bridge for opening the UI directly in a browser tab
@@ -19,11 +21,19 @@ import type {
  * `import.meta.env.DEV`, and the production entry (`mount.tsx`) never touches
  * it.
  */
-export function createMockBridge(): GDPBridge {
+export interface MockBridge extends GDPBridge {
+  __setTheme(theme: Theme): void
+  __emitLog(entry: LogEntry): void
+  __dispose(): void
+}
+
+export function createMockBridge(): MockBridge {
   const url = new URL(window.location.href)
   let theme: Theme = url.searchParams.get('theme') === 'dark' ? 'dark' : 'light'
   const themeHandlers = new Set<(theme: Theme) => void>()
   const scenario = url.searchParams.get('scenario') ?? ''
+  const nextVersion = version.replace(/\d+$/, patch => String(Number(patch) + 1))
+  let failInitialLoad = scenario === 'load-error'
 
   let config: StoredConfig =
     scenario === 'empty'
@@ -71,6 +81,14 @@ export function createMockBridge(): GDPBridge {
 
   let locales = scenario === 'empty' ? [] : ['zh-CN', 'zh-TW', 'ja-JP']
   const logHandlers = new Set<(entry: LogEntry) => void>()
+  const updateHandlers = new Set<(state: UpdateState) => void>()
+  let updateState: UpdateState = { revision: 0, phase: 'idle', currentVersion: version }
+  let updateTask: AbortController | undefined
+  const publishUpdate = (patch: Partial<UpdateState>) => {
+    updateState = { ...updateState, ...patch, revision: updateState.revision + 1 }
+    for (const handler of updateHandlers) handler(structuredClone(updateState))
+    return structuredClone(updateState)
+  }
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -92,8 +110,10 @@ export function createMockBridge(): GDPBridge {
   }
 
   let ticker = 0
-  if (scenario !== 'empty') {
-    setInterval(() => {
+  let logTimer: ReturnType<typeof setInterval> | null = null
+  const startLogs = () => {
+    if (scenario === 'empty' || logTimer) return
+    logTimer = setInterval(() => {
       ticker += 1
       const entry = makeEntry(ticker)
       entry.ts = new Date().toISOString()
@@ -104,6 +124,7 @@ export function createMockBridge(): GDPBridge {
   const handlers: { [C in GdpInvokeChannel]: (...args: GdpInvokeArgs<C>) => Promise<GdpInvokeResult<C>> } = {
     'gdp:get-config': async () => {
       await delay(350)
+      if (failInitialLoad) { failInitialLoad = false; throw new Error('暂时无法读取配置，请重试。') }
       return structuredClone(config)
     },
     'gdp:set-config': async next => {
@@ -174,6 +195,38 @@ export function createMockBridge(): GDPBridge {
       }
       return { ok: true, latency_ms: 812, reply: 'OK' }
     },
+    'gdp:update-state': async () => structuredClone(updateState),
+    'gdp:update-check': async () => {
+      if (updateTask) return structuredClone(updateState)
+      const controller = new AbortController()
+      updateTask = controller
+      publishUpdate({ phase: 'checking', error: undefined })
+      await delay(800)
+      updateTask = undefined
+      if (controller.signal.aborted) return publishUpdate({ phase: 'idle' })
+      if (scenario === 'update-error') return publishUpdate({ phase: 'error', error: '检查更新失败。GitHub 直连：连接超时；gh.dpik.top：HTTP 503' })
+      return publishUpdate({
+        phase: scenario === 'up-to-date' ? 'current' : 'available',
+        checkedAt: new Date().toISOString(), source: 'GitHub 直连', received: undefined, total: undefined,
+        release: { version: scenario === 'up-to-date' ? version : nextVersion, url: 'https://github.com/sj817/github-desktop-plus/releases', publishedAt: new Date().toISOString(), size: 8 * 1024 * 1024,
+          notes: '## 新增\n- 全新偏好设置\n- 按需检查更新，支持镜像下载加速\n\n## 优化\n- 降低大型仓库切换时的内存占用' },
+      })
+    },
+    'gdp:update-download': async mirror => {
+      if (updateTask || !updateState.release) return structuredClone(updateState)
+      const controller = new AbortController()
+      updateTask = controller
+      publishUpdate({ phase: 'downloading', received: 0, total: updateState.release.size, source: mirror === 'direct' ? 'GitHub 直连' : 'gh.dpik.top', error: undefined })
+      for (let step = 1; step <= 10; step++) {
+        await delay(200)
+        if (controller.signal.aborted) { updateTask = undefined; return publishUpdate({ phase: 'available', received: undefined, total: undefined }) }
+        publishUpdate({ received: updateState.release.size * step / 10 })
+      }
+      updateTask = undefined
+      return publishUpdate({ phase: 'ready' })
+    },
+    'gdp:update-cancel': async () => { updateTask?.abort(); return structuredClone(updateState) },
+    'gdp:update-install': async () => ({ ok: updateState.phase === 'ready' }),
     'gdp:log': async () => true,
   }
 
@@ -189,11 +242,18 @@ export function createMockBridge(): GDPBridge {
     },
 
     on<C extends GdpEventChannel>(channel: C, handler: (...args: GdpEventMap[C]) => void) {
+      if (channel === 'gdp:update-state') {
+        const fn = handler as (state: UpdateState) => void
+        updateHandlers.add(fn)
+        return () => { updateHandlers.delete(fn) }
+      }
       if (channel !== 'gdp:log-line') return () => {}
       const fn = handler as (entry: LogEntry) => void
       logHandlers.add(fn)
+      startLogs()
       return () => {
         logHandlers.delete(fn)
+        if (logHandlers.size === 0 && logTimer) { clearInterval(logTimer); logTimer = null }
       }
     },
 
@@ -214,12 +274,20 @@ export function createMockBridge(): GDPBridge {
       }
     },
 
-    // Not part of GDPBridge — exposed for the dev page's theme toggle.
-    ...({
-      __setTheme(next: Theme) {
-        theme = next
-        for (const handler of themeHandlers) handler(next)
-      },
-    } as object),
+    __setTheme(next: Theme) {
+      theme = next
+      for (const handler of themeHandlers) handler(next)
+    },
+    __emitLog(entry) {
+      for (const handler of logHandlers) handler(entry)
+    },
+    __dispose() {
+      if (logTimer) clearInterval(logTimer)
+      logTimer = null
+      logHandlers.clear()
+      themeHandlers.clear()
+      updateTask?.abort()
+      updateHandlers.clear()
+    },
   }
 }

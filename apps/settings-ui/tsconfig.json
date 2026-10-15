@@ -3,10 +3,10 @@
   "compilerOptions": {
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["vite/client"],
+    "types": ["vite/client", "node"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "dev-config.ts", "vite.config.ts"]
+  "include": ["src", "tests", "dev-config.ts", "vite.config.ts"]
 }

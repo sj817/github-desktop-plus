@@ -2,7 +2,7 @@ const STYLE_ID = 'gdp-dialog-shell-styles'
 
 /**
  * Styles for the dialog shell only — the frame, the backdrop and the box the UI
- * is rendered into. Everything inside is the settings UI's own (Tailwind)
+ * is rendered into. Everything inside is the settings UI's own scoped
  * stylesheet, which it injects when it mounts.
  *
  * The bulk of this is neutralising GitHub Desktop's global `dialog` rules: it
@@ -41,11 +41,11 @@ export function injectShellStyles(): void {
 
     #gdp-settings-dialog .gdp-shell {
       display: flex;
-      width: 850px; max-width: 92vw;
-      height: 570px; max-height: 88vh;
+      width: 1000px; max-width: 96vw;
+      height: 720px; max-height: 92vh;
       overflow: hidden;
       border: 1px solid rgba(0, 0, 0, 0.15);
-      border-radius: 10px;
+      border-radius: 28px;
       /* Paint GitHub Desktop's own background until the UI takes over */
       background: var(--background-color, #ffffff);
       box-shadow:
@@ -55,6 +55,10 @@ export function injectShellStyles(): void {
 
     #gdp-settings-dialog .gdp-shell > * { flex: 1 1 auto; min-width: 0; }
     #gdp-settings-dialog iframe.gdp-frame { border: 0; display: block; }
+    @media (prefers-reduced-motion: reduce) {
+      #gdp-settings-dialog[open]::backdrop,
+      #gdp-settings-dialog[open] .gdp-shell { animation: none; }
+    }
   `
   document.head.appendChild(style)
 }

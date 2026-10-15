@@ -1,0 +1,92 @@
+/* Palette and surface hierarchy adapted from D:/Github/sso/web/src/app.css. */
+#gdp-settings-root {
+  --gdp-canvas: #f4f5f8;
+  --gdp-canvas-end: #eaecf1;
+  --gdp-surface: #fff;
+  --gdp-pane: #f6f7fa;
+  --gdp-inset: #eceef3;
+  --gdp-glass: rgb(255 255 255 / 60%);
+  --gdp-card: rgb(255 255 255 / 80%);
+  --gdp-popup: rgb(255 255 255 / 97%);
+  --gdp-control: rgb(255 255 255 / 76%);
+  --gdp-thumb: #fff;
+  --gdp-knob: #fff;
+  --gdp-fg: #1c2230;
+  --gdp-muted: rgb(28 34 48 / 74%);
+  --gdp-subtle: rgb(28 34 48 / 58%);
+  --gdp-line: rgb(10 11 13 / 8%);
+  --gdp-line-strong: rgb(10 11 13 / 16%);
+  --gdp-hover: rgb(28 34 48 / 5%);
+  --gdp-accent: #2b63d9;
+  --gdp-accent-hover: #1f51bd;
+  --gdp-accent-soft: rgb(43 99 217 / 11%);
+  --gdp-accent-line: rgb(43 99 217 / 28%);
+  --gdp-ring: rgb(43 99 217 / 22%);
+  --gdp-danger: #c43c3c;
+  --gdp-danger-soft: rgb(196 60 60 / 10%);
+  --gdp-success: #1f7a45;
+  --gdp-success-soft: rgb(31 122 69 / 11%);
+  --gdp-warn: #d4650a;
+  --gdp-warn-soft: rgb(236 118 22 / 10%);
+  --gdp-scrim: rgb(28 34 48 / 30%);
+  --gdp-wash-blue: rgb(103 150 235 / 20%);
+  --gdp-wash-cyan: rgb(121 206 222 / 17%);
+  --gdp-wash-pink: rgb(226 180 198 / 12%);
+  --gdp-dot: rgb(28 34 48 / 9%);
+  --gdp-rim: rgb(255 255 255 / 85%);
+  --gdp-shadow-sm: 0 1px 2px rgb(20 28 48 / 5%);
+  --gdp-shadow: 0 12px 32px -16px rgb(20 28 48 / 18%), 0 2px 6px -2px rgb(20 28 48 / 6%);
+  --gdp-shadow-lg: 0 24px 80px -24px rgb(20 28 48 / 26%);
+  --gdp-thumb-shadow: 0 1px 2px rgb(20 28 48 / 8%), 0 3px 10px -3px rgb(20 28 48 / 14%);
+  --gdp-font: 'MiSans', 'Segoe UI Variable Text', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
+  --gdp-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
+  --gdp-ease: cubic-bezier(.16, 1, .3, 1);
+  color-scheme: light;
+}
+#gdp-settings-root.dark {
+  --gdp-canvas: #0a0b0e;
+  --gdp-canvas-end: #101217;
+  --gdp-surface: #171a20;
+  --gdp-pane: #1d2027;
+  --gdp-inset: #252930;
+  --gdp-glass: rgb(24 27 34 / 62%);
+  --gdp-card: rgb(24 27 33 / 88%);
+  --gdp-popup: rgb(29 32 39 / 98%);
+  --gdp-control: rgb(255 255 255 / 6%);
+  --gdp-thumb: #30343d;
+  --gdp-knob: #fff;
+  --gdp-fg: #f3f5f8;
+  --gdp-muted: rgb(243 245 248 / 72%);
+  --gdp-subtle: rgb(243 245 248 / 54%);
+  --gdp-line: rgb(255 255 255 / 8%);
+  --gdp-line-strong: rgb(255 255 255 / 16%);
+  --gdp-hover: rgb(255 255 255 / 5%);
+  --gdp-accent: #7fa9f6;
+  --gdp-accent-hover: #a5c3fa;
+  --gdp-accent-soft: rgb(127 169 246 / 15%);
+  --gdp-accent-line: rgb(127 169 246 / 34%);
+  --gdp-ring: rgb(127 169 246 / 30%);
+  --gdp-danger: #ef8585;
+  --gdp-danger-soft: rgb(239 133 133 / 13%);
+  --gdp-success: #6cd196;
+  --gdp-success-soft: rgb(108 209 150 / 13%);
+  --gdp-warn: #f2a356;
+  --gdp-warn-soft: rgb(242 163 86 / 13%);
+  --gdp-scrim: rgb(3 4 7 / 65%);
+  --gdp-wash-blue: rgb(50 82 150 / 20%);
+  --gdp-wash-cyan: rgb(34 85 104 / 13%);
+  --gdp-wash-pink: rgb(109 77 91 / 8%);
+  --gdp-dot: rgb(255 255 255 / 6%);
+  --gdp-rim: rgb(255 255 255 / 8%);
+  --gdp-shadow-sm: 0 1px 2px rgb(0 0 0 / 18%);
+  --gdp-shadow: 0 12px 32px -16px rgb(0 0 0 / 50%), 0 2px 6px -2px rgb(0 0 0 / 20%);
+  --gdp-shadow-lg: 0 24px 80px -24px rgb(0 0 0 / 65%);
+  --gdp-thumb-shadow: 0 1px 2px rgb(0 0 0 / 25%), 0 3px 10px -3px rgb(0 0 0 / 30%);
+  color-scheme: dark;
+}
+@media (prefers-contrast: more) {
+  #gdp-settings-root { --gdp-line: color-mix(in srgb, var(--gdp-fg) 24%, transparent); --gdp-subtle: var(--gdp-muted); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  #gdp-settings-root { --gdp-glass: var(--gdp-surface); --gdp-card: var(--gdp-surface); --gdp-popup: var(--gdp-surface); }
+}

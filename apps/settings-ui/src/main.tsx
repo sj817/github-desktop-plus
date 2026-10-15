@@ -28,15 +28,26 @@ async function start(): Promise<() => void> {
 
   const { createMockBridge } = await import('@/bridge/mock-bridge')
   const bridge = createMockBridge()
+  const debug = window as unknown as {
+    __gdpMockBridge?: typeof bridge
+    __gdpSetTheme?: (theme: 'light' | 'dark') => void
+  }
+  debug.__gdpMockBridge = bridge
   // Frame the root like the production dialog so screenshots are honest.
   document.body.classList.add('gdp-mock')
-  ;(window as unknown as { __gdpSetTheme?: (theme: 'light' | 'dark') => void }).__gdpSetTheme =
+  debug.__gdpSetTheme =
     theme => {
       document.body.classList.toggle('dark', theme === 'dark')
-      ;(bridge as unknown as { __setTheme(theme: 'light' | 'dark'): void }).__setTheme(theme)
+      bridge.__setTheme(theme)
     }
   document.body.classList.toggle('dark', bridge.getTheme() === 'dark')
-  return mount(container!, bridge, { initialTab })
+  const unmount = mount(container!, bridge, { initialTab })
+  return () => {
+    unmount()
+    bridge.__dispose()
+    delete debug.__gdpMockBridge
+    delete debug.__gdpSetTheme
+  }
 }
 
 const unmountPromise = start()

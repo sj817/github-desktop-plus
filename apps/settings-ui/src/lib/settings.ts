@@ -1,4 +1,5 @@
 import type { OpenWithGroup, StoredConfig, StoredOpenWithItem } from '@github-desktop-plus/shared'
+import { normalizeDownloadMirror, type DownloadMirror } from '@github-desktop-plus/shared'
 
 /**
  * The dialog's working copy of the configuration.
@@ -15,6 +16,7 @@ export interface SettingsDraft {
   unlockCopilot: boolean
   blockUpdates: boolean
   blockTelemetry: boolean
+  downloadMirror: DownloadMirror
   logLevel: string
   openWith: {
     submenu: boolean
@@ -107,6 +109,7 @@ export function draftFromConfig(cfg: StoredConfig): SettingsDraft {
     // One switch drives both update-blocking mechanisms (auto + manual check).
     blockUpdates: cfg.updates?.disabled !== false || cfg.updates?.block_manual_check !== false,
     blockTelemetry: cfg.telemetry?.disabled !== false,
+    downloadMirror: normalizeDownloadMirror(cfg.downloads?.mirror),
     logLevel: cfg.logging?.level ?? '',
     openWith: {
       submenu: cfg.open_with?.submenu === true,
@@ -171,6 +174,7 @@ export function applyDraft(current: StoredConfig, draft: SettingsDraft): StoredC
       block_manual_check: draft.blockUpdates,
     },
     telemetry: { ...(current.telemetry ?? {}), disabled: draft.blockTelemetry },
+    downloads: { ...(current.downloads ?? {}), mirror: draft.downloadMirror },
     logging: { ...(current.logging ?? {}), level: draft.logLevel },
     i18n: { ...(current.i18n ?? {}), enabled: draft.i18nEnabled, locale: draft.locale || 'zh-CN' },
     ui: { ...(current.ui ?? {}), recent_repos_limit: draft.recentReposLimit },

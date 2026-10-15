@@ -12,7 +12,7 @@ trap cleanup EXIT
 mock_bin="$temp_dir/bin"
 install_dir="$temp_dir/install"
 mock_home="$temp_dir/home"
-fake_asset="$temp_dir/GitHubDesktopPlus-win-x64.msi"
+fake_asset="$temp_dir/GitHubDesktopPlus-win-x64-Setup.exe"
 mkdir -p -- "$mock_bin" "$install_dir" "$mock_home"
 
 cat > "$mock_bin/powershell.exe" <<'EOF'
@@ -40,6 +40,7 @@ cat > "$mock_bin/curl" <<'EOF'
 set -Eeuo pipefail
 
 output=''
+url="${@: -1}"
 while (($# > 0)); do
   case "$1" in
     --output)
@@ -53,10 +54,16 @@ while (($# > 0)); do
 done
 
 [[ -n "$output" ]]
-if [[ "$output" == *.sha256 ]]; then
-  sha256sum "${output%.sha256}" > "$output"
+if [[ "$output" == */SHA256SUMS.txt ]]; then
+  [[ "${GDP_TEST_LEGACY:-}" != 1 ]] || exit 22
+  printf '%s  GitHubDesktopPlus-win-x64-Setup.exe\n' "$(sha256sum "$GDP_TEST_ASSET" | cut -d ' ' -f 1)" > "$output"
+elif [[ "$output" == *.sha256 ]]; then
+  printf '%s  GitHubDesktopPlus-win-x64-Setup.exe\n' "$(sha256sum "$GDP_TEST_ASSET" | cut -d ' ' -f 1)" > "$output"
 else
+  [[ "$url" == */GitHubDesktopPlus-win-x64-Setup.exe ]]
+  if [[ "${GDP_TEST_FAIL_MIRROR:-}" == 1 && "$url" == https://gh.dpik.top/* ]]; then exit 22; fi
   cp -- "$GDP_TEST_ASSET" "$output"
+  if [[ "${GDP_TEST_CORRUPT:-}" == 1 ]]; then printf 'corrupt' >> "$output"; fi
 fi
 EOF
 
@@ -81,7 +88,7 @@ EOF
 
 chmod 755 "$mock_bin/powershell.exe" "$mock_bin/curl" "$mock_bin/wslpath" "$fake_asset"
 
-output="$(
+run_installer() {
   cat "$repo_root/install.sh" | env \
     PATH="$mock_bin:$PATH" \
     HOME="$mock_home" \
@@ -90,12 +97,24 @@ output="$(
     GDP_INSTALL_DIR="$install_dir" \
     GDP_TEST_ASSET="$fake_asset" \
     GDP_TEST_WINDOWS_TEMP="$temp_dir" \
+    GDP_DOWNLOAD_MIRROR=auto \
     bash
-)"
+}
+
+output="$(run_installer)"
 
 [[ -x "$install_dir/current/gdp.exe" ]]
 [[ -x "$mock_home/.local/bin/gdp" ]]
 [[ "$output" == *'Installed gdp 0.2.1'* ]]
 [[ "$("$mock_home/.local/bin/gdp" --version | tr -d '\r')" == 'gdp 0.2.1' ]]
+
+export GDP_TEST_LEGACY=1 GDP_TEST_FAIL_MIRROR=1
+run_installer >/dev/null
+unset GDP_TEST_LEGACY GDP_TEST_FAIL_MIRROR
+export GDP_TEST_CORRUPT=1
+if run_installer >/dev/null 2>&1; then
+  printf 'Installer incorrectly accepted a corrupt download\n' >&2
+  exit 1
+fi
 
 printf 'Piped installer smoke test passed\n'

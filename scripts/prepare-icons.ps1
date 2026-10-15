@@ -77,6 +77,7 @@ try {
     }
 
     [IO.File]::WriteAllBytes((Join-Path $repoRoot 'apps/site/logo.png'), (Get-IconPng 256))
+    [IO.File]::WriteAllBytes((Join-Path $repoRoot 'apps/settings-ui/src/assets/logo.png'), (Get-IconPng 128))
 } finally {
     $sourceImage.Dispose()
 }

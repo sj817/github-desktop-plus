@@ -1,7 +1,7 @@
 /**
  * "Open with" context-menu entries — renderer side.
  *
- * GitHub Desktop's repository context menu is built in the renderer and shipped
+ * GitHub Desktop's repository and file context menus are built in the renderer and shipped
  * to the main process over the `show-contextual-menu` IPC channel; the reply is
  * the index path of whatever the user clicked, which GD then maps back onto its
  * own (unserialized) item array to run that item's `action`.
@@ -16,6 +16,7 @@
  * pass through the translation layer untouched.
  */
 import { readGdRepositories } from './lib/gd-db'
+import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
 
 export interface SerializedMenuItem {
   label?: string
@@ -47,6 +48,7 @@ const CHANNEL = 'show-contextual-menu'
 // `ui/lib/context-menu.ts`. `Copy repo path` is the marker that tells us this
 // menu belongs to a repository row rather than a file, branch or commit.
 const REPO_MENU_MARKERS = new Set(['Copy repo path', 'Copy Repo Path'])
+const FILE_MENU_MARKERS = new Set(['Copy file path', 'Copy File Path', 'Copy paths', 'Copy Paths'])
 const REVEAL_LABELS = new Set([
   'Show in Explorer',
   'Reveal in Finder',
@@ -116,6 +118,7 @@ const ROW_SELECTOR = '.repository-list-item'
 const ROW_CONTAINER_SELECTOR = '[role="option"], .list-item'
 
 let pendingRepoPath: string | null = null
+let pendingFile: { repositoryPath: string; path: string } | null = null
 
 // Warmed up front so a right-click can resolve a repository synchronously —
 // the menu is shown before any IndexedDB read could finish.
@@ -147,17 +150,42 @@ async function warmRepoIndex(): Promise<void> {
  * Walking up from the row reaches `RepositoryListItem`, whose props carry the
  * actual `Repository` model — including the path GD would use.
  */
-function repoPathFromFiber(el: Element): string | null {
+interface Fiber { return?: Fiber | null; memoizedProps?: { repository?: { path?: unknown }; file?: { path?: unknown } } }
+
+function fiberFor(el: Element): Fiber | null {
   const holder = el as unknown as Record<string, unknown>
   const fiberKey = Object.keys(holder).find(key => key.startsWith('__reactFiber$'))
   if (fiberKey === undefined) return null
+  return holder[fiberKey] as Fiber | null
+}
 
-  let fiber = holder[fiberKey] as { return?: unknown; memoizedProps?: unknown } | null
+function repoPathFromFiber(el: Element): string | null {
+  let fiber = fiberFor(el)
   for (let depth = 0; fiber && depth < 30; depth++) {
-    const props = fiber.memoizedProps as { repository?: { path?: unknown } } | undefined
-    const path = props?.repository?.path
+    const path = fiber.memoizedProps?.repository?.path
     if (typeof path === 'string' && path !== '') return path
-    fiber = fiber.return as { return?: unknown; memoizedProps?: unknown } | null
+    fiber = fiber.return ?? null
+  }
+  return null
+}
+
+/** Read the model, never the visually truncated PathLabel or current diff.
+ * ChangedFile/CommittedFileItem owns `file`; its ancestors own `repository`.
+ * Native editor actions also target the clicked row, even in a multi-selection.
+ */
+export function fileTargetFromElement(target: Element | null): { repositoryPath: string; path: string } | null {
+  if (!target?.closest('.file-list')) return null
+  const row = target.closest('.file') ?? target.closest(ROW_CONTAINER_SELECTOR)?.querySelector('.file')
+  if (!row) return null
+  let filePath: string | null = null
+  let repositoryPath: string | null = null
+  let fiber = fiberFor(row)
+  for (let depth = 0; fiber && depth < 40; depth++) {
+    const props = fiber.memoizedProps
+    if (filePath === null && typeof props?.file?.path === 'string' && props.file.path !== '') filePath = props.file.path
+    if (repositoryPath === null && typeof props?.repository?.path === 'string' && props.repository.path !== '') repositoryPath = props.repository.path
+    if (filePath !== null && repositoryPath !== null) return { repositoryPath, path: filePath }
+    fiber = fiber.return ?? null
   }
   return null
 }
@@ -206,6 +234,7 @@ function installContextTracker(): void {
     'contextmenu',
     event => {
       pendingRepoPath = resolveRepoPath(event)
+      pendingFile = fileTargetFromElement(event.target instanceof Element ? event.target : null)
       // Keep the index fresh for repositories added since startup.
       void warmRepoIndex()
     },
@@ -256,21 +285,31 @@ export function isRepositoryMenu(items: readonly SerializedMenuItem[]): boolean 
   return items.some(item => typeof item.label === 'string' && REPO_MENU_MARKERS.has(item.label))
 }
 
+export function isFileMenu(items: readonly SerializedMenuItem[]): boolean {
+  return items.some(item => typeof item.label === 'string' && FILE_MENU_MARKERS.has(item.label))
+}
+
 export function planInjection(
   items: readonly SerializedMenuItem[],
   config: OpenWithSettings,
 ): Plan | null {
-  if (!isRepositoryMenu(items) || config.items.length === 0) return null
+  const fileMenu = isFileMenu(items)
+  if ((!isRepositoryMenu(items) && !fileMenu) || config.items.length === 0) return null
 
-  const { shellIndex, editorIndex } = findAnchors(items)
-  if (shellIndex < 0 && editorIndex < 0) return null
+  const revealIndex = items.findIndex(item => typeof item.label === 'string' && REVEAL_LABELS.has(item.label))
+  const anchors = findAnchors(items)
+  const shellIndex = fileMenu ? -1 : anchors.shellIndex
+  const editorIndex = fileMenu ? items.findIndex(item => typeof item.label === 'string' && item.label.startsWith(OPEN_IN_PREFIX)) : anchors.editorIndex
+  if (shellIndex < 0 && editorIndex < 0 && (!fileMenu || revealIndex < 0)) return null
 
   // Missing repositories disable GD's own launch entries; mirror that.
-  const anchorIndex = editorIndex >= 0 ? editorIndex : shellIndex
+  const anchorIndex = editorIndex >= 0 ? editorIndex : fileMenu ? revealIndex : shellIndex
   const enabled = items[anchorIndex]?.enabled !== false
 
-  const editors = config.items.filter(item => item.group === 'editor')
-  const shells = config.items.filter(item => item.group === 'shell')
+  const editors = config.items.filter(item => item.group === 'editor' && item.enabled)
+  const shells = config.items.filter(item => item.group === 'shell' && item.enabled)
+  const itemEnabled = (item: ConfiguredItem) => fileMenu && item.group === 'shell' ? true : enabled
+  if (editors.length === 0 && shells.length === 0) return null
 
   const plan: Plan = { items: [], slots: [], submenuSlot: -1, submenuIds: [] }
 
@@ -288,8 +327,8 @@ export function planInjection(
         plan.submenuIds = ordered.map(entry => entry.id)
         plan.items.push({
           label: SUBMENU_LABEL,
-          enabled,
-          submenu: ordered.map(entry => buildItem(entry, enabled)),
+          enabled: ordered.some(itemEnabled),
+          submenu: ordered.map(entry => buildItem(entry, itemEnabled(entry))),
         })
         plan.slots.push({ kind: 'gdp', id: '' })
       }
@@ -298,10 +337,13 @@ export function planInjection(
   }
 
   items.forEach((item, index) => {
+    if (fileMenu && index === (revealIndex >= 0 ? revealIndex : anchorIndex)) {
+      for (const entry of shells) push(buildItem(entry, true), { kind: 'gdp', id: entry.id })
+    }
     // GD's own entries are always left alone; ours are appended right after
     // the native entry of the same group.
     push(item, { kind: 'native', index })
-    const ours = index === editorIndex ? editors : index === shellIndex ? shells : []
+    const ours = index === (editorIndex >= 0 ? editorIndex : fileMenu ? anchorIndex : -1) ? editors : index === shellIndex ? shells : []
     for (const entry of ours) {
       push(buildItem(entry, enabled), { kind: 'gdp', id: entry.id })
     }
@@ -336,9 +378,9 @@ export function resolveReply(
 
 // ── Wiring ──────────────────────────────────────────────────────────────────
 
-function launch(ipc: IpcRendererLike, id: string, repoPath: string): void {
+function launch(ipc: IpcRendererLike, request: OpenWithLaunchRequest): void {
   ipc
-    .invoke('gdp:open-with-launch', { id, path: repoPath })
+    .invoke('gdp:open-with-launch', request)
     .then(raw => {
       const result = raw as { ok?: boolean; reason?: string } | null
       if (result?.ok !== true) {
@@ -375,13 +417,17 @@ export function installOpenWith(): void {
       return originalInvoke(channel, ...args)
     }
 
+    // Snapshot before any await: another right-click must not retarget this menu.
+    const repoPath = pendingRepoPath
+    const items = args[0] as SerializedMenuItem[]
+    const fileMenu = isFileMenu(items)
+    const file = fileMenu ? pendingFile ?? fileTargetFromElement(document.activeElement) : null
+    pendingRepoPath = null
+    pendingFile = null
     // Pick up settings changed since the last menu without blocking on them.
     const config = settings ?? (await (settingsPromise ?? loadSettings(ipc)))
     void loadSettings(ipc)
-
-    const repoPath = pendingRepoPath
-    const items = args[0] as SerializedMenuItem[]
-    const plan = repoPath === null ? null : planInjection(items, config)
+    const plan = (fileMenu ? file === null : repoPath === null) ? null : planInjection(items, config)
     if (plan === null) {
       if (repoPath === null && isRepositoryMenu(items)) {
         // The one case worth reporting: GD asked for a repository menu but we
@@ -400,8 +446,9 @@ export function installOpenWith(): void {
       // Re-point at GD's own numbering; native submenus are untouched.
       return resolved.indices
     }
-    if (resolved.id !== '' && repoPath !== null) {
-      launch(ipc, resolved.id, repoPath)
+    if (resolved.id !== '') {
+      if (fileMenu && file) launch(ipc, { id: resolved.id, ...file, kind: 'file' })
+      else if (repoPath !== null) launch(ipc, { id: resolved.id, path: repoPath, kind: 'repository' })
     }
     // GD must not run an action of its own for our entry.
     return null

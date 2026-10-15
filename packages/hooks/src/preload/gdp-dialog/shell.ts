@@ -36,6 +36,7 @@ export function createDialogShell(): DialogShell {
 
   const dialog = document.createElement('dialog')
   dialog.id = 'gdp-settings-dialog'
+  dialog.setAttribute('aria-label', 'GitHub Desktop Plus 设置')
 
   const box = document.createElement('div')
   box.className = 'gdp-shell'

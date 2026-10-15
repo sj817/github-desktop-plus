@@ -11,6 +11,7 @@ import {
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
+import { WINDOWS_PORTABLE_NAME, WINDOWS_SETUP_NAME } from '../packages/shared/src/updates'
 
 interface Manifest {
   version: string
@@ -28,7 +29,7 @@ const releases = path.join(target, 'releases')
 const sourceExe = path.join(root, 'target', 'release', 'gdp.exe')
 const stagedExe = path.join(staging, 'gdp.exe')
 const msiName = 'GitHubDesktopPlus-win-x64.msi'
-const setupName = 'GitHubDesktopPlus-win-x64-Setup.exe'
+const setupName = WINDOWS_SETUP_NAME
 const installerIcon = path.join(root, 'apps', 'gdp', 'assets', 'gdp.ico')
 const installerSplash = path.join(root, 'apps', 'gdp', 'assets', 'installer-splash.png')
 const installerScript = path.join(root, 'installer', 'windows', 'GitHubDesktopPlus.iss')
@@ -176,7 +177,12 @@ await writeFile(
   `${setupHash}  ${setupName}\n`,
   'ascii',
 )
-await copyFile(path.join(root, 'install.sh'), path.join(releases, 'install.sh'))
+const checksums: string[] = []
+for (const name of [setupName, WINDOWS_PORTABLE_NAME]) {
+  const digest = createHash('sha256').update(await readFile(path.join(releases, name))).digest('hex')
+  checksums.push(`${digest}  ${name}`)
+}
+await writeFile(path.join(releases, 'SHA256SUMS.txt'), checksums.join('\n') + '\n', 'ascii')
 
 const assets = await Promise.all((await readdir(releases)).sort().map(async file => ({
   file,

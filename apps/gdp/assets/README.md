@@ -8,5 +8,6 @@ Run `pwsh -File scripts/prepare-icons.ps1` from the repository root to regenerat
 - `gdp.ico`: Windows icon with 16, 20, 24, 32, 40, 48, 64, 96, 128 and 256 px frames.
 - `installer-splash.png`: transparent 900 x 600 installer splash.
 - `apps/site/logo.png`: 256 px website logo and favicon.
+- `apps/settings-ui/src/assets/logo.png`: 128 px settings header logo.
 
 The executable, installer and runtime window icon all use the same `gdp.ico`. The PNG master replaces the previous SVG artwork.

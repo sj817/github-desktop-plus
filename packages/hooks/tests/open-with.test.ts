@@ -153,13 +153,61 @@ test('collapses into a single submenu when asked', () => {
   ])
 })
 
-test('ignores menus that are not a repository menu', () => {
-  const fileMenu: SerializedMenuItem[] = [
+function fileMenu(): SerializedMenuItem[] {
+  return [
+    { label: 'Discard changes' },
+    { type: 'separator' },
+    { label: 'Ignore folder (add to .gitignore)', submenu: [{ label: '/docs' }] },
     { label: 'Copy file path' },
-    { label: 'Open in Visual Studio Code' },
+    { label: 'Copy relative file path' },
     { label: 'Show in Explorer' },
+    { label: 'Open in Zed' },
+    { label: 'Open with default program' },
   ]
-  assert.equal(planInjection(fileMenu, settings()), null)
+}
+
+test('file menus get shells before reveal and editors after the native editor', () => {
+  const plan = planInjection(fileMenu(), settings())
+  assert.ok(plan)
+  assert.deepEqual(labels(plan.items).slice(4), [
+    'Copy relative file path', 'Open in WSL (Ubuntu)', 'Show in Explorer',
+    'Open in Zed', 'Open in VS Code', 'Open in Zed', 'Open with default program',
+  ])
+  const ignore = plan.items.findIndex(item => item.label?.startsWith('Ignore folder'))
+  assert.deepEqual(resolveReply(plan, [ignore, 0]), { kind: 'native', indices: [2, 0] })
+  const defaultProgram = plan.items.findIndex(item => item.label === 'Open with default program')
+  assert.deepEqual(resolveReply(plan, [defaultProgram]), { kind: 'native', indices: [7] })
+  assert.deepEqual(resolveReply(plan, [5]), { kind: 'gdp', id: 'wsl' })
+})
+
+test('multi-selected file menus keep the same launch entries and native indices', () => {
+  const menu = fileMenu().map(item => item.label === 'Copy file path' ? { label: 'Copy paths' } : item)
+  const plan = planInjection(menu, settings({ submenu: true }))
+  assert.ok(plan)
+  assert.deepEqual(resolveReply(plan, [plan.submenuSlot, 0]), { kind: 'gdp', id: 'vscode' })
+  assert.deepEqual(resolveReply(plan, [plan.items.findIndex(item => item.label === 'Copy paths')]), { kind: 'native', indices: [3] })
+})
+
+test('deleted files disable editors while their directory can still open in a terminal', () => {
+  const menu = fileMenu().map(item => item.label === 'Open in Zed' || item.label === 'Show in Explorer' ? { ...item, enabled: false } : item)
+  for (const submenu of [false, true]) {
+    const plan = planInjection(menu, settings({ submenu }))
+    assert.ok(plan)
+    const injected = submenu ? plan.items[plan.submenuSlot]!.submenu! : plan.items.filter((_item, index) => plan.slots[index]?.kind === 'gdp')
+    assert.equal(injected.find(item => item.label === 'Open in VS Code')?.enabled, false)
+    assert.equal(injected.find(item => item.label === 'Open in WSL (Ubuntu)')?.enabled, true)
+  }
+})
+
+test('file menus without an editor anchor still support configured editors', () => {
+  const plan = planInjection(fileMenu().filter(item => item.label !== 'Open in Zed'), settings())
+  assert.ok(plan)
+  assert.ok(plan.items.some(item => item.label === 'Open in VS Code'))
+})
+
+test('ignores branch, commit and text menus', () => {
+  assert.equal(planInjection([{ label: 'Copy SHA' }, { label: 'Open in Visual Studio Code' }], settings()), null)
+  assert.equal(planInjection([{ label: 'Copy' }, { label: 'Select All' }], settings()), null)
 })
 
 test('ignores the menu when nothing is configured', () => {

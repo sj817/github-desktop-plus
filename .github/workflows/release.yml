@@ -120,10 +120,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          assets=(
+            release/GitHubDesktopPlus-win-x64-Setup.exe
+            release/GitHubDesktopPlus-win-x64-Portable.zip
+            release/SHA256SUMS.txt
+          )
+          for asset in "${assets[@]}"; do
+            test -s "$asset" || { echo "Missing public asset: $asset"; exit 1; }
+          done
+          (cd release && sha256sum --check SHA256SUMS.txt)
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" release/* --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$GITHUB_REF_NAME" release/* \
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
               --repo "$GITHUB_REPOSITORY" \
               --verify-tag \
               --title "GitHub Desktop Plus $GITHUB_REF_NAME" \

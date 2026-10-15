@@ -1,6 +1,5 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { GDP_SETTINGS_UI_GLOBAL } from '@github-desktop-plus/shared'
@@ -38,8 +37,7 @@ function inlineCss(): Plugin {
       if (css === '') return
 
       if (fontCss) {
-        // Strip the local file @font-face and prepend the subset inlined @font-face
-        css = fontCss + '\n' + css.replace(/@font-face\s*\{[^}]*font-family:\s*['"]LXGW Neo XiHei['"][^}]*\}/gi, '')
+        css = fontCss + '\n' + css
       }
 
       for (const output of Object.values(bundle)) {
@@ -53,7 +51,7 @@ function inlineCss(): Plugin {
 
 export default defineConfig(({ command }) => ({
   root: here,
-  plugins: [react(), tailwindcss(), subsetFontPlugin(), inlineCss()],
+  plugins: [react(), subsetFontPlugin(), inlineCss()],
   resolve: {
     alias: {
       '@': path.resolve(here, 'src'),

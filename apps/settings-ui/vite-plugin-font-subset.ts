@@ -25,7 +25,6 @@ export function subsetFontPlugin(): Plugin {
       }
 
       const srcDir = path.resolve(__dirname, 'src')
-      const localesDir = path.resolve(__dirname, '../../resources/locales')
       const textSet = new Set<string>()
 
       // Add ASCII printable characters
@@ -51,7 +50,6 @@ export function subsetFontPlugin(): Plugin {
       }
 
       scanDir(srcDir)
-      scanDir(localesDir)
 
       const text = Array.from(textSet).join('')
       const normalBuf = fs.readFileSync(normalPath)
@@ -85,14 +83,6 @@ export function subsetFontPlugin(): Plugin {
           2
         )} KB (${textSet.size} glyphs)`
       )
-    },
-    generateBundle(_options, bundle) {
-      if (!fontFaceCss) return
-      for (const [fileName, output] of Object.entries(bundle)) {
-        if (output.type === 'asset' && fileName.endsWith('.css')) {
-          output.source = fontFaceCss + (typeof output.source === 'string' ? output.source : '')
-        }
-      }
     },
   }
 }

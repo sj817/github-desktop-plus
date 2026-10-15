@@ -1,61 +1,54 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { LogEntry } from '@github-desktop-plus/shared'
 import { useBridge } from '@/bridge/context'
+import { MAX_LOG_ENTRIES, mergeLogEntries } from './log-buffer'
 
-const MAX_ENTRIES = 500
 const TAIL_COUNT = 200
-
-interface LogStore {
-  entries: LogEntry[]
-  clear: () => void
-}
-
+const BATCH_MS = 80
+interface LogStore { entries: LogEntry[]; clear: () => void }
 const LogContext = createContext<LogStore | null>(null)
 
-/**
- * The live log subscription is owned by the dialog, not by the Logs tab.
- *
- * That keeps lines arriving while another tab is open (the interesting ones —
- * saving settings logs through the same pipe), and it means exactly one
- * `gdp:log-line` listener exists for the lifetime of the dialog, unregistered
- * when the dialog unmounts. Switching tabs never touches it.
- */
+/** One bounded subscription for the dialog; bursts produce at most one update per batch. */
 export function LogProvider({ children }: { children: ReactNode }) {
   const bridge = useBridge()
   const [entries, setEntries] = useState<LogEntry[]>([])
+  const pending = useRef<LogEntry[]>([])
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const clearEpoch = useRef(0)
 
   useEffect(() => {
     let cancelled = false
-
+    const epoch = clearEpoch.current
+    const flush = () => {
+      timer.current = null
+      const batch = pending.current
+      pending.current = []
+      if (!cancelled && batch.length) setEntries(prev => mergeLogEntries(prev, batch))
+    }
     const unsubscribe = bridge.on('gdp:log-line', entry => {
-      setEntries(prev => {
-        const next = [...prev, entry]
-        return next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next
-      })
+      pending.current.push(entry)
+      if (pending.current.length > MAX_LOG_ENTRIES) pending.current.splice(0, pending.current.length - MAX_LOG_ENTRIES)
+      if (!timer.current) timer.current = setTimeout(flush, BATCH_MS)
     })
-
-    bridge
-      .invoke('gdp:tail-log', TAIL_COUNT)
-      .then(history => {
-        if (cancelled || history.length === 0) return
-        // Live lines may already have arrived while the tail was in flight;
-        // history belongs in front of them.
-        setEntries(prev => {
-          const next = [...history, ...prev]
-          return next.length > MAX_ENTRIES ? next.slice(next.length - MAX_ENTRIES) : next
-        })
-      })
-      .catch(() => {
-        /* best effort — the live stream still works */
-      })
-
+    bridge.invoke('gdp:tail-log', TAIL_COUNT).then(history => {
+      if (!cancelled && epoch === clearEpoch.current) setEntries(prev => mergeLogEntries(history, prev))
+    }).catch(() => {})
     return () => {
       cancelled = true
       unsubscribe()
+      if (timer.current) clearTimeout(timer.current)
+      timer.current = null
+      pending.current = []
     }
   }, [bridge])
 
-  const clear = useCallback(() => setEntries([]), [])
+  const clear = useCallback(() => {
+    clearEpoch.current += 1
+    pending.current = []
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = null
+    setEntries([])
+  }, [])
 
   return <LogContext.Provider value={{ entries, clear }}>{children}</LogContext.Provider>
 }

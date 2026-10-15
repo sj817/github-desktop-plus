@@ -11,7 +11,7 @@ Supercharge your GitHub Desktop experience — custom AI commit generation, mult
 ## Features
 
 - **Custom AI Commits**: Replace the native Copilot button with your own AI endpoint. Works with any OpenAI-compatible API (DeepSeek, Ollama, OpenAI, SiliconFlow, etc.), with custom system prompts and latency testing.
-- **Open With+ (Multi-Editor & Terminal)**: Launch unlimited editors and terminals directly from the repository context menu (VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, etc.) with drag-and-drop reordering.
+- **Open With+ (Multi-Editor & Terminal)**: Launch editors and terminals from repository and file context menus (VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, etc.) with drag-and-drop reordering. Editors open the clicked file; terminals start in its containing directory.
 - **Full i18n & Localization**: Built-in runtime translation architecture. Currently ships with Simplified Chinese (`zh-CN`), with instant hot-reloading and open community contributions for other languages.
 - **WSL 2 Integration**: Seamlessly manage repositories hosted inside WSL from Windows with automatic `/mnt/c/` ↔ `\\wsl$\` path translation.
 - **Privacy & Version Control**: Block background telemetry tracking and disable silent automatic updates with a single toggle.
@@ -98,6 +98,15 @@ Currently, **Simplified Chinese (`zh-CN`)** is built-in and maintained. We warml
 2. Run the installer (supports custom install directories and dark mode).
 3. Launch **GitHub Desktop Plus** from your Desktop or Start Menu.
 
+Open **GDP → 更新** to check for Plus updates and download a verified installer.
+Download routes include GitHub directly and common mirrors listed by
+[github.akams.cn](https://github.akams.cn/). Automatic mode falls back between routes;
+the mirror preference only affects public Plus release downloads, never repository credentials.
+The upstream GitHub Desktop update blocker is configured separately.
+
+Public releases contain **Setup.exe**, **Portable.zip**, and **SHA256SUMS.txt**.
+MSI payloads and Velopack build metadata remain in the Actions build artifact.
+
 > [!NOTE]
 > Configuration and runtime data are stored in `%APPDATA%\github-desktop-plus`, keeping your settings safe across updates.
 
@@ -106,10 +115,13 @@ Currently, **Simplified Chinese (`zh-CN`)** is built-in and maintained. We warml
 If you develop inside WSL 2, install with one command:
 
 ```bash
-curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sj817/github-desktop-plus/main/install.sh | bash
 ```
 
 This installs GDP and creates the `gdp` CLI command in `~/.local/bin`. Run `gdp` in your terminal to launch.
+Set `GDP_DOWNLOAD_MIRROR=direct` to disable mirrors, or choose `gh.dpik.top`,
+`gh-proxy.com`, `ghfast.top`, or `ghproxy.net`. The script verifies the GitHub-hosted
+checksum before running Setup and accepts checksums from older releases too.
 
 ### Shortcuts
 

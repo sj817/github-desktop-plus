@@ -8,6 +8,9 @@
  * postMessage bridge can reject anything not listed.
  */
 
+export * from './updates.ts'
+import type { DownloadMirror, UpdateState } from './updates.ts'
+
 // ── Stored configuration ─────────────────────────────────────────────────────
 
 /**
@@ -18,6 +21,7 @@
  */
 export interface StoredConfig {
   updates?: { disabled?: boolean; block_manual_check?: boolean }
+  downloads?: { mirror?: DownloadMirror }
   telemetry?: { disabled?: boolean }
   logging?: { level?: string }
   i18n?: { enabled?: boolean; locale?: string }
@@ -49,10 +53,18 @@ export interface StoredOpenWithItem {
   enabled?: boolean
 }
 
-/** `%TARGET_PATH%` in an item's args is replaced with the repository path. */
+/** Editors receive the selected file (or repository); shells receive its directory. */
 export const TARGET_PATH_TOKEN = '%TARGET_PATH%'
 
 export type OpenWithGroup = 'editor' | 'shell'
+
+/** Internal context-menu launch request; file paths are relative to repositoryPath. */
+export interface OpenWithLaunchRequest {
+  id: string
+  path: string
+  kind?: 'repository' | 'file'
+  repositoryPath?: string
+}
 
 /** A launcher candidate found on disk by `gdp:open-with-detect`. */
 export interface DetectedOpenWithItem {
@@ -130,6 +142,12 @@ export interface GdpInvokeMap {
     result: AiTestResult
   }
 
+  'gdp:update-state': { args: []; result: UpdateState }
+  'gdp:update-check': { args: [DownloadMirror]; result: UpdateState }
+  'gdp:update-download': { args: [DownloadMirror]; result: UpdateState }
+  'gdp:update-cancel': { args: []; result: UpdateState }
+  'gdp:update-install': { args: []; result: OkResult }
+
   'gdp:log': { args: [string]; result: boolean }
 }
 
@@ -152,6 +170,11 @@ export const GDP_INVOKE_CHANNELS: readonly GdpInvokeChannel[] = [
   'gdp:tail-log',
   'gdp:open-log-file',
   'gdp:ai-test',
+  'gdp:update-state',
+  'gdp:update-check',
+  'gdp:update-download',
+  'gdp:update-cancel',
+  'gdp:update-install',
   'gdp:log',
 ]
 
@@ -163,11 +186,12 @@ export function isGdpInvokeChannel(value: unknown): value is GdpInvokeChannel {
 
 export interface GdpEventMap {
   'gdp:log-line': [LogEntry]
+  'gdp:update-state': [UpdateState]
 }
 
 export type GdpEventChannel = keyof GdpEventMap
 
-export const GDP_EVENT_CHANNELS: readonly GdpEventChannel[] = ['gdp:log-line']
+export const GDP_EVENT_CHANNELS: readonly GdpEventChannel[] = ['gdp:log-line', 'gdp:update-state']
 
 export function isGdpEventChannel(value: unknown): value is GdpEventChannel {
   return typeof value === 'string' && (GDP_EVENT_CHANNELS as readonly string[]).includes(value)

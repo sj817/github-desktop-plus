@@ -7,6 +7,7 @@ readonly DEFAULT_REPOSITORY='sj817/github-desktop-plus'
 repository="${GDP_REPOSITORY:-$DEFAULT_REPOSITORY}"
 release="${GDP_VERSION:-latest}"
 install_dir="${GDP_INSTALL_DIR:-}"
+mirror="${GDP_DOWNLOAD_MIRROR:-auto}"
 
 usage() {
   cat <<'EOF'
@@ -17,12 +18,14 @@ Usage: install.sh [options]
 Options:
   --release <version>    Install a release such as v0.2.1 (default: latest)
   --install-dir <path>   Override the Windows installation directory
+  --mirror <name>        auto, direct, gh.dpik.top, gh-proxy.com, ghfast.top, ghproxy.net
   -h, --help             Show this help
 
 Environment variables:
   GDP_VERSION            Same as --release
   GDP_INSTALL_DIR        Same as --install-dir
   GDP_REPOSITORY         GitHub owner/repository (for mirrors and testing)
+  GDP_DOWNLOAD_MIRROR     Same as --mirror (default: auto)
 EOF
 }
 
@@ -47,6 +50,11 @@ while (($# > 0)); do
       install_dir="$2"
       shift 2
       ;;
+    --mirror)
+      (($# >= 2)) || die '--mirror requires a value'
+      mirror="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -60,6 +68,12 @@ done
 if [[ -z "${WSL_DISTRO_NAME:-}" && ! -e /proc/sys/fs/binfmt_misc/WSLInterop ]]; then
   die 'this installer must be run inside WSL'
 fi
+
+[[ "$repository" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die 'invalid GitHub repository'
+case "$mirror" in
+  auto|direct|gh.dpik.top|gh-proxy.com|ghfast.top|ghproxy.net) ;;
+  *) die "unsupported download mirror: $mirror" ;;
+esac
 
 if [[ "$release" != latest && ! "$release" =~ ^v[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
   die "invalid release: $release (expected latest or vMAJOR.MINOR.PATCH)"
@@ -84,7 +98,7 @@ case "${windows_arch,,}" in
     ;;
 esac
 
-asset_name="GitHubDesktopPlus-${asset_arch}.msi"
+asset_name="GitHubDesktopPlus-win-${asset_arch}-Setup.exe"
 if [[ "$release" == latest ]]; then
   asset_base="https://github.com/${repository}/releases/latest/download"
 else
@@ -113,13 +127,35 @@ cleanup() {
 trap cleanup EXIT
 
 printf 'Downloading %s (%s)...\n' "$asset_name" "$release"
-curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error --retry 3 \
-  --output "$temp_dir/$asset_name" "$asset_base/$asset_name"
-curl --proto '=https' --tlsv1.2 --fail --location --silent --show-error --retry 3 \
-  --output "$temp_dir/$asset_name.sha256" "$asset_base/$asset_name.sha256"
+download() {
+  local name="$1" prefix
+  local -a routes=('https://gh.dpik.top/' 'https://gh-proxy.com/' 'https://ghfast.top/' 'https://ghproxy.net/' '')
+  if [[ "$mirror" == direct ]]; then routes=('')
+  elif [[ "$mirror" != auto ]]; then routes=("https://$mirror/" "${routes[@]}")
+  fi
+  for prefix in "${routes[@]}"; do
+    if curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --location --silent --show-error \
+      --connect-timeout 8 --max-time 180 --max-filesize 268435456 \
+      --output "$temp_dir/$name" "$prefix$asset_base/$name"; then return 0; fi
+  done
+  return 1
+}
 
-read -r expected_hash _ < "$temp_dir/$asset_name.sha256"
+# Keep checksum retrieval on the GitHub origin. Mirror bytes must match the
+# separately retrieved release checksum before any executable is started.
+if curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --location --silent --show-error \
+  --connect-timeout 8 --max-time 30 --max-filesize 65536 \
+  --output "$temp_dir/SHA256SUMS.txt" "$asset_base/SHA256SUMS.txt"; then
+  expected_hash="$(awk -v name="$asset_name" '$2 == name { print $1; exit }' "$temp_dir/SHA256SUMS.txt")"
+else
+  # Releases before the public-asset cleanup published an individual checksum.
+  curl --proto '=https' --proto-redir '=https' --tlsv1.2 --fail --location --silent --show-error \
+    --connect-timeout 8 --max-time 30 --max-filesize 65536 \
+    --output "$temp_dir/$asset_name.sha256" "$asset_base/$asset_name.sha256" || die 'could not download release checksum'
+  read -r expected_hash _ < "$temp_dir/$asset_name.sha256"
+fi
 [[ "$expected_hash" =~ ^[0-9A-Fa-f]{64}$ ]] || die 'release checksum has an invalid format'
+download "$asset_name" || die 'could not download installer from any route'
 actual_hash="$(sha256sum "$temp_dir/$asset_name" | cut -d ' ' -f 1)"
 [[ "${actual_hash,,}" == "${expected_hash,,}" ]] || die 'release checksum verification failed'
 
@@ -135,26 +171,11 @@ param(
 )
 
 try {
-  foreach ($relativeLauncher in @("current\\gdp.exe", "bin\\gdp.exe")) {
-    $launcher = Join-Path $InstallDir $relativeLauncher
-    if (Test-Path -LiteralPath $launcher) {
-      & $launcher stop 2>$null | Out-Null
-      Start-Sleep -Milliseconds 500
-      break
-    }
-  }
-
   $arguments = @(
-    "/i",
-    "`"$Installer`"",
-    "/qn",
-    "/norestart",
-    "ALLUSERS=2",
-    "MSIINSTALLPERUSER=1",
-    "VELOPACK_INSTALLDIR=`"$InstallDir`""
+    "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/SP-",
+    "/DIR=`"$InstallDir`""
   )
-  $msiexec = Join-Path $env:SystemRoot "System32\msiexec.exe"
-  $process = Start-Process -FilePath $msiexec -ArgumentList $arguments -Wait -PassThru
+  $process = Start-Process -FilePath $Installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
   if ($process.ExitCode -in @(0, 1641, 3010)) {
     exit 0
   }
@@ -168,10 +189,10 @@ install_script_windows="$(wslpath -w "$install_script")"
 
 powershell.exe -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
   -File "$install_script_windows" "$installer_windows" "$install_dir_windows" </dev/null \
-  || die 'MSI installation failed'
+  || die 'Setup installation failed'
 
 destination="$install_dir/current/gdp.exe"
-[[ -f "$destination" ]] || die "MSI did not install the GDP command: $destination"
+[[ -f "$destination" ]] || die "Setup did not install the GDP command: $destination"
 
 launcher_dir="$HOME/.local/bin"
 launcher="$launcher_dir/gdp"
