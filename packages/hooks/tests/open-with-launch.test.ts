@@ -65,5 +65,8 @@ test('the real launcher preserves Unicode, spaces, percent signs and shell metac
       assert.deepEqual(result.args, [group === 'editor' ? target : workdir])
       if (group === 'shell') assert.equal(result.cwd, workdir)
     }
-  } finally { await rm(directory, { recursive: true, force: true }) }
+  } finally {
+    // The detached helper can briefly hold its cwd after writing the result.
+    await rm(directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
+  }
 })

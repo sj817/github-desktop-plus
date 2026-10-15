@@ -146,7 +146,8 @@ async function warmRepoIndex(): Promise<void> {
 }
 
 /**
- * React attaches the fiber for a DOM node under a `__reactFiber$<random>` key.
+ * React 16 (used by GD 3.6.5) uses `__reactInternalInstance$<random>`;
+ * newer React versions use `__reactFiber$<random>` for the same host fiber.
  * Walking up from the row reaches `RepositoryListItem`, whose props carry the
  * actual `Repository` model — including the path GD would use.
  */
@@ -154,7 +155,9 @@ interface Fiber { return?: Fiber | null; memoizedProps?: { repository?: { path?:
 
 function fiberFor(el: Element): Fiber | null {
   const holder = el as unknown as Record<string, unknown>
-  const fiberKey = Object.keys(holder).find(key => key.startsWith('__reactFiber$'))
+  const fiberKey = Object.keys(holder).find(key =>
+    key.startsWith('__reactFiber$') || key.startsWith('__reactInternalInstance$'),
+  )
   if (fiberKey === undefined) return null
   return holder[fiberKey] as Fiber | null
 }

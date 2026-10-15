@@ -34,10 +34,14 @@ test('file-row context reaches the launch IPC and native menu actions retain the
   document.body.innerHTML = '<div class="file-list"><div class="list-item" tabindex="0"><div class="file"><span class="path">truncated…name.md</span></div></div></div>'
   const row = document.querySelector('.list-item')!
   const file = document.querySelector('.file')!
-  const attachFiber = (relativePath: string) => Object.assign(file, { '__reactFiber$test': {
-    memoizedProps: { children: 'host div' },
-    return: { memoizedProps: { file: { path: relativePath } }, return: { memoizedProps: { repository: { path: 'D:\\项目 repo' } } } },
-  } })
+  // GD 3.6.5 ships React 16.8.4. Use its real host-node property by default.
+  const attachFiber = (relativePath: string, key = '__reactInternalInstance$test') => {
+    for (const previous of ['__reactInternalInstance$test', '__reactFiber$test']) Reflect.deleteProperty(file, previous)
+    Object.assign(file, { [key]: {
+      memoizedProps: { children: 'host div' },
+      return: { memoizedProps: { file: { path: relativePath } }, return: { memoizedProps: { repository: { path: 'D:\\项目 repo' } } } },
+    } })
+  }
   const menu = [
     { label: 'Discard changes' },
     { label: 'Ignore folder (add to .gitignore)', submenu: [{ label: '/docs' }] },
@@ -60,6 +64,19 @@ test('file-row context reaches the launch IPC and native menu actions retain the
     selectLabel('Open in WSL (Debian)')
     await ipc.invoke('show-contextual-menu', menu)
     assert.equal(requests.pop()?.path, 'src/current.ts')
+
+    // Newer React versions expose the same model through a different key.
+    attachFiber('src/modern.ts', '__reactFiber$test')
+    clickRow()
+    selectLabel('Open in VS Code')
+    await ipc.invoke('show-contextual-menu', menu)
+    assert.equal(requests.pop()?.path, 'src/modern.ts')
+
+    // Clicking the row padding must resolve its inner file model too.
+    attachFiber('docs/row-padding.md')
+    row.dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true }))
+    await ipc.invoke('show-contextual-menu', menu)
+    assert.equal(requests.pop()?.path, 'docs/row-padding.md')
 
     clickRow()
     choose = items => [items.findIndex(item => item.label?.startsWith('Ignore folder')), 0]
