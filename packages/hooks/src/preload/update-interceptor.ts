@@ -99,11 +99,11 @@
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
           <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="${c.warn}"/>
         </svg>
-        <span style="font-size:14px;font-weight:600;color:${c.text}">更新功能已被拦截</span>
+        <span style="font-size:14px;font-weight:600;color:${c.text}">GitHub Desktop 更新功能已被拦截</span>
       </div>
       <p style="font-size:12px;color:${c.textDim};line-height:1.6;margin:0 0 16px">
-        GitHub Desktop Plus 已拦截更新检查功能。<br><br>
-        如需修改更新设置，请打开 GDP 设置进行配置。
+        已根据 GDP 设置阻止 GitHub Desktop 本体的更新操作。<br><br>
+        GitHub Desktop Plus 自身的更新可在 GDP 设置的「更新」页面检查。
       </p>
       <div style="display:flex;gap:8px;justify-content:flex-end">
         <button id="gdp-modal-cancel" style="
@@ -190,6 +190,9 @@
   }
 
   function isUpdateButton(button: HTMLButtonElement): boolean {
+    // Plus settings and GitHub Desktop share update labels. Only the official
+    // About dialog owns the autoUpdater actions that this flag controls.
+    if (button.closest('#about') === null) return false
     const text = button.textContent?.trim() ?? ''
     const matchesText = UPDATE_BUTTON_TEXTS.some(t => text.includes(t))
     return matchesText || isAboutDialogUpdateButton(button)
