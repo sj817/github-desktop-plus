@@ -241,6 +241,32 @@ function loadUiTranslations(dir: string, locale: string, dataDir: string): Recor
 // as window.__GDP_OVERRIDES__.
 type OverrideEntry = { anchor: string; value: string }
 
+function setupWindowIcon(
+  app: { on(event: string, cb: (...args: unknown[]) => void): void },
+  nativeImage: { createFromPath(path: string): { isEmpty(): boolean } },
+  dir: string
+): void {
+  if (process.platform !== 'win32') return
+
+  // Decode once, when the first window is created after Electron is ready.
+  let icon: ReturnType<typeof nativeImage.createFromPath> | undefined
+  let attempted = false
+  app.on('browser-window-created', (...args: unknown[]) => {
+    const win = args[1] as { setIcon(icon: unknown): void }
+    try {
+      if (!attempted) {
+        attempted = true
+        const candidate = nativeImage.createFromPath(_path.join(dir, 'gdp.ico'))
+        if (candidate.isEmpty()) throw new Error('GDP window icon could not be decoded')
+        icon = candidate
+      }
+      if (icon) win.setIcon(icon)
+    } catch (error) {
+      gdpLog(`Window icon skipped: ${error}`, 'warn', 'system')
+    }
+  })
+}
+
 function collectOverrides(
   bundle: LocaleBundle,
   excludedCategories: ReadonlySet<string>
@@ -781,6 +807,14 @@ function main(): void {
   } catch (e) {
     gdpLog(`Failed to require("electron"): ${e}`, 'error', 'system')
     return
+  }
+
+  if (electron.app && electron.nativeImage) {
+    setupWindowIcon(
+      electron.app as { on(event: string, cb: (...args: unknown[]) => void): void },
+      electron.nativeImage as { createFromPath(path: string): { isEmpty(): boolean } },
+      dir
+    )
   }
 
   // 1. Auto-update blocking — always patched; each call consults live config,

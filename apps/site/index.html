@@ -8,6 +8,7 @@
 <meta property="og:title" content="GitHub Desktop Plus">
 <meta property="og:description" content="不改源码，用官方调试接口在运行时增强 GitHub Desktop。">
 <meta property="og:type" content="website">
+<link rel="icon" type="image/png" href="logo.png">
 <style>
   :root {
     --bg: #0b0e14;
@@ -53,10 +54,7 @@
   nav .wrap { display: flex; align-items: center; gap: 16px; height: 62px; }
   .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
   .brand .logo {
-    width: 30px; height: 30px; border-radius: 8px;
-    display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 13px;
-    background: linear-gradient(135deg, var(--accent), var(--accent-2));
-    box-shadow: 0 3px 12px color-mix(in srgb, var(--accent) 40%, transparent);
+    width: 30px; height: 30px; display: block; flex-shrink: 0;
   }
   nav .spacer { flex: 1; }
   nav .nav-links { display: flex; gap: 26px; font-size: 13.5px; color: var(--fg-muted); }
@@ -192,7 +190,7 @@
 
 <nav>
   <div class="wrap">
-    <a class="brand" href="#top"><span class="logo">G+</span>GitHub Desktop Plus</a>
+    <a class="brand" href="#top"><img class="logo" src="logo.png" alt="" width="30" height="30">GitHub Desktop Plus</a>
     <div class="spacer"></div>
     <div class="nav-links">
       <a href="#features">功能</a>
@@ -338,7 +336,7 @@
 
 <footer>
   <div class="wrap">
-    <a class="brand" href="#top"><span class="logo">G+</span>GitHub Desktop Plus</a>
+    <a class="brand" href="#top"><img class="logo" src="logo.png" alt="" width="30" height="30">GitHub Desktop Plus</a>
     <div class="spacer"></div>
     <a href="https://github.com/sj817/github-desktop-plus" target="_blank" rel="noopener">源码</a>
     <a href="https://github.com/sj817/github-desktop-plus/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>

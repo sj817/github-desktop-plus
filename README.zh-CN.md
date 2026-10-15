@@ -1,3 +1,5 @@
+<img src="apps/gdp/assets/gdp-icon.png" width="80" alt="GitHub Desktop Plus">
+
 # GitHub Desktop Plus
 
 让 GitHub Desktop 更好用 —— 免修改原版文件，解锁自定义 AI 提交、多编辑器/终端支持、完整中文汉化与 WSL 深度集成。

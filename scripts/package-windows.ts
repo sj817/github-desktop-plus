@@ -113,7 +113,7 @@ await execa('dotnet', [
   '--channel',
   'win-x64',
   '--splashProgressColor',
-  '#7DB6E8',
+  '#8235AC',
   '--msi',
   '--instLocation',
   'PerUser',

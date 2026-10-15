@@ -15,6 +15,7 @@ pub const PRELOAD_RENDERER_JS: &[u8] =
 pub const PRELOAD_GDP_SETTINGS_UI_JS: &[u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/preload_gdp_settings_ui.js"));
 pub const LOCALE_ZH_CN: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/locale_zh_cn.json"));
+pub const APP_ICON: &[u8] = include_bytes!("../assets/gdp.ico");
 pub const WSL_AGENT_X86_64: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wsl_agent_x86_64"));
 pub const WSL_AGENT_AARCH64: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/wsl_agent_aarch64"));
 
@@ -48,6 +49,7 @@ pub fn extract_hook_to_disk() -> PathBuf {
     std::fs::create_dir_all(&agents_dir).expect("create agents dir");
 
     write_if_changed(&hooks_dir.join("index.js"), HOOK_JS);
+    write_if_changed(&hooks_dir.join("gdp.ico"), APP_ICON);
     write_if_changed(&preload_dir.join("early.js"), PRELOAD_EARLY_JS);
     write_if_changed(&preload_dir.join("renderer.js"), PRELOAD_RENDERER_JS);
     write_if_changed(

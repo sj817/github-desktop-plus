@@ -1,3 +1,5 @@
+<img src="apps/gdp/assets/gdp-icon.png" width="80" alt="GitHub Desktop Plus">
+
 # GitHub Desktop Plus
 
 Supercharge your GitHub Desktop experience — custom AI commit generation, multiple external editors & terminals, full i18n localization, and WSL 2 integration, **without patching official binaries**.
