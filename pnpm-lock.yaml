@@ -36,6 +36,9 @@ catalogs:
     execa:
       specifier: ^10.0.1
       version: 10.0.1
+    happy-dom:
+      specifier: ^21.0.1
+      version: 21.0.1
     jsonc-parser:
       specifier: ^3.3.1
       version: 3.3.1
@@ -151,6 +154,9 @@ importers:
         specifier: workspace:*
         version: link:../shared
     devDependencies:
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.1
       tsdown:
         specifier: 'catalog:'
         version: 0.22.14(tsx@4.23.12)(typescript@6.0.3)
@@ -584,6 +590,12 @@ packages:
   '@types/react@19.2.18':
     resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
 
+  '@types/whatwg-mimetype@3.0.2':
+    resolution: {integrity: sha512-c2AKvDT8ToxLIOUlN51gTiHXflsfIFisS4pO7pDPoKouJCESkhZnEy623gwP9laCy5lnLDAw1vAzu2vM2YLOrA==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
+
   '@vitejs/plugin-react@6.1.1':
     resolution: {integrity: sha512-yxLaQV9gkhS8ezJqCM6+ndU7mDY6gqAg75NQ+0IjwEI8IYOmQCgkRwHKVSfWXW076DsqMo0Dk+0FK1U+M5RgFw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -730,6 +742,10 @@ packages:
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
 
+  buffer-image-size@0.6.4:
+    resolution: {integrity: sha512-nEh+kZOPY1w+gcCMobZ6ETUp9WfibndnosbpwB1iJk/8Gt5ZF2bhS6+B6bPYz424KtwsR6Rflc3tCz1/ghX2dQ==}
+    engines: {node: '>=4.0'}
+
   cac@7.0.0:
     resolution: {integrity: sha512-tixWYgm5ZoOD+3g6UTea91eow5z6AAHaho3g0V9CNSNb45gM8SmflpAc+GRd1InC4AqN/07Unrgp56Y94N9hJQ==}
     engines: {node: '>=20.19.0'}
@@ -774,6 +790,10 @@ packages:
   enhanced-resolve@5.24.5:
     resolution: {integrity: sha512-L1l8TNvomm6UVW5B253AGxQagSQr+vGwhMlrrfRS2qmhx46AMpMVJKQYLvWYbysTMY8VoicOvzHzoHMbyzB+4A==}
     engines: {node: '>=10.13.0'}
+
+  entities@7.0.1:
+    resolution: {integrity: sha512-TWrgLOFUQTH994YUyl1yT4uyavY5nNB5muff+RtWaqNVCAK408b5ZnnbNAUEWLTCpum9w6arT70i1XdQ4UeOPA==}
+    engines: {node: '>=0.12'}
 
   esbuild@0.28.2:
     resolution: {integrity: sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==}
@@ -826,6 +846,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  happy-dom@21.0.1:
+    resolution: {integrity: sha512-pRBs/u9fhrncyByOl58DMex0R2uAj6ZPKWIjV5j5yNGZBqLw3P6BTRhlc0DD5b/Ht4/6JYTMuE2LJhUWRC6SGw==}
+    engines: {node: '>=20.0.0'}
 
   harfbuzzjs@0.10.3:
     resolution: {integrity: sha512-GJnLUrgLMadlMYrBGEXwYEimObbysy3prWT4HyPpFQERvgTU/OZ+ReUlEPOum6w4RBtFXzXiCCmECOr4sz3qwQ==}
@@ -1259,6 +1283,10 @@ packages:
     resolution: {integrity: sha512-r0CEmvpH63r4T15ebFqeOjGqU4+EgTx4I510NtK35EMciSdcTxCw3Byy3JnBonz7iyIFZ0AbVo0bbFpEVuhCYA==}
     hasBin: true
 
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
   which-command@0.1.0:
     resolution: {integrity: sha512-XZyoF5/5hZtXitIwzrU4NKK+Wtbb9aB9CezUEw2Q0wlYK8NUYQxC1rRXgNueYLtBAJwXIb+/tFVk4dozciNJMA==}
     engines: {node: '>=22'}
@@ -1266,6 +1294,18 @@ packages:
 
   woff2sfnt-sfnt2woff@1.0.0:
     resolution: {integrity: sha512-edK4COc1c1EpRfMqCZO1xJOvdUtM5dbVb9iz97rScvnTevqEB3GllnLWCmMVp1MfQBdF1DFg/11I0rSyAdS4qQ==}
+
+  ws@8.22.0:
+    resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
 
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
@@ -1562,6 +1602,12 @@ snapshots:
     dependencies:
       csstype: 3.2.3
 
+  '@types/whatwg-mimetype@3.0.2': {}
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 22.20.1
+
   '@vitejs/plugin-react@6.1.1(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
@@ -1645,6 +1691,10 @@ snapshots:
 
   argparse@2.0.1: {}
 
+  buffer-image-size@0.6.4:
+    dependencies:
+      '@types/node': 22.20.1
+
   cac@7.0.0: {}
 
   chokidar@5.0.0:
@@ -1673,6 +1723,8 @@ snapshots:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
+
+  entities@7.0.1: {}
 
   esbuild@0.28.2:
     optionalDependencies:
@@ -1753,6 +1805,19 @@ snapshots:
       resolve-pkg-maps: 1.0.0
 
   graceful-fs@4.2.11: {}
+
+  happy-dom@21.0.1:
+    dependencies:
+      '@types/node': 22.20.1
+      '@types/whatwg-mimetype': 3.0.2
+      '@types/ws': 8.18.2
+      buffer-image-size: 0.6.4
+      entities: 7.0.1
+      whatwg-mimetype: 3.0.0
+      ws: 8.22.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   harfbuzzjs@0.10.3: {}
 
@@ -2068,11 +2133,15 @@ snapshots:
     dependencies:
       argparse: 2.0.1
 
+  whatwg-mimetype@3.0.0: {}
+
   which-command@0.1.0: {}
 
   woff2sfnt-sfnt2woff@1.0.0:
     dependencies:
       pako: 1.0.11
+
+  ws@8.22.0: {}
 
   yocto-queue@0.1.0: {}
 

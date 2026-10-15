@@ -255,11 +255,35 @@ import { lookupTranslation } from '../i18n-lookup'
   // does not change while the callback runs), and dropped afterwards.
   let ancestryCache = new WeakMap<Element, boolean>();
 
+  // Keep only weak references to nodes we actually changed. When React moves
+  // translated UI into an excluded subtree, restore its source without having
+  // to walk every line of that subtree. Removed repository views must remain
+  // collectable, including when there are no subsequent DOM mutations.
+  const changedNodes = new Set<WeakRef<Node>>();
+  const detachedChangedNodes = new Set<WeakRef<Node>>();
+  const changedNodeRefs = new WeakMap<Node, WeakRef<Node>>();
+  const changedNodeFinalizer = new FinalizationRegistry<WeakRef<Node>>(ref => {
+    changedNodes.delete(ref);
+    detachedChangedNodes.delete(ref);
+  });
+  let restoredExcludedNodes = false;
+  let scanConnectedChanges = true;
+
+  function rememberChangedNode(node: Node): void {
+    if (changedNodeRefs.has(node)) return;
+    const ref = new WeakRef(node);
+    changedNodeRefs.set(node, ref);
+    changedNodes.add(ref);
+    changedNodeFinalizer.register(node, ref, ref);
+  }
+
   // Start of a translation pass: fresh ancestry cache, and the generation
   // counter caught up with the current translations object so the per-node
   // fast path below sees a hot-reloaded table before the first node is checked.
   function beginPass(): void {
     ancestryCache = new WeakMap();
+    restoredExcludedNodes = false;
+    scanConnectedChanges = true;
     getTranslations();
   }
 
@@ -274,6 +298,7 @@ import { lookupTranslation } from '../i18n-lookup'
         break;
       }
       if (current.matches(NON_TRANSLATABLE_SELECTOR) || hasSyntaxTokenClass(current)) {
+        ancestryCache.set(current, true);
         result = true;
         break;
       }
@@ -319,6 +344,7 @@ import { lookupTranslation } from '../i18n-lookup'
     textNode.__gdpGeneration = generation;
 
     if (translated !== current) {
+      rememberChangedNode(textNode);
       textNode.textContent = translated;
     }
   }
@@ -351,28 +377,74 @@ import { lookupTranslation } from '../i18n-lookup'
     translatedElement.__gdpAttrState[attr] = { source, translated, generation };
 
     if (translated !== current) {
+      rememberChangedNode(el);
       el.setAttribute(attr, translated);
     }
   }
 
   const TRANSLATED_ATTRIBUTES = ["title", "placeholder", "aria-label"];
 
+  function restoreExcludedTranslations(): void {
+    if (restoredExcludedNodes) return;
+    restoredExcludedNodes = true;
+    for (const ref of scanConnectedChanges ? changedNodes : detachedChangedNodes) {
+      const node = ref.deref();
+      if (node === undefined) {
+        changedNodes.delete(ref);
+        detachedChangedNodes.delete(ref);
+        changedNodeFinalizer.unregister(ref);
+        continue;
+      }
+      if (!node.isConnected) continue;
+      detachedChangedNodes.delete(ref);
+      const element = node instanceof Element ? node : node.parentElement;
+      if (!isInsideNonTranslatableContent(element)) continue;
+      if (node.nodeType === Node.TEXT_NODE) {
+        translateNode(node);
+      } else if (node instanceof Element) {
+        for (const attr of TRANSLATED_ATTRIBUTES) translateAttribute(node, attr);
+      }
+      changedNodes.delete(ref);
+      changedNodeRefs.delete(node);
+      changedNodeFinalizer.unregister(ref);
+    }
+  }
+
   function translateSubtree(root: Node) {
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
-    let node: Node | null;
-    while ((node = walker.nextNode())) {
-      translateNode(node);
+    if (root instanceof Element) {
+      if (isInsideNonTranslatableContent(root)) {
+        restoreExcludedTranslations();
+        return;
+      }
+      for (const attr of TRANSLATED_ATTRIBUTES) translateAttribute(root, attr);
+    } else if (root.nodeType === Node.TEXT_NODE) {
+      translateNode(root);
+      return;
     }
 
-    if (root instanceof Element) {
-      for (const attr of TRANSLATED_ATTRIBUTES) {
-        translateAttribute(root, attr);
+    // Reject code containers before visiting their descendants. A text-only
+    // walker still visits every highlighted token in a large diff even when
+    // translateNode ultimately leaves all of them unchanged.
+    const walker = document.createTreeWalker(
+      root,
+      NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT,
+      {
+        acceptNode(node) {
+          if (node instanceof Element && isInsideNonTranslatableContent(node)) {
+            restoreExcludedTranslations();
+            return NodeFilter.FILTER_REJECT;
+          }
+          return NodeFilter.FILTER_ACCEPT;
+        },
+      },
+    );
+    let node: Node | null;
+    while ((node = walker.nextNode())) {
+      if (node instanceof Element) {
+        for (const attr of TRANSLATED_ATTRIBUTES) translateAttribute(node, attr);
+      } else {
+        translateNode(node);
       }
-      root.querySelectorAll("[title],[placeholder],[aria-label]").forEach((el) => {
-        for (const attr of TRANSLATED_ATTRIBUTES) {
-          translateAttribute(el, attr);
-        }
-      });
     }
   }
 
@@ -403,6 +475,22 @@ import { lookupTranslation } from '../i18n-lookup'
   // Observe DOM mutations for dynamic content (React re-renders)
   const observer = new MutationObserver((mutations) => {
     beginPass();
+
+    // Scrolling/highlighting inside code cannot move connected UI into it
+    // without also producing a mutation outside code. Avoid rescanning all UI
+    // translations for every code-only update; only previously detached nodes
+    // can be reintroduced in that case.
+    scanConnectedChanges = mutations.some(mutation =>
+      !isInsideNonTranslatableContent(
+        mutation.target instanceof Element ? mutation.target : mutation.target.parentElement,
+      ),
+    );
+    if (scanConnectedChanges && mutations.some(mutation => mutation.removedNodes.length > 0)) {
+      for (const ref of changedNodes) {
+        const node = ref.deref();
+        if (node !== undefined && !node.isConnected) detachedChangedNodes.add(ref);
+      }
+    }
 
     // Every element inserted in this batch; roots are the ones with no
     // inserted ancestor, so each subtree is walked exactly once.

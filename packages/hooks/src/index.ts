@@ -20,7 +20,7 @@ import { configureLogLevel, gdpLog, LOG_JSON_FILE, resetLogStream } from './logg
 import { setupTelemetryBlocker } from './telemetry-blocker'
 import { blockUpdates } from './update-blocker'
 import { setupGdpIpc } from './ipc'
-import { setupCopilotUnlock } from './copilot-unlock'
+import { setupRendererBundle } from './renderer-bundle'
 import {
   RESERVED_LOCALE_KEYS,
   collectAliases,
@@ -816,22 +816,21 @@ function main(): void {
     )
   }
 
-  // 2b2. Copilot gate unlock — rewrite the entitlement check in the renderer
-  //      bundle as it loads, so GitHub Desktop's own BYOK provider support is
-  //      reachable without a Copilot subscription. Registered before any window
-  //      exists so the very first load is already patched.
+  // 2b2. Renderer source patches — always apply supported performance fixes,
+  //      with the optional Copilot gate unlock controlled by live config.
+  //      Register before any window exists so the first load is patched.
   if (electron.app && electron.session && electron.net) {
-    const registerUnlock = () =>
-      setupCopilotUnlock(
+    const registerRendererBundle = () =>
+      setupRendererBundle(
         electron.session as { defaultSession?: { protocol?: never } },
         electron.net as never,
         () => config.unlockCopilot,
       )
     const appModule = electron.app as { isReady(): boolean; on(e: string, cb: () => void): void }
     if (appModule.isReady()) {
-      registerUnlock()
+      registerRendererBundle()
     } else {
-      appModule.on('ready', registerUnlock)
+      appModule.on('ready', registerRendererBundle)
     }
   }
 
