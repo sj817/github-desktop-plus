@@ -2,55 +2,66 @@
 
 # GitHub Desktop Plus
 
-让 GitHub Desktop 更好用 —— 免修改原版文件，解锁自定义 AI 提交、多编辑器/终端支持、完整中文汉化与 WSL 深度集成。
+轻量级、免改动原版文件的 GitHub Desktop 增强工具与持久汉化中文版。基于 Chrome 开发者工具协议 (CDP) 在运行时动态注入，支持自定义 AI 提交、多编辑器/终端快速唤醒、完整中文界面与 WSL 深度集成，官方升级不失效。
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 ---
 
-## 核心特性
+## 功能特性
 
-- **自定义 AI 提交 (AI Commit)**：替换原生 Copilot 按钮，接入任意兼容 OpenAI 协议的模型（DeepSeek、Ollama、OpenAI、硅基流动等），支持自定义 Prompt 与实时延迟测试。
-- **多编辑器与终端 (Open With+)**：在仓库右键菜单中随心添加常用工具（VS Code、Cursor、Zed、JetBrains 全家桶、Windows Terminal、WSL 等），支持自定义启动参数与拖拽排序。
-- **多语言与界面汉化 (i18n)**：全界面、菜单栏与弹窗即时汉化。底层具备完整的多语言注入架构，内置简体中文，支持语言包热重载并欢迎社区贡献更多语言。
-- **WSL 2 深度集成**：无缝支持管理 WSL 内部的 Git 仓库，自动完成 Windows 与 WSL 之间的路径映射转换。
-- **隐私保护与版本锁定**：一键拦截后台遥测数据上传，支持禁用静默自动更新。
-- **原生内嵌设置面板**：按下 `Ctrl+Alt+G` 或点击菜单栏 `GDP` 即可呼出设置面板，修改即时生效，无需重启应用。
-- **纯净无侵入**：基于 V8 调试协议在运行时动态注入 Hook，不修改官方二进制文件与数字签名，安全可逆。
+- **自定义 AI 提交 (AI Commit)**：在原生提交面板中调用自定义大模型接口。兼容任意 OpenAI 协议端点（DeepSeek、Ollama 本地模型、OpenAI、硅基流动等），支持自定义 Prompt 模板与延迟测试。
+- **多编辑器与终端 (Open With+)**：在仓库与文件的右键菜单中快速唤醒外部工具（VS Code、Cursor、Zed、JetBrains 全家桶、Windows Terminal、WSL 各发行版等），支持拖拽排序与单文件精准跳转。
+- **免改原版、升级不失效的汉化 (i18n)**：全界面、原生菜单与对话框运行时即时汉化。内置简体中文 (`zh-CN`)，基于 CDP 动态注入机制，不修改官方安装目录下的任何文件，官方自动更新后汉化依然有效。
+- **WSL 2 深度集成**：无缝管理 WSL 内部的 Git 仓库，自动完成 Windows 与 WSL 之间的路径映射转换。
+- **隐私保护与版本锁定**：一键拦截官方后台遥测数据上传，支持禁用静默自动更新。
+- **原生内嵌设置面板**：按下 `Ctrl+Alt+G` 或点击菜单栏 `GDP` 即可唤出设置，所有配置修改实时生效，无需重启应用。
+- **纯净无侵入**：启动时通过 V8 调试协议注入 Hook，不修改官方二进制文件与数字签名，安全可逆。
+
+---
+
+## 功能对比
+
+| 功能特性 | 官方 GitHub Desktop | 传统汉化补丁 | GitHub Desktop Plus (GDP) |
+| :--- | :--- | :--- | :--- |
+| **界面汉化** | ❌ 仅支持英文 | ⚠️ 直接替换 `app.asar`（官方更新后失效） | ✅ 基于 CDP 运行时注入（免改原版，升级不失效） |
+| **AI 提交信息生成** | ⚠️ 仅支持 GitHub Copilot（需付费订阅） | ❌ 无 | ✅ 支持任意兼容 OpenAI 协议的模型（DeepSeek、Ollama 等） |
+| **外部编辑器与终端** | ⚠️ 仅支持配置 1 个默认编辑器 | ⚠️ 仅支持 1 个默认编辑器 | ✅ 右键菜单支持多编辑器与终端快捷唤醒 (Open With+) |
+| **WSL 2 仓库管理** | ⚠️ 路径转换受限，配置繁琐 | ⚠️ 路径转换受限 | ✅ 自动处理 `/mnt/c/` ↔ `\\wsl$\` 跨系统路径映射 |
+| **程序文件完整性** | ✅ 官方纯净安装 | ❌ 二进制文件被篡改，破坏数字签名 | ✅ 零修改官方文件，保留完整签名与安全性 |
+| **遥测与自动更新** | ⚠️ 默认启用后台数据上传与静默更新 | ⚠️ 默认启用 | ✅ 支持一键禁用遥测上传与锁定更新 |
 
 ---
 
 ## 界面预览
 
-### 界面汉化与 GDP 菜单
-全界面运行时汉化，并在菜单栏增加专属 `GDP` 入口。
+### 汉化界面与 GDP 菜单
+全界面运行时汉化，顶部菜单栏新增专属 `GDP` 设置入口。
 
-![GDP 托管下的 GitHub Desktop 汉化主界面](docs/screenshots/overview.png)
+![汉化主界面](docs/screenshots/overview.png)
 
 ### 核心功能
 
-| 自定义 AI 提交 | 多编辑器 / 终端支持 (Open With+) |
+| 自定义 AI 提交 | 多编辑器与终端唤醒 (Open With+) |
 | :---: | :---: |
-| 原生 Copilot 按钮直接调用自定义 AI 接口生成提交信息 | 右键菜单直接打开 VS Code、Cursor、终端或 WSL |
-| ![自定义 AI 提交](docs/screenshots/ai-commit.png) | ![打开方式增强](docs/screenshots/open-with.png) |
+| ![自定义 AI 提交](docs/screenshots/ai-commit.png) | ![右键打开方式](docs/screenshots/open-with.png) |
+| 在原生提交框直接调用自定义 LLM 生成 Commit | 右键菜单直接唤醒常用编辑器或终端 |
 
 ### 内嵌设置面板 (`Ctrl+Alt+G`)
 
-按下快捷键随时呼出设置，所有配置修改即时生效：
-
-![常规设置页](docs/screenshots/settings-general.png)
-
-| 打开方式配置 | AI 提交配置 |
+| 常规设置 | 打开方式配置 |
 | :---: | :---: |
-| ![打开方式设置](docs/screenshots/settings-open-with.png) | ![AI 提交设置](docs/screenshots/settings-ai.png) |
-| **语言包管理与热重载** | **实时 Hook 日志** |
-| ![语言包设置](docs/screenshots/settings-locales.png) | ![实时日志](docs/screenshots/settings-logs.png) |
+| ![常规设置](docs/screenshots/settings-general.png) | ![打开方式设置](docs/screenshots/settings-open-with.png) |
+
+| AI 提交配置 | 语言包管理与热重载 |
+| :---: | :---: |
+| ![AI 提交设置](docs/screenshots/settings-ai.png) | ![语言包设置](docs/screenshots/settings-locales.png) |
 
 ---
 
 ## 工作原理
 
-GDP 是一个超轻量的 Rust 启动器（常驻内存 < 10MB）。启动时通过 `--inspect-brk=0` 唤起 GitHub Desktop 并通过 Chrome DevTools Protocol (CDP) 注入 Hook：
+GDP 是一个轻量级 Rust 启动器（常驻内存 < 10MB）。启动时通过 `--inspect-brk=0` 唤起 GitHub Desktop 并通过 Chrome DevTools Protocol (CDP) 注入 Hook：
 
 ```text
 ┌───────────────────────────┐         ┌──────────────────────────────┐
@@ -69,51 +80,50 @@ GDP 是一个超轻量的 Rust 启动器（常驻内存 < 10MB）。启动时通
 
 ---
 
-## 国际化与多语言贡献
-
-GDP 在底层构建了完整的 i18n 运行时注入与文本提取体系（覆盖主进程原生菜单、渲染进程 DOM、各类弹出对话框与上下文菜单），支持语言包即时热重载。
-
-目前官方内置并维护了 **简体中文 (`zh-CN`)** 语言包。如果你希望 GitHub Desktop Plus 支持更多语言（如繁体中文、日语、韩语、西班牙语、法语、德语等），非常欢迎参与翻译与贡献！
-
-### 如何贡献语言包？
-
-- **方法一（图形界面编辑 & 导出）**：
-  1. 按下 `Ctrl+Alt+G` 打开设置面板，进入 **【语言包】** 页面。
-  2. 点击新建语言脚手架，直接在界面中编辑或导入翻译 JSON。
-  3. 编辑过程中支持即时热生效预览。
-  4. 导出后将 JSON 文件提交 Pull Request 到本仓库。
-
-- **方法二（直接在源码中添加）**：
-  1. 参考 [`apps/gdp/resources/locales/zh-CN/`](apps/gdp/resources/locales/zh-CN) 中的分模块 JSON 文件。
-  2. 在 `apps/gdp/resources/locales/` 目录下新建对应语言代码文件夹（例如 `ja-JP`、`zh-TW`）。
-  3. 翻译对应词条，运行 `pnpm locales:prepare <locale>` 验证后提交 PR。
-
----
-
 ## 安装与使用
 
-### 方式一：Windows 安装包（推荐）
+### Windows
 
-1. 前往 [Releases](https://github.com/sj817/github-desktop-plus/releases) 下载最新版本的 `GitHubDesktopPlus-win-x64-Setup.exe`。
-2. 运行安装向导，按提示完成安装（支持自定义安装路径与深浅色主题）。
-3. 从桌面或开始菜单启动 **GitHub Desktop Plus**。
+1. 前往 [Releases](https://github.com/sj817/github-desktop-plus/releases/latest) 下载安装包 (`GitHubDesktopPlus-win-x64-Setup.exe`) 或便携版 (`Portable.zip`)。
+2. 运行安装程序并启动 **GitHub Desktop Plus**。
 
-> [!NOTE]
-> 配置与用户数据统一保存在 `%APPDATA%\github-desktop-plus`，软件更新或卸载不会丢失配置。
+> **说明**：配置与用户数据统一保存在 `%APPDATA%\github-desktop-plus`，软件更新不会丢失配置。
 
-### 方式二：WSL 一键安装
+#### 内置更新与镜像加速
+- 可在软件内点击 **GDP → 检查更新** 检测并下载最新版本。
+- 下载线路支持 GitHub 直连与国内常见加速镜像（参考 [github.akams.cn](https://github.akams.cn/)），失败时自动降级切换。镜像设置仅对 Plus 自身的安装包下载生效。
 
-如果你在 WSL 2 环境中工作，可以直接运行安装脚本：
+### WSL 2
+
+在 WSL 2 终端中运行单行脚本完成安装：
 
 ```bash
-curl -fsSL https://github.com/sj817/github-desktop-plus/releases/latest/download/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sj817/github-desktop-plus/main/install.sh | bash
 ```
 
-脚本会自动下载校验并在 WSL 中生成 `gdp` 命令。之后在终端直接输入 `gdp` 即可启动。
+- 在 WSL 终端输入 `gdp` 即可启动并自动完成路径映射。
+- 可选：设置环境变量 `GDP_DOWNLOAD_MIRROR=direct` 禁用镜像，或指定镜像域名（如 `gh-proxy.com`、`ghfast.top` 等）。
 
 ### 快捷键
 
-- **`Ctrl+Alt+G`**：打开 / 关闭 GDP 设置面板（或通过顶部菜单栏点击 `GDP`）。
+- `Ctrl+Alt+G`：打开 / 关闭设置面板（或点击菜单栏 `GDP`）。
+
+---
+
+## 贡献语言包
+
+GDP 底层具备完整的 i18n 拦截与热重载体系。目前官方内置 **简体中文 (`zh-CN`)**，欢迎社区贡献繁体中文、日语、韩语等其他语言。
+
+### 通过内嵌界面贡献
+1. 按下 `Ctrl+Alt+G` 打开设置，进入 **语言包** 页面。
+2. 新建语言脚手架或导入已有 JSON 语言包。
+3. 在界面中直接编辑并实时预览效果。
+4. 导出 JSON 并向本仓库提交 Pull Request。
+
+### 通过源码贡献
+1. 参考 [`apps/gdp/resources/locales/zh-CN/`](apps/gdp/resources/locales/zh-CN) 中的分模块 JSON 文件。
+2. 在 `apps/gdp/resources/locales/` 下新建对应语言目录（如 `ja-JP`、`zh-TW`）。
+3. 翻译词条，运行 `pnpm locales:prepare <locale>` 验证后提交 PR。
 
 ---
 
@@ -147,12 +157,6 @@ pnpm run package:windows
 
 ---
 
-## 支持项目
-
-如果 GitHub Desktop Plus 对你的日常开发有所帮助，欢迎在 GitHub 上点个 Star 支持一下！你的支持是项目持续维护的最大动力。
-
----
-
 ## 免责声明
 
 GitHub Desktop Plus 是一个独立的开源项目，与 GitHub, Inc. 或 Microsoft Corporation 无任何隶属、背书或关联关系。GitHub 与 GitHub Desktop 是 GitHub, Inc. 的注册商标。
@@ -164,5 +168,3 @@ GitHub Desktop 官方源码遵循 [MIT 许可证](https://github.com/desktop/des
 ## 许可证
 
 [MIT](LICENSE)
-
-
