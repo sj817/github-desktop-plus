@@ -499,6 +499,28 @@ export interface OpenWithCommand {
   options: cp.SpawnOptions
 }
 
+const IMAGE_SUBSYSTEM_WINDOWS_CUI = 3
+
+/** The PE header's Subsystem field, or null when the file is not a readable PE image. */
+function peSubsystem(exe: string): number | null {
+  let fd: number | undefined
+  try {
+    fd = fs.openSync(exe, 'r')
+    const header = Buffer.alloc(1024)
+    const read = fs.readSync(fd, header, 0, header.length, 0)
+    if (read < 0x40 || header.readUInt16LE(0) !== 0x5a4d) return null
+    // Signature (4) + COFF header (20) put the optional header at pe + 24;
+    // Subsystem sits at offset 68 of it for both PE32 and PE32+.
+    const pe = header.readUInt32LE(0x3c)
+    if (pe + 24 + 70 > read || header.readUInt32LE(pe) !== 0x00004550) return null
+    return header.readUInt16LE(pe + 24 + 68)
+  } catch {
+    return null
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd)
+  }
+}
+
 /** Separate argv from display paths. This also keeps file names with shell
  * metacharacters out of cmd.exe when launching ordinary .exe applications. */
 export function buildOpenWithCommand(
@@ -525,7 +547,10 @@ export function buildOpenWithCommand(
   }
   const args = expandTarget(tokens, expandedTarget)
   const options: cp.SpawnOptions = { detached: true, stdio: 'ignore' }
-  if (platform === 'win32') options.windowsHide = !item.console
+  // windowsHide also puts SW_HIDE into STARTUPINFO, and GUI programs apply it
+  // to their first window: VS Code then opens with its window hidden. Only
+  // console programs the user did not ask to see get hidden.
+  if (platform === 'win32') options.windowsHide = !item.console && peSubsystem(item.path) === IMAGE_SUBSYSTEM_WINDOWS_CUI
 
   if (platform === 'win32' && /\.(cmd|bat)$/i.test(item.path)) {
     // Batch shims require cmd.exe; reject path characters which cmd expands

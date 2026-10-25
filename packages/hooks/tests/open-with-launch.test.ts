@@ -33,6 +33,30 @@ test('editors receive the file while terminals receive its parent, keeping execu
   assert.deepEqual(buildOpenWithCommand({ ...shell, args: '-d "%TARGET_PATH%"' }, file, 'file', 'win32').args, ['-d', 'D:\\中文 & repo%\\src'])
 })
 
+test('GUI editors are not started hidden; only unrequested console programs are', async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'gdp-open-with-pe-'))
+  try {
+    const writePe = async (name: string, subsystem: number) => {
+      const image = Buffer.alloc(0x200)
+      image.write('MZ', 0, 'latin1')
+      image.writeUInt32LE(0x80, 0x3c)
+      image.write('PE\0\0', 0x80, 'latin1')
+      image.writeUInt16LE(subsystem, 0x80 + 24 + 68)
+      const file = path.join(directory, name)
+      await writeFile(file, image)
+      return file
+    }
+    const gui = await writePe('gui.exe', 2)
+    const cui = await writePe('cui.exe', 3)
+    assert.equal(buildOpenWithCommand({ ...editor, path: gui }, 'D:\\repo', 'repository', 'win32').options.windowsHide, false)
+    assert.equal(buildOpenWithCommand({ ...editor, path: cui }, 'D:\\repo', 'repository', 'win32').options.windowsHide, true)
+    assert.equal(buildOpenWithCommand({ ...editor, path: cui, console: true }, 'D:\\repo', 'repository', 'win32').options.windowsHide, false)
+    assert.equal(buildOpenWithCommand(editor, 'D:\\repo', 'repository', 'win32').options.windowsHide, false)
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
 test('WSL terminals translate same-distro UNC directories and never use a file as --cd', () => {
   const wsl = { ...shell, path: 'C:\\Windows\\System32\\wsl.exe', args: '-d Debian --cd "%TARGET_PATH%"' }
   const file = '\\\\wsl.localhost\\Debian\\home\\me\\repo\\源文件\\file.ts'
