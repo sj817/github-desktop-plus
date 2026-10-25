@@ -60,10 +60,21 @@ function expandEnv(template: string): string | null {
   return missing ? null : path.normalize(expanded)
 }
 
+/** `fs.existsSync` stats the target, which fails for app execution aliases
+ * such as WindowsApps\pwsh.exe; access() only needs the reparse point. */
+function pathExists(file: string): boolean {
+  try {
+    fs.accessSync(file)
+    return true
+  } catch {
+    return false
+  }
+}
+
 function firstExisting(templates: readonly string[]): string | null {
   for (const template of templates) {
     const candidate = expandEnv(template)
-    if (candidate !== null && fs.existsSync(candidate)) {
+    if (candidate !== null && pathExists(candidate)) {
       return candidate
     }
   }
@@ -210,6 +221,8 @@ const WIN32_CANDIDATES: readonly CandidateSpec[] = [
     paths: [
       '%ProgramFiles%/PowerShell/7/pwsh.exe',
       '%ProgramFiles(x86)%/PowerShell/7/pwsh.exe',
+      // Microsoft Store install; the alias survives version updates.
+      '%LOCALAPPDATA%/Microsoft/WindowsApps/pwsh.exe',
     ],
     args: '',
     console: true,
@@ -351,6 +364,9 @@ function detectJetBrains(): DetectedItem[] {
 
 // ── Visual Studio ───────────────────────────────────────────────────────────
 
+/** Visual Studio 2026 installs under its major version rather than its year. */
+const VISUAL_STUDIO_FOLDER_YEARS: Record<string, string> = { '18': '2026' }
+
 function detectVisualStudio(): DetectedItem[] {
   if (process.platform !== 'win32') return []
 
@@ -361,10 +377,10 @@ function detectVisualStudio(): DetectedItem[] {
     for (const year of safeReadDir(root)) {
       for (const edition of safeReadDir(path.join(root, year))) {
         const exe = path.join(root, year, edition, 'Common7', 'IDE', 'devenv.exe')
-        if (fs.existsSync(exe)) {
+        if (pathExists(exe)) {
           results.push({
             id: `visual-studio-${year}`,
-            label: `Visual Studio ${year}`,
+            label: `Visual Studio ${VISUAL_STUDIO_FOLDER_YEARS[year] ?? year}`,
             path: exe,
             args: `"${TARGET_PATH_TOKEN}"`,
             group: 'editor',
@@ -394,7 +410,7 @@ function runCapture(exe: string, args: string[], encoding: BufferEncoding): stri
 function detectWslDistros(): DetectedItem[] {
   if (process.platform !== 'win32') return []
   const wsl = expandEnv('%WINDIR%/System32/wsl.exe')
-  if (wsl === null || !fs.existsSync(wsl)) return []
+  if (wsl === null || !pathExists(wsl)) return []
 
   // `wsl -l -q` writes UTF-16LE.
   const raw = runCapture(wsl, ['-l', '-q'], 'utf16le')
@@ -413,10 +429,194 @@ function detectWslDistros(): DetectedItem[] {
   }))
 }
 
+// ── Installed applications (Windows) ────────────────────────────────────────
+
+/**
+ * One record from an installer entry, App Paths or a Start menu / desktop
+ * shortcut. Editors installed outside the path templates above (another
+ * drive, a portable folder) are only findable through these.
+ */
+export interface InstalledApp {
+  name?: string
+  /** Executable or DisplayIcon value, possibly quoted and with an icon index. */
+  exe?: string
+  /** InstallLocation, for installers that record no executable. */
+  dir?: string
+}
+
+const INSTALLED_APPS_SCRIPT = String.raw`
+$ErrorActionPreference = 'SilentlyContinue'
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$apps = [Collections.Generic.List[object]]::new()
+foreach ($root in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall', 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall') {
+  foreach ($key in Get-ChildItem $root) {
+    $name = $key.GetValue('DisplayName')
+    if ($name) { $apps.Add(@{ name = [string]$name; exe = [string]$key.GetValue('DisplayIcon'); dir = [string]$key.GetValue('InstallLocation') }) }
+  }
+}
+foreach ($root in 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths', 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths') {
+  foreach ($key in Get-ChildItem $root) { $apps.Add(@{ exe = [string]$key.GetValue('') }) }
+}
+$shell = New-Object -ComObject WScript.Shell
+foreach ($folder in 'StartMenu', 'CommonStartMenu', 'Desktop', 'CommonDesktopDirectory') {
+  $dir = [Environment]::GetFolderPath($folder)
+  if ($dir) {
+    foreach ($link in Get-ChildItem -LiteralPath $dir -Filter *.lnk -Recurse) {
+      $apps.Add(@{ name = $link.BaseName; exe = $shell.CreateShortcut($link.FullName).TargetPath })
+    }
+  }
+}
+ConvertTo-Json -InputObject $apps.ToArray() -Compress
+`
+
+/** Registry and shortcut data, read in one PowerShell run so non-ASCII paths
+ * arrive intact (reg.exe prints in the OEM code page). */
+export async function readInstalledApps(): Promise<InstalledApp[]> {
+  const powershell = expandEnv('%SystemRoot%/System32/WindowsPowerShell/v1.0/powershell.exe')
+  if (powershell === null) return []
+  const encoded = Buffer.from(INSTALLED_APPS_SCRIPT, 'utf16le').toString('base64')
+  const stdout = await new Promise<string>((resolve, reject) => {
+    cp.execFile(
+      powershell,
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+      { encoding: 'utf8', windowsHide: true, timeout: 20_000, maxBuffer: 16 * 1024 * 1024 },
+      (error, out) => error ? reject(error) : resolve(out),
+    )
+  })
+  const parsed: unknown = JSON.parse(stdout.trim() || '[]')
+  return Array.isArray(parsed) ? parsed.filter((app): app is InstalledApp => !!app && typeof app === 'object') : []
+}
+
+/** Editors recognised by executable name beyond those in the path table;
+ * VS Code forks and JetBrains IDEs are recognised from their product files. */
+const KNOWN_EDITOR_EXES: Record<string, { id: string; label: string }> = {
+  'typora.exe': { id: 'typora', label: 'Typora' },
+  'marktext.exe': { id: 'marktext', label: 'MarkText' },
+  'devenv.exe': { id: 'visual-studio', label: 'Visual Studio' },
+}
+
+let knownExes: Map<string, DetectedItem> | undefined
+
+/** Executable name → launcher template, from the path table plus extras. */
+function knownExecutables(): Map<string, DetectedItem> {
+  if (knownExes) return knownExes
+  knownExes = new Map()
+  for (const spec of WIN32_CANDIDATES) {
+    for (const template of spec.paths) {
+      const name = path.win32.basename(template).toLowerCase()
+      if (!knownExes.has(name)) {
+        knownExes.set(name, { id: spec.id, label: spec.label, path: '', args: defaultArgsFor(spec.group, spec), group: spec.group, console: spec.console ?? false })
+      }
+    }
+  }
+  for (const [name, editor] of Object.entries(KNOWN_EDITOR_EXES)) {
+    knownExes.set(name, { ...editor, path: '', args: defaultArgsFor('editor'), group: 'editor', console: false })
+  }
+  return knownExes
+}
+
+function exists(file: string): Promise<boolean> {
+  return fs.promises.access(file).then(() => true, () => false)
+}
+
+async function readJsonObject(file: string): Promise<Record<string, unknown> | null> {
+  try {
+    const value: unknown = JSON.parse(await fs.promises.readFile(file, 'utf8'))
+    return value && typeof value === 'object' ? value as Record<string, unknown> : null
+  } catch {
+    return null
+  }
+}
+
+/** VS Code and its forks keep resources\app\product.json next to the exe, or
+ * in a per-commit folder such as `7cc5e7382b\` in newer builds. */
+async function vscodeProduct(dir: string): Promise<Record<string, unknown> | null> {
+  const direct = await readJsonObject(path.join(dir, 'resources', 'app', 'product.json'))
+  if (direct) return direct
+  const entries = await fs.promises.readdir(dir, { withFileTypes: true }).catch(() => [])
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !/^[0-9a-f]{10}$/i.test(entry.name)) continue
+    const nested = await readJsonObject(path.join(dir, entry.name, 'resources', 'app', 'product.json'))
+    if (nested) return nested
+  }
+  return null
+}
+
+/** JetBrains IDEs describe their launchers in product-info.json at the root. */
+function jetbrainsLaunchers(info: Record<string, unknown> | null): string[] {
+  const launch: unknown = info?.launch
+  if (!Array.isArray(launch)) return []
+  return launch.map(entry => (entry as Record<string, unknown> | null)?.launcherPath).filter((p): p is string => typeof p === 'string' && /\.exe$/i.test(p))
+}
+
+/** `"C:\a b\x.exe",0` → `C:\a b\x.exe`; anything other than an absolute .exe is dropped. */
+export function executableFromValue(value: string): string | null {
+  const unquoted = value.trim().replace(/,\s*-?\d+$/, '').trim().replace(/^"(.*)"$/, '$1').trim()
+  if (!/\.exe$/i.test(unquoted) || !path.isAbsolute(unquoted)) return null
+  return path.normalize(unquoted)
+}
+
+/** Executables worth classifying inside an InstallLocation. */
+async function executablesInInstallDir(dir: string): Promise<string[]> {
+  const product = await vscodeProduct(dir)
+  if (typeof product?.nameShort === 'string') return [path.join(dir, `${product.nameShort}.exe`)]
+  const launchers = jetbrainsLaunchers(await readJsonObject(path.join(dir, 'product-info.json')))
+  if (launchers.length > 0) return launchers.map(launcher => path.join(dir, launcher))
+  const known = knownExecutables()
+  const entries = await fs.promises.readdir(dir).catch(() => [] as string[])
+  return entries.filter(name => known.has(name.toLowerCase())).map(name => path.join(dir, name))
+}
+
+async function classifyExecutable(exe: string): Promise<DetectedItem | null> {
+  // Store packages live in versioned folders, and their WindowsApps alias is
+  // what keeps working after an update. SysWOW64 only holds 32-bit duplicates.
+  if (/[\\/](?:Program Files[\\/]WindowsApps|SysWOW64)[\\/]/i.test(exe) || !await exists(exe)) return null
+  const name = path.basename(exe).toLowerCase()
+  const known = knownExecutables().get(name)
+  if (known) return { ...known, path: exe }
+
+  const editor = { path: exe, args: defaultArgsFor('editor'), group: 'editor' as const, console: false }
+  const jetbrains = JETBRAINS_BINARIES[name]
+  if (jetbrains) {
+    const info = await readJsonObject(path.join(path.dirname(path.dirname(exe)), 'product-info.json'))
+    const product = typeof info?.name === 'string' ? info.name : jetbrains
+    return { ...editor, id: `jetbrains-${product.toLowerCase().replace(/\s+/g, '-')}`, label: product }
+  }
+
+  // The exe must be the product's own, not an uninstaller sitting beside it.
+  const product = await vscodeProduct(path.dirname(exe))
+  const stem = path.basename(exe, path.extname(exe)).toLowerCase()
+  const names = [product?.nameShort, product?.win32ExeBasename, product?.nameLong].filter((n): n is string => typeof n === 'string')
+  if (!product || !names.some(n => n.toLowerCase() === stem)) return null
+  const label = typeof product.nameLong === 'string' ? product.nameLong : names[0]!
+  const id = typeof product.applicationName === 'string' ? product.applicationName : stem.replace(/\s+/g, '-')
+  return { ...editor, id, label }
+}
+
+/** Keep the installed applications that are recognisably editors or shells. */
+export async function classifyInstalledApps(apps: readonly InstalledApp[]): Promise<DetectedItem[]> {
+  const executables = new Map<string, string>()
+  const add = (exe: string) => {
+    const key = exe.toLowerCase()
+    if (!executables.has(key)) executables.set(key, exe)
+  }
+  for (const app of apps) {
+    const exe = typeof app.exe === 'string' ? executableFromValue(app.exe) : null
+    if (exe) add(exe)
+  }
+  const fromDirs = await Promise.all(apps.map(app => {
+    const dir = typeof app.dir === 'string' ? app.dir.trim().replace(/^"(.*)"$/, '$1') : ''
+    return dir && path.isAbsolute(dir) ? executablesInInstallDir(dir) : []
+  }))
+  for (const found of fromDirs.flat()) add(found)
+  const classified = await Promise.all([...executables.values()].map(classifyExecutable))
+  return classified.filter((item): item is DetectedItem => item !== null)
+}
+
 // ── Detection entry point ───────────────────────────────────────────────────
 
 /** Every launcher we can find on this machine, editors first. */
-export function detectOpenWith(): DetectedItem[] {
+export async function detectOpenWith(): Promise<DetectedItem[]> {
   const results: DetectedItem[] = []
 
   for (const spec of candidateTable()) {
@@ -433,6 +633,21 @@ export function detectOpenWith(): DetectedItem[] {
   }
 
   results.push(...detectJetBrains(), ...detectVisualStudio(), ...detectWslDistros())
+
+  if (process.platform === 'win32') {
+    // WSL distros share wsl.exe, so only installed apps are deduplicated by path.
+    const seen = new Set(results.map(item => item.path.toLowerCase()))
+    try {
+      for (const item of await classifyInstalledApps(await readInstalledApps())) {
+        const key = item.path.toLowerCase()
+        if (seen.has(key)) continue
+        seen.add(key)
+        results.push(item)
+      }
+    } catch (e) {
+      gdpLog(`open-with: scanning installed applications failed: ${e}`, 'warn', 'system')
+    }
+  }
 
   const order = { editor: 0, shell: 1 }
   return results.sort((a, b) => order[a.group] - order[b.group] || a.label.localeCompare(b.label))
@@ -589,7 +804,10 @@ export async function launchOpenWith(
 ): Promise<{ ok: boolean; reason?: string }> {
   if (!item.path) return { ok: false, reason: 'no_path' }
   if (!targetPath) return { ok: false, reason: 'no_target' }
-  if (!await fs.promises.access(item.path).then(() => true, () => false)) return { ok: false, reason: 'executable_missing' }
+  if (!await fs.promises.access(item.path).then(() => true, () => false)) {
+    gdpLog(`open-with: "${item.label}" not found at ${item.path}`, 'warn', 'system')
+    return { ok: false, reason: 'executable_missing' }
+  }
 
   try {
     const launch = buildOpenWithCommand(item, targetPath, kind)

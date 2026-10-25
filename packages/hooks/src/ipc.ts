@@ -38,6 +38,11 @@ interface Shell {
   showItemInFolder(fullPath: string): void
 }
 
+interface Dialog {
+  showOpenDialog(opts: Record<string, unknown>): Promise<{ canceled: boolean; filePaths: string[] }>
+  showMessageBox(opts: Record<string, unknown>): Promise<unknown>
+}
+
 interface TrackedWebContents {
   send(channel: string, ...args: unknown[]): void
   executeJavaScript(code: string): Promise<unknown>
@@ -241,6 +246,7 @@ export function setupGdpIpc(
   dataDir: string,
   ipcMain: IpcMain,
   shell: Shell,
+  dialog: Dialog,
   BrowserWindow: BrowserWindowLike,
   activeWebContents: TrackedWebContents[],
   onConfigWritten?: (parsed: StoredConfig) => void,
@@ -313,9 +319,9 @@ export function setupGdpIpc(
   // The renderer injects one context-menu entry per configured item and calls
   // back here with the item id; resolving the item from disk (rather than
   // trusting the renderer's copy) keeps the executable list authoritative.
-  ipcMain.handle('gdp:open-with-detect', () => {
+  ipcMain.handle('gdp:open-with-detect', async () => {
     try {
-      const found = detectOpenWith()
+      const found = await detectOpenWith()
       gdpLog(`open-with: detected ${found.length} launchers`, 'info', 'system')
       return found
     } catch (e) {
@@ -324,7 +330,7 @@ export function setupGdpIpc(
     }
   })
 
-  ipcMain.handle('gdp:open-with-launch', (_event, payload?: OpenWithLaunchRequest) => {
+  ipcMain.handle('gdp:open-with-launch', async (_event, payload?: OpenWithLaunchRequest) => {
     if (!payload || typeof payload.id !== 'string' || !payload.id) return { ok: false, reason: 'bad_request' }
     const target = resolveOpenWithTarget(payload)
     if (!target) return { ok: false, reason: 'bad_target' }
@@ -337,18 +343,27 @@ export function setupGdpIpc(
 
     const item = items.find(i => i.id === payload.id)
     if (!item || !item.enabled) return { ok: false, reason: 'unknown_or_disabled_item' }
-    return launchOpenWith(item, target.path, target.kind)
+    const result = await launchOpenWith(item, target.path, target.kind)
+    // The menu entry gives no other feedback, so a failed launch would
+    // otherwise look like a click that did nothing.
+    if (!result.ok) {
+      dialog.showMessageBox({
+        type: 'error',
+        title: 'GitHub Desktop Plus',
+        message: `无法用「${item.label}」打开`,
+        detail: result.reason === 'executable_missing'
+          ? `找不到程序：${item.path}\n请在 GDP 设置的「打开方式」中重新选择程序。`
+          : result.reason,
+      }).catch(() => {})
+    }
+    return result
   })
 
-  // Manual "add a launcher we did not detect" path.
+  // Manual "add a launcher we did not detect" path. gdp evaluates this bundle
+  // through the inspector, whose `require` only exists while the injection
+  // runs, so handlers must use the dialog module captured at setup.
   ipcMain.handle('gdp:open-with-browse', async () => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { dialog } = require('electron') as {
-        dialog: {
-          showOpenDialog(opts: Record<string, unknown>): Promise<{ canceled: boolean; filePaths: string[] }>
-        }
-      }
       const filters = process.platform === 'win32'
         ? [{ name: '可执行文件', extensions: ['exe', 'cmd', 'bat'] }]
         : []

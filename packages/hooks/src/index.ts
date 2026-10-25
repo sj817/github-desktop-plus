@@ -1001,12 +1001,13 @@ function main(): void {
   })
 
   // 6. GDP IPC bridge — config read/write, locale CRUD, logs, AI
-  if (electron.ipcMain && electron.shell && electron.BrowserWindow) {
+  if (electron.ipcMain && electron.shell && electron.dialog && electron.BrowserWindow) {
     setupGdpIpc(
       _path.join(config.configDir, 'config.json'),
       config.dataDir,
       electron.ipcMain as { handle(ch: string, fn: (...a: unknown[]) => unknown): void },
       electron.shell as { openPath(p: string): Promise<string>; showItemInFolder(p: string): void },
+      electron.dialog as Parameters<typeof setupGdpIpc>[4],
       electron.BrowserWindow as GDPBrowserWindowConstructor,
       activeWebContents,
       applyConfigAndPush,
