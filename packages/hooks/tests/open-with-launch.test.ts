@@ -102,7 +102,7 @@ test('the real launcher preserves Unicode, spaces, percent signs and shell metac
       }
       assert.ok(result, `launcher ${group} completed`)
       assert.deepEqual(result.args, [group === 'editor' ? target : workdir])
-      if (group === 'shell') assert.equal(result.cwd, await realpath(workdir))
+      if (group === 'shell') assert.equal(await realpath(result.cwd), await realpath(workdir))
     }
   } finally {
     // The detached helper can briefly hold its cwd after writing the result.
