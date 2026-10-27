@@ -138,7 +138,7 @@ function Shell({ initialTab }: { initialTab?: string }) {
           {saving ? <Loader2 className="gdp-spin" /> : dirty ? <CircleDot /> : <CircleCheck />}
           <span>{saving ? '正在保存…' : dirty ? '有未保存的更改' : '所有更改已保存'}</span>
         </div>
-        <span className="setting-save-shortcut"><Kbd keys={['Ctrl', 'S']} /></span>
+        <span className="setting-save-shortcut"><Kbd keys={[/Mac/i.test(navigator.platform) ? '⌘' : 'Ctrl', 'S']} /></span>
         <div className="settings-save-actions">
           <Button variant="ghost" onClick={() => bridge.close()}>取消</Button>
           <Button variant="primary" disabled={!dirty || saving} onClick={() => void save()}>

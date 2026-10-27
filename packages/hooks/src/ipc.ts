@@ -24,7 +24,7 @@ import {
   resolveOpenWithTarget,
   type OpenWithItem,
 } from './open-with'
-import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
+import { MACOS_ARM64_DMG_NAME, MACOS_X64_DMG_NAME, type OpenWithLaunchRequest } from '@github-desktop-plus/shared'
 
 // ── Electron types (used as any in main-process hooks) ─────────────────────
 
@@ -255,13 +255,19 @@ export function setupGdpIpc(
   const updater = new GdpUpdater({
     version,
     directory: path.join(dataDir, 'updates'),
-    supported: process.platform === 'win32' && process.arch === 'x64',
+    supported: (process.platform === 'win32' && process.arch === 'x64') ||
+      (process.platform === 'darwin' && (process.arch === 'arm64' || process.arch === 'x64')),
+    installerName: process.platform === 'darwin'
+      ? process.arch === 'arm64' ? MACOS_ARM64_DMG_NAME : MACOS_X64_DMG_NAME
+      : undefined,
     publish: state => {
       for (const wc of activeWebContents) {
         try { if (!wc.isDestroyed()) wc.send('gdp:update-state', state) } catch { /* window closed */ }
       }
     },
-    openInstaller: file => new Promise<void>((resolve, reject) => {
+    openInstaller: file => process.platform === 'darwin'
+      ? shell.openPath(file).then(error => { if (error) throw new Error(error) })
+      : new Promise<void>((resolve, reject) => {
       // Keep custom installation locations. Portable launchers use the wizard's
       // normal destination choice rather than replacing an arbitrary directory.
       const currentDir = path.dirname(launcherPath)
@@ -370,7 +376,7 @@ export function setupGdpIpc(
       const result = await dialog.showOpenDialog({
         title: '选择要添加的程序',
         defaultPath: defaultBrowseDir(),
-        properties: process.platform === 'darwin' ? ['openFile', 'treatPackageAsDirectory'] : ['openFile'],
+        properties: ['openFile'],
         filters,
       })
       if (result.canceled || result.filePaths.length === 0) return { ok: false, reason: 'canceled' }

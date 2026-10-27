@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, realpath, rm, writeFile } from 'node:fs/promises'
 import * as os from 'node:os'
 import * as path from 'node:path'
 import { setTimeout } from 'node:timers/promises'
@@ -8,6 +8,21 @@ import { buildOpenWithCommand, launchOpenWith, resolveOpenWithTarget, type OpenW
 
 const editor: OpenWithItem = { id: 'code', label: 'Code', path: 'C:\\Tools\\Code.exe', args: '"%TARGET_PATH%"', group: 'editor', console: false, enabled: true }
 const shell: OpenWithItem = { ...editor, id: 'ps', path: 'C:\\Tools\\pwsh.exe', args: '', group: 'shell', console: true }
+
+test('macOS applications receive native file events and terminals open the containing directory', () => {
+  const file = "/Users/me/中文 & repo%/src/it's a file.ts"
+  const app = { ...editor, path: '/Applications/Visual Studio Code.app' }
+  const edit = buildOpenWithCommand(app, file, 'file', 'darwin')
+  assert.equal(edit.command, '/usr/bin/open')
+  assert.deepEqual(edit.args, ['-a', app.path, file])
+  const terminal = { ...shell, path: '/System/Applications/Utilities/Terminal.app' }
+  assert.deepEqual(buildOpenWithCommand(terminal, file, 'file', 'darwin').args,
+    ['-a', terminal.path, '/Users/me/中文 & repo%/src'])
+  assert.deepEqual(buildOpenWithCommand(terminal, '/Users/me/repo', 'repository', 'darwin').args,
+    ['-a', terminal.path, '/Users/me/repo'])
+  assert.deepEqual(buildOpenWithCommand({ ...app, args: '--new-window "%TARGET_PATH%"' }, file, 'file', 'darwin').args,
+    ['-a', app.path, '--args', '--new-window', file])
+})
 
 test('resolves file models under Windows, WSL UNC and POSIX repositories and rejects escaping paths', () => {
   assert.deepEqual(resolveOpenWithTarget({ id: 'code', kind: 'file', repositoryPath: 'D:\\项目 repo', path: 'docs/说明.md' }), { kind: 'file', path: 'D:\\项目 repo\\docs\\说明.md' })
@@ -87,7 +102,7 @@ test('the real launcher preserves Unicode, spaces, percent signs and shell metac
       }
       assert.ok(result, `launcher ${group} completed`)
       assert.deepEqual(result.args, [group === 'editor' ? target : workdir])
-      if (group === 'shell') assert.equal(result.cwd, workdir)
+      if (group === 'shell') assert.equal(result.cwd, await realpath(workdir))
     }
   } finally {
     // The detached helper can briefly hold its cwd after writing the result.

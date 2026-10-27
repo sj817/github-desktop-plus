@@ -45,6 +45,7 @@ export function UpdatesPage() {
     finally { busyRef.current = false; if (mounted.current) setPending(false) }
   }
   const busy = pending || state.phase === 'checking' || state.phase === 'downloading'
+  const diskImage = state.installerType === 'disk-image'
   const canDownload = !!state.release && (state.phase === 'available' || (state.phase === 'error' && state.total !== undefined))
   const percent = state.total ? Math.min(100, Math.floor((state.received ?? 0) / state.total * 100)) : 0
   const title = state.phase === 'checking' ? '正在检查新版本'
@@ -64,7 +65,7 @@ export function UpdatesPage() {
             <span className="update-status-icon" data-phase={state.phase}>
               {busy ? <Loader2 className="gdp-spin" /> : state.phase === 'ready' || state.phase === 'current' ? <CircleCheck /> : <ArrowDownToLine />}
             </span>
-            <div className="update-copy"><h3>{title}</h3><p>{state.phase === 'ready' ? '安装包已通过 SHA-256 校验，可以启动安装向导。'
+            <div className="update-copy"><h3>{title}</h3><p>{state.phase === 'ready' ? diskImage ? '安装包已通过 SHA-256 校验，打开后将 Plus 拖入 Applications。' : '安装包已通过 SHA-256 校验，可以启动安装向导。'
               : state.phase === 'downloading' ? `${formatSize(state.received ?? 0)} / ${formatSize(state.total ?? 0)} · ${state.source ?? ''}`
               : state.release && canDownload ? `v${state.release.version} · ${formatSize(state.release.size)}`
               : '点击检查更新，从 GitHub Releases 获取最新的稳定版本。'}</p></div>
@@ -77,10 +78,10 @@ export function UpdatesPage() {
                 try {
                   const result = await bridge.invoke('gdp:update-install')
                   if (!result.ok) throw new Error(result.reason ?? '无法启动安装向导')
-                  if (mounted.current) toast('安装向导已完成', 'success')
+                  if (mounted.current) toast(diskImage ? '磁盘映像已打开，将 Plus 拖入 Applications 后重新启动。' : '安装向导已完成', 'success')
                 } catch (error) { if (mounted.current) toast(String(error), 'error') }
                 finally { busyRef.current = false; if (mounted.current) setInstalling(false) }
-              }}>{installing ? <Loader2 className="gdp-spin" /> : <CheckCheck />}安装更新</Button>}
+              }}>{installing ? <Loader2 className="gdp-spin" /> : <CheckCheck />}{diskImage ? '打开安装包' : '安装更新'}</Button>}
               {busy && <Button onClick={() => void bridge.invoke('gdp:update-cancel').then(accept).catch(error => toast(String(error), 'error'))}><X />取消{state.phase === 'checking' ? '检查' : '下载'}</Button>}
               <Button variant="ghost" disabled={installing} onClick={() => bridge.openExternal(state.release?.url ?? RELEASES_URL)}><ExternalLink />发布页</Button>
             </div>
@@ -96,7 +97,7 @@ export function UpdatesPage() {
           </SettingField>
           <Button variant="link" onClick={() => bridge.openExternal('https://github.akams.cn/')}><ExternalLink />查看 akams 镜像目录</Button>
         </SettingSection>
-        <SettingSection title="安装与校验" description="文件校验通过后再启动安装向导。" icon={<ShieldCheck />}>
+        <SettingSection title="安装与校验" description={diskImage ? '文件校验通过后打开磁盘映像并替换 Applications 中的 Plus。' : '文件校验通过后再启动安装向导。'} icon={<ShieldCheck />}>
           <p className="setting-description">使用 GitHub 发布信息中的 SHA-256 校验下载内容；镜像异常会丢弃文件并重试。安装包流式写入磁盘，只保留最近一份。</p>
           <p className="setting-description">此处更新 GitHub Desktop Plus。常规中的「禁用官方更新」控制 GitHub Desktop 本体，两者互不影响。</p>
         </SettingSection>

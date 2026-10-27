@@ -266,6 +266,25 @@ const DARWIN_CANDIDATES: readonly CandidateSpec[] = [
   },
   { id: 'terminal', label: 'Terminal', group: 'shell', paths: ['/System/Applications/Utilities/Terminal.app'] },
   { id: 'iterm', label: 'iTerm2', group: 'shell', paths: ['/Applications/iTerm.app'] },
+  { id: 'warp', label: 'Warp', group: 'shell', paths: ['/Applications/Warp.app'] },
+  { id: 'ghostty', label: 'Ghostty', group: 'shell', paths: ['/Applications/Ghostty.app'] },
+  ...[
+    ['idea', 'IntelliJ IDEA', 'IntelliJ IDEA'],
+    ['webstorm', 'WebStorm', 'WebStorm'],
+    ['pycharm', 'PyCharm', 'PyCharm'],
+    ['phpstorm', 'PhpStorm', 'PhpStorm'],
+    ['rider', 'Rider', 'Rider'],
+    ['clion', 'CLion', 'CLion'],
+    ['goland', 'GoLand', 'GoLand'],
+    ['rubymine', 'RubyMine', 'RubyMine'],
+    ['datagrip', 'DataGrip', 'DataGrip'],
+    ['rustrover', 'RustRover', 'RustRover'],
+  ].map(([id, label, name]): CandidateSpec => ({
+    id: `jetbrains-${id}`,
+    label: label!,
+    group: 'editor',
+    paths: [`/Applications/${name}.app`],
+  })),
 ]
 
 const LINUX_CANDIDATES: readonly CandidateSpec[] = [
@@ -282,7 +301,14 @@ const LINUX_CANDIDATES: readonly CandidateSpec[] = [
 
 function candidateTable(): readonly CandidateSpec[] {
   if (process.platform === 'win32') return WIN32_CANDIDATES
-  if (process.platform === 'darwin') return DARWIN_CANDIDATES
+  if (process.platform === 'darwin') {
+    return DARWIN_CANDIDATES.map(spec => ({
+      ...spec,
+      paths: spec.paths.flatMap(candidate => candidate.startsWith('/Applications/')
+        ? [candidate, path.join(os.homedir(), 'Applications', path.basename(candidate))]
+        : [candidate]),
+    }))
+  }
   return LINUX_CANDIDATES
 }
 
@@ -552,7 +578,7 @@ function jetbrainsLaunchers(info: Record<string, unknown> | null): string[] {
 /** `"C:\a b\x.exe",0` → `C:\a b\x.exe`; anything other than an absolute .exe is dropped. */
 export function executableFromValue(value: string): string | null {
   const unquoted = value.trim().replace(/,\s*-?\d+$/, '').trim().replace(/^"(.*)"$/, '$1').trim()
-  if (!/\.exe$/i.test(unquoted) || !path.isAbsolute(unquoted)) return null
+  if (!/\.exe$/i.test(unquoted) || !targetPathApi(unquoted).isAbsolute(unquoted)) return null
   return path.normalize(unquoted)
 }
 
@@ -779,7 +805,14 @@ export function buildOpenWithCommand(
     }
   }
   if (platform === 'darwin' && item.path.endsWith('.app')) {
-    return { command: 'open', args: ['-a', item.path, ...args], options }
+    // Native terminals open directories through Apple events; a child's cwd
+    // does not change an already-running terminal's working directory.
+    const nativeTarget = args.length === 0 || (args.length === 1 && args[0] === expandedTarget)
+    return {
+      command: '/usr/bin/open',
+      args: ['-a', item.path, ...(nativeTarget ? [expandedTarget] : ['--args', ...args])],
+      options,
+    }
   }
   // On Windows detached console programs receive their own window. WSL's
   // --cd handles Windows drive paths; UNC paths use the Linux path above.

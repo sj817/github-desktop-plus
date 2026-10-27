@@ -135,7 +135,18 @@ export function translateLabel(
 // useful to translators without costing a write per menu item per rebuild.
 const reportedUntranslatedLabels = new Set<string>()
 
-export function translateMenuItem(item: MenuItem, translations: Record<string, string>): void {
+const MAC_ROLE_LABELS: Record<string, string> = {
+  about: 'About GitHub Desktop', services: 'Services', hide: 'Hide GitHub Desktop',
+  hideOthers: 'Hide Others', unhide: 'Show All', quit: 'Quit GitHub Desktop',
+  minimize: 'Minimize', zoom: 'Zoom', front: 'Bring All to Front',
+  window: 'Window', windowMenu: 'Window', help: 'Help', close: 'Close Window',
+}
+
+export function translateMenuItem(item: MenuItem, translations: Record<string, string>, platform = process.platform): void {
+  if (platform === 'darwin' && !item.label && item.role && MAC_ROLE_LABELS[item.role]) {
+    const label = MAC_ROLE_LABELS[item.role]!
+    if (translateLabel(label, translations)) item.label = label
+  }
   if (item.label) {
     const translated = translateLabel(item.label, translations)
     if (translated) {
@@ -147,7 +158,7 @@ export function translateMenuItem(item: MenuItem, translations: Record<string, s
   }
   if (item.submenu && Array.isArray(item.submenu)) {
     for (const sub of item.submenu) {
-      translateMenuItem(sub, translations)
+      translateMenuItem(sub, translations, platform)
     }
   }
 }

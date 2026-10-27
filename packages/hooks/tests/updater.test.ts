@@ -5,7 +5,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import { PassThrough, Readable } from 'node:stream'
 import { test } from 'node:test'
-import { WINDOWS_SETUP_NAME, type UpdateState } from '@github-desktop-plus/shared'
+import { MACOS_ARM64_DMG_NAME, MACOS_X64_DMG_NAME, WINDOWS_SETUP_NAME, type UpdateState } from '@github-desktop-plus/shared'
 import { GdpUpdater, isNewerVersion, parseRelease, updateRoutes, type UpdateTransport } from '../src/updater'
 
 const binary = Buffer.from('MZ-public-GDP-test-installer')
@@ -16,6 +16,38 @@ const metadata = () => ({
   assets: [{ name: WINDOWS_SETUP_NAME, browser_download_url: assetUrl, size: binary.length, digest: `sha256:${digest}` }],
 })
 const jsonStream = () => Readable.from([JSON.stringify(metadata())])
+
+test('macOS updates select the matching architecture, verify DMG bytes, and reject a modified cache', async () => {
+  for (const name of [MACOS_ARM64_DMG_NAME, MACOS_X64_DMG_NAME] as const) {
+    const directory = await mkdtemp(path.join(os.tmpdir(), 'gdp-macos-updater-'))
+    const data = metadata()
+    data.assets[0]!.name = name
+    data.assets[0]!.browser_download_url = assetUrl.replace(WINDOWS_SETUP_NAME, name)
+    assert.throws(() => parseRelease(metadata(), name), 'a Windows asset cannot satisfy a Mac release')
+    const other = name === MACOS_ARM64_DMG_NAME ? MACOS_X64_DMG_NAME : MACOS_ARM64_DMG_NAME
+    assert.throws(() => parseRelease(data, other), 'the other CPU architecture cannot satisfy this release')
+    let opened: string | undefined
+    const updater = new GdpUpdater({
+      version: '0.2.8', directory, installerName: name,
+      publish: () => {}, openInstaller: async file => { opened = file },
+      transport: { async open(url) {
+        return url.includes('/releases/latest') ? Readable.from([JSON.stringify(data)]) : Readable.from([binary])
+      } },
+    })
+    try {
+      assert.equal(updater.snapshot().installerType, 'disk-image')
+      assert.equal((await updater.check('direct')).phase, 'available')
+      assert.equal((await updater.download('direct')).phase, 'ready')
+      assert.equal((await updater.install()).ok, true)
+      assert.equal(opened, path.join(directory, `0.2.9-${name}`))
+      assert.deepEqual(await readFile(opened!), binary)
+      await writeFile(opened!, 'modified')
+      opened = undefined
+      assert.equal((await updater.install()).ok, false)
+      assert.equal(opened, undefined)
+    } finally { await rm(directory, { recursive: true, force: true }) }
+  }
+})
 
 test('compares complete stable version components, without lexicographic or numeric-overflow errors', () => {
   assert.equal(isNewerVersion('v0.2.10', '0.2.9'), true)

@@ -1,6 +1,6 @@
 {
   "name": "github-desktop-plus",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "private": true,
   "description": "External enhancement tool for GitHub Desktop — Rust runtime + 0-path Electron hooks",
   "license": "MIT",
@@ -19,6 +19,7 @@
     "locales:prepare": "tsx scripts/locales.ts prepare zh-CN",
     "mock:ai": "tsx scripts/mock/ai-server.ts",
     "package:windows": "pnpm run build && tsx scripts/package-windows.ts",
+    "package:macos": "pnpm run build && tsx scripts/package-macos.ts",
     "self-check:desktop": "tsx scripts/locales.ts prepare zh-CN && pnpm -r --if-present run build && tsx scripts/checks/desktop.ts",
     "test": "pnpm -r --if-present run test && cargo test --workspace",
     "typecheck": "tsx scripts/checks/no-js.ts && tsc -p scripts/tsconfig.json && pnpm -r --if-present run typecheck",

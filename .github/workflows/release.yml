@@ -12,6 +12,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  macos:
+    name: Build release (macOS ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify release tag
+        run: pnpm exec tsx scripts/checks/version.ts "$GITHUB_REF_NAME"
+      - name: Check source and tests
+        run: pnpm run check
+      - name: Build and package macOS app
+        run: pnpm run package:macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-desktop-plus-${{ github.ref_name }}-mac-${{ matrix.arch }}
+          path: target/macos/releases/*
+          if-no-files-found: error
+
   wsl-agent:
     name: Build WSL agent (Linux x64)
     runs-on: ubuntu-latest
@@ -109,11 +145,12 @@ jobs:
   publish:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
-    needs: windows
+    needs: [windows, macos]
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: github-desktop-plus-${{ github.ref_name }}
+          pattern: github-desktop-plus-${{ github.ref_name }}*
+          merge-multiple: true
           path: release
 
       - name: Create release and upload assets
@@ -124,11 +161,17 @@ jobs:
             release/GitHubDesktopPlus-win-x64-Setup.exe
             release/GitHubDesktopPlus-win-x64-Portable.zip
             release/SHA256SUMS.txt
+            release/GitHubDesktopPlus-mac-arm64.dmg
+            release/GitHubDesktopPlus-mac-arm64.zip
+            release/GitHubDesktopPlus-mac-x64.dmg
+            release/GitHubDesktopPlus-mac-x64.zip
+            release/SHA256SUMS-mac-arm64.txt
+            release/SHA256SUMS-mac-x64.txt
           )
           for asset in "${assets[@]}"; do
             test -s "$asset" || { echo "Missing public asset: $asset"; exit 1; }
           done
-          (cd release && sha256sum --check SHA256SUMS.txt)
+          (cd release && sha256sum --check SHA256SUMS*.txt)
           if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber --repo "$GITHUB_REPOSITORY"
           else

@@ -15,7 +15,7 @@
 - **免改原版、升级不失效的汉化 (i18n)**：全界面、原生菜单与对话框运行时即时汉化。内置简体中文 (`zh-CN`)，基于 CDP 动态注入机制，不修改官方安装目录下的任何文件，官方自动更新后汉化依然有效。
 - **WSL 2 深度集成**：无缝管理 WSL 内部的 Git 仓库，自动完成 Windows 与 WSL 之间的路径映射转换。
 - **隐私保护与版本锁定**：一键拦截官方后台遥测数据上传，支持禁用静默自动更新。
-- **原生内嵌设置面板**：按下 `Ctrl+Alt+G` 或点击菜单栏 `GDP` 即可唤出设置，所有配置修改实时生效，无需重启应用。
+- **原生内嵌设置面板**：按下 `Ctrl+Alt+G`（macOS 为 `⌘⌥G`）或点击菜单栏 `GDP` 即可唤出设置，所有配置修改实时生效，无需重启应用。
 - **纯净无侵入**：启动时通过 V8 调试协议注入 Hook，不修改官方二进制文件与数字签名，安全可逆。
 
 ---
@@ -93,6 +93,22 @@ GDP 是一个轻量级 Rust 启动器（常驻内存 < 10MB）。启动时通过
 - 可在软件内点击 **GDP → 检查更新** 检测并下载最新版本。
 - 下载线路支持 GitHub 直连与国内常见加速镜像（参考 [github.akams.cn](https://github.akams.cn/)），失败时自动降级切换。镜像设置仅对 Plus 自身的安装包下载生效。
 
+### macOS
+
+支持 macOS 12 及以上版本，提供 Apple Silicon (`mac-arm64`) 和 Intel (`mac-x64`) 两种构建。请先安装官方 **GitHub Desktop**。
+
+1. 从 [Releases](https://github.com/sj817/github-desktop-plus/releases/latest) 下载对应架构的 `GitHubDesktopPlus-mac-*.dmg`，或下载 ZIP 解压。
+2. 打开 DMG，将 **GitHub Desktop Plus.app** 拖入 **Applications**，再双击 Plus 启动。
+3. Plus 会自动查找 `/Applications` 或 `~/Applications` 中的 GitHub Desktop，注入增强功能并显示原生窗口。
+
+- 配置与数据保存在 `~/Library/Application Support/github-desktop-plus`。
+- `⌘⌥G` 打开设置，`⌘S` 保存；多编辑器与终端支持系统和用户 Applications 目录。
+- 内置更新下载当前架构的 DMG 并校验 SHA-256；打开后拖入 Applications 替换 Plus，再重新启动。
+- 自定义安装路径可通过 `gdp launch --desktop-path "/自定义路径/GitHub Desktop.app"` 指定，也可传入包内可执行文件。
+- macOS 构建不需要 WSL 或 Linux 交叉编译工具链；WSL 集成仅用于 Windows。
+
+本地及 CI 默认生成临时签名的应用；公开分发前仍需 Developer ID 签名和 Apple 公证。打包时可通过 `GDP_MACOS_SIGN_IDENTITY` 指定签名身份。
+
 ### WSL 2
 
 在 WSL 2 终端中运行单行脚本完成安装：
@@ -107,6 +123,7 @@ curl -fsSL https://raw.githubusercontent.com/sj817/github-desktop-plus/main/inst
 ### 快捷键
 
 - `Ctrl+Alt+G`：打开 / 关闭设置面板（或点击菜单栏 `GDP`）。
+- macOS：`⌘⌥G` 打开设置，`⌘S` 保存更改。
 
 ---
 
@@ -153,6 +170,10 @@ pnpm run build
 
 # 构建 Windows 安装包与便携包
 pnpm run package:windows
+
+# 在 macOS 上构建当前架构的 .app、DMG 和 ZIP
+# 产物位于 target/macos/releases/
+pnpm run package:macos
 ```
 
 ---

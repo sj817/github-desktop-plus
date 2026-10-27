@@ -95,6 +95,7 @@ fn main() {
     let repo_root = manifest_dir.join("../..");
 
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    #[cfg(windows)]
     if target_os == "windows" {
         let icon = manifest_dir.join("assets/gdp.ico");
         winresource::WindowsResource::new()

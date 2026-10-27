@@ -15,6 +15,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  macos:
+    name: Check + Package (macOS ${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check TypeScript, packages, tests, formatting, and Rust
+        run: pnpm run check
+      - name: Build and package macOS app
+        run: pnpm run package:macos
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-desktop-plus-mac-${{ matrix.arch }}
+          path: target/macos/releases/*
+          if-no-files-found: error
+          retention-days: 14
+
   installer:
     name: Check WSL installer
     runs-on: ubuntu-latest

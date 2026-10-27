@@ -15,7 +15,7 @@ A zero-patch runtime enhancement suite for GitHub Desktop. It injects custom AI 
 - **Zero-Patch Chinese Localization (i18n)**: Full runtime UI translation for menus, dialogs, and views. Ships with built-in Simplified Chinese (`zh-CN`). Because translations are injected at runtime, official GitHub Desktop updates will not overwrite or break your localization.
 - **WSL 2 Integration**: Manage repositories hosted inside WSL 2 from Windows with automatic `/mnt/c/` ↔ `\\wsl$\` path translation.
 - **Privacy & Update Control**: Block background telemetry tracking and disable silent automatic updates with a single toggle.
-- **Embedded Settings Panel**: Press `Ctrl+Alt+G` or click `GDP` in the menu bar to open settings. All modifications take effect immediately without restarting.
+- **Embedded Settings Panel**: Press `Ctrl+Alt+G` (`⌘⌥G` on macOS) or click `GDP` in the menu bar to open settings. All modifications take effect immediately without restarting.
 - **Zero Binary Modification**: Injected at launch via the official V8 Inspector protocol (CDP). No files in your GitHub Desktop installation are altered.
 
 ---
@@ -93,6 +93,22 @@ All IPC communication (settings, logs, AI requests, locales) runs directly insid
 - Check for updates anytime via **GDP → Check for Updates** (or **GDP → 检查更新**).
 - The updater supports direct GitHub downloads and acceleration mirrors (listed by [github.akams.cn](https://github.akams.cn/)) with automatic fallback. Mirror preference only applies to public release downloads.
 
+### macOS
+
+Supports macOS 12 or later, with separate Apple Silicon (`mac-arm64`) and Intel (`mac-x64`) builds. Install the official **GitHub Desktop** first.
+
+1. Download the matching `GitHubDesktopPlus-mac-*.dmg` from [Releases](https://github.com/sj817/github-desktop-plus/releases/latest), or extract the ZIP.
+2. Open the DMG, drag **GitHub Desktop Plus.app** into **Applications**, and double-click Plus.
+3. Plus finds GitHub Desktop in `/Applications` or `~/Applications` and launches it with the runtime enhancements.
+
+- Settings and runtime data live in `~/Library/Application Support/github-desktop-plus`.
+- Press `⌘⌥G` for settings and `⌘S` to save. Editors and terminals can be detected in both system and user Applications folders.
+- In-app updates download and verify the DMG for the current architecture. Open it, replace Plus in Applications, and relaunch.
+- For a custom location, use `gdp launch --desktop-path "/custom/path/GitHub Desktop.app"`. The executable inside the bundle is also accepted.
+- macOS builds skip the WSL agent and require no Linux cross-compilation toolchain. WSL integration is Windows-only.
+
+Local and CI packages use ad-hoc signatures by default; public distribution still requires Developer ID signing and Apple notarization. Set `GDP_MACOS_SIGN_IDENTITY` when packaging to select a signing identity.
+
 ### WSL 2
 
 Install the `gdp` CLI command in WSL 2 with:
@@ -107,6 +123,7 @@ curl -fsSL https://raw.githubusercontent.com/sj817/github-desktop-plus/main/inst
 ### Shortcuts
 
 - `Ctrl+Alt+G`: Open or close the GDP settings modal (or click `GDP` in the menu bar).
+- macOS: `⌘⌥G` opens settings; `⌘S` saves changes.
 
 ---
 
@@ -153,6 +170,10 @@ pnpm run build
 
 # Build Windows installer and portable packages
 pnpm run package:windows
+
+# Build a macOS .app, DMG and ZIP for the current architecture
+# Output: target/macos/releases/
+pnpm run package:macos
 ```
 
 ---

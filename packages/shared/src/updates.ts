@@ -18,6 +18,9 @@ export function normalizeDownloadMirror(value: unknown): DownloadMirror {
 
 export const WINDOWS_SETUP_NAME = 'GitHubDesktopPlus-win-x64-Setup.exe'
 export const WINDOWS_PORTABLE_NAME = 'GitHubDesktopPlus-win-x64-Portable.zip'
+export const MACOS_ARM64_DMG_NAME = 'GitHubDesktopPlus-mac-arm64.dmg'
+export const MACOS_X64_DMG_NAME = 'GitHubDesktopPlus-mac-x64.dmg'
+export type InstallerName = typeof WINDOWS_SETUP_NAME | typeof MACOS_ARM64_DMG_NAME | typeof MACOS_X64_DMG_NAME
 export const RELEASES_URL = 'https://github.com/sj817/github-desktop-plus/releases'
 
 export interface GdpRelease {
@@ -29,6 +32,7 @@ export interface GdpRelease {
 }
 
 export interface UpdateState {
+  installerType?: 'disk-image'
   revision: number
   phase: 'idle' | 'checking' | 'current' | 'available' | 'downloading' | 'ready' | 'error'
   currentVersion: string

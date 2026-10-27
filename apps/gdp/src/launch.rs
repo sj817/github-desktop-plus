@@ -1,6 +1,8 @@
 //! `gdp launch` (and the legacy `gdp dev`) implementation.
 
 use std::ffi::{OsStr, OsString};
+#[cfg(target_os = "macos")]
+use std::io::IsTerminal;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
@@ -95,15 +97,27 @@ fn running_as_gui() -> bool {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
 fn running_as_gui() -> bool {
-    false
+    !io::stdin().is_terminal()
 }
 
 fn ask_kill_existing(daemon_pid: Option<u32>) -> bool {
     let pid_str = daemon_pid
         .map(|p| format!(" (PID {p})"))
         .unwrap_or_default();
+
+    #[cfg(target_os = "macos")]
+    if running_as_gui() {
+        return Command::new("/usr/bin/osascript")
+            .args([
+                "-e",
+                "display dialog \"GitHub Desktop Plus 已在运行，是否重新启动？\" with title \"GitHub Desktop Plus\" buttons {\"取消\", \"重新启动\"} default button \"取消\" cancel button \"取消\"",
+            ])
+            .output()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+    }
 
     #[cfg(windows)]
     {
@@ -443,17 +457,6 @@ fn inject_hooks(child: &mut Child) {
     }
 }
 
-/// Block until the given PID exits, then terminate this process.
-fn watch_pid_until_exit(pid: u32) {
-    loop {
-        std::thread::sleep(Duration::from_secs(2));
-        if !is_process_alive(pid) {
-            eprintln!("[gdp] GitHub Desktop process {pid} exited — shutting down daemon.");
-            std::process::exit(0);
-        }
-    }
-}
-
 /// Implementation of `gdp launch`.
 pub fn run(force: bool, desktop_path: Option<PathBuf>, foreground: bool) {
     let already_daemon = std::env::var("GDP_DAEMON").is_ok();
@@ -481,7 +484,15 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, foreground: bool) {
     write_pid_files(cfg_dir.as_ref(), pid);
     inject_hooks(&mut child);
 
-    std::mem::forget(child);
-
-    watch_pid_until_exit(pid);
+    // Reap the child on Unix. Polling kill(pid, 0) leaves a zombie visible as
+    // alive forever after Desktop quits, so its GDP daemon never shuts down.
+    let _ = child.wait();
+    if let Some(dir) = cfg_dir {
+        for (file, owner) in [("gdp.pid", pid), ("gdp-daemon.pid", std::process::id())] {
+            let path = dir.join(file);
+            if std::fs::read_to_string(&path).is_ok_and(|value| value.trim() == owner.to_string()) {
+                let _ = std::fs::remove_file(path);
+            }
+        }
+    }
 }

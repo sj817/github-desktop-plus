@@ -49,7 +49,11 @@ async function wslHome(wsl: string): Promise<string> {
   return home
 }
 
-export async function ensureWslAgent(force = false): Promise<string> {
+export async function ensureWslAgent(force = false): Promise<string | null> {
+  if (process.platform === 'darwin') {
+    console.log('[wsl-agent] skipped on macOS')
+    return null
+  }
   const target = rustTarget()
   const targetDir = path.join(rootDir, 'target', 'wsl-agent')
   const artifact = path.join(targetDir, target, 'release', 'gdp-wsl-agent')

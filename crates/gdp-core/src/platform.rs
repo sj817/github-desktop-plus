@@ -3,9 +3,11 @@ use std::path::PathBuf;
 /// Returns the user's home directory using well-known environment variables.
 fn home_dir() -> Option<PathBuf> {
     // USERPROFILE is canonical on Windows; HOME on macOS/Linux.
-    std::env::var_os("USERPROFILE")
-        .or_else(|| std::env::var_os("HOME"))
-        .map(PathBuf::from)
+    #[cfg(windows)]
+    let home = std::env::var_os("USERPROFILE");
+    #[cfg(not(windows))]
+    let home = std::env::var_os("HOME");
+    home.map(PathBuf::from)
 }
 
 /// Returns the platform-specific configuration directory for GitHub Desktop Plus.

@@ -42,6 +42,16 @@ test('exact labels translate', () => {
   assert.equal(translateLabel('&File', translations), '文件(&F)')
 })
 
+test('macOS role labels translate without changing native menu actions', () => {
+  const menu: MenuItem = { role: 'window', submenu: [{ role: 'minimize' }, { role: 'quit' }] }
+  translateMenuItem(menu, { Window: '窗口', Minimize: '最小化', 'Quit GitHub Desktop': '退出 GitHub Desktop' }, 'darwin')
+  assert.equal(menu.label, '窗口')
+  assert.deepEqual(menu.submenu, [{ role: 'minimize', label: '最小化' }, { role: 'quit', label: '退出 GitHub Desktop' }])
+  const windows: MenuItem = { role: 'minimize' }
+  translateMenuItem(windows, { Minimize: '最小化' }, 'win32')
+  assert.equal(windows.label, undefined)
+})
+
 test('case-insensitive fallback still applies to menu labels', () => {
   assert.equal(translateLabel('Show Logs', translations), '显示日志')
 })

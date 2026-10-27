@@ -5,7 +5,7 @@
  * hands off to the shell, which in turn hosts the React settings UI.
  *
  *   GDP menu / gdp:open-settings → 'gdp:show-dialog' from the main process
- *   Ctrl+Alt+G                   → local shortcut (also registered globally)
+ *   CmdOrCtrl+Alt+G              → local shortcut (also registered globally)
  */
 import { createDialogShell, type DialogShell } from './shell'
 import { getIpcRenderer } from './electron'
@@ -39,7 +39,9 @@ import { getIpcRenderer } from './electron'
   }
 
   window.addEventListener('keydown', (event: KeyboardEvent) => {
-    if (event.ctrlKey && event.altKey && event.key.toLowerCase() === 'g') {
+    const primary = process.platform === 'darwin' ? event.metaKey : event.ctrlKey
+    // Option+G produces a different character on macOS keyboard layouts.
+    if (primary && event.altKey && (event.code === 'KeyG' || event.key.toLowerCase() === 'g')) {
       event.preventDefault()
       show('general')
     }

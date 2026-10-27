@@ -221,6 +221,14 @@ function loadMenuTranslations(dir: string, locale: string, dataDir: string): Rec
   const aliasPairs: Array<[source: string, canonical: string]> = []
   collectAliases(menu, aliasPairs)
   applyAliases(translations, aliasPairs)
+  if (process.platform === 'darwin') {
+    // macOS omits Windows mnemonic markers. Prepare aliases once when the
+    // locale is loaded so menu rebuilds retain their cached, I/O-free path.
+    for (const [key, value] of Object.entries(translations)) {
+      const plain = key.replaceAll('&', '')
+      if (translations[plain] === undefined) translations[plain] = value.replace(/\(&[A-Za-z]\)/g, '')
+    }
+  }
   gdpLog(`Loaded ${Object.keys(translations).length} menu translations from aggregate package`, 'info', 'menu')
   return translations
 }

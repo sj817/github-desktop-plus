@@ -50,6 +50,23 @@ pub fn read_inspect_ws_url_sync(
 
 /// Find the `resources/app/main.js` for a GitHub Desktop installation.
 pub fn find_main_js(exe: &Path) -> Option<PathBuf> {
+    // macOS keeps Resources beside MacOS, and --desktop-path may name the
+    // application bundle itself instead of its executable.
+    let contents = if exe.extension().is_some_and(|ext| ext == "app") {
+        Some(exe.join("Contents"))
+    } else {
+        exe.parent()
+            .filter(|p| p.file_name().is_some_and(|name| name == "MacOS"))
+            .and_then(Path::parent)
+            .map(Path::to_path_buf)
+    };
+    if let Some(contents) = contents {
+        let main_js = contents.join("Resources/app/main.js");
+        if main_js.is_file() {
+            return Some(main_js);
+        }
+    }
+
     let parent = exe.parent()?;
 
     let direct = parent.join("resources").join("app").join("main.js");
@@ -85,6 +102,12 @@ pub fn find_main_js(exe: &Path) -> Option<PathBuf> {
 pub fn find_real_electron_exe(main_js: &Path) -> Option<PathBuf> {
     let mut p = main_js.parent()?;
     loop {
+        if p.file_name().is_some_and(|name| name == "Contents") {
+            let candidate = p.join("MacOS/GitHub Desktop");
+            if candidate.is_file() {
+                return Some(candidate);
+            }
+        }
         if p.file_name()
             .and_then(|n| n.to_str())
             .map_or(false, |n| n.starts_with("app-"))
@@ -99,6 +122,39 @@ pub fn find_real_electron_exe(main_js: &Path) -> Option<PathBuf> {
             }
         }
         p = p.parent()?;
+    }
+}
+
+#[cfg(test)]
+mod bundle_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_a_macos_bundle_or_its_executable_in_a_custom_directory() {
+        let directory = std::env::temp_dir().join(format!(
+            "gdp-bundle-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let bundle = directory.join("应用 Programs/GitHub Desktop.app");
+        let main_js = bundle.join("Contents/Resources/app/main.js");
+        let executable = bundle.join("Contents/MacOS/GitHub Desktop");
+        std::fs::create_dir_all(main_js.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(executable.parent().unwrap()).unwrap();
+        std::fs::write(&main_js, "// desktop").unwrap();
+        std::fs::write(&executable, "executable").unwrap();
+
+        assert_eq!(find_main_js(&bundle), Some(main_js.clone()));
+        assert_eq!(find_main_js(&executable), Some(main_js.clone()));
+        assert_eq!(find_real_electron_exe(&main_js), Some(executable.clone()));
+        std::fs::remove_file(&executable).unwrap();
+        assert_eq!(find_real_electron_exe(&main_js), None);
+        std::fs::remove_file(&main_js).unwrap();
+        assert_eq!(find_main_js(&bundle), None);
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }
 
@@ -291,10 +347,16 @@ fn github_desktop_running() -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(target_os = "macos")]
+const DESKTOP_PROCESS_PATTERN: &str = r"\.app/Contents/MacOS/GitHub Desktop($| --)";
+
+#[cfg(all(unix, not(target_os = "macos")))]
+const DESKTOP_PROCESS_PATTERN: &str = "GitHubDesktop";
+
 #[cfg(unix)]
 fn github_desktop_running() -> bool {
     std::process::Command::new("pgrep")
-        .args(["-f", "GitHubDesktop"])
+        .args(["-f", DESKTOP_PROCESS_PATTERN])
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::null())
         .status()
@@ -335,7 +397,7 @@ pub fn kill_github_desktop_if_running() {
     #[cfg(unix)]
     {
         let _ = std::process::Command::new("pkill")
-            .args(["-TERM", "-f", "GitHubDesktop"])
+            .args(["-TERM", "-f", DESKTOP_PROCESS_PATTERN])
             .status();
     }
 
@@ -364,7 +426,7 @@ pub fn kill_github_desktop_if_running() {
     #[cfg(unix)]
     {
         let _ = std::process::Command::new("pkill")
-            .args(["-KILL", "-f", "GitHubDesktop"])
+            .args(["-KILL", "-f", DESKTOP_PROCESS_PATTERN])
             .status();
     }
     std::thread::sleep(Duration::from_millis(800));

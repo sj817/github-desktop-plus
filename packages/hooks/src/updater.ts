@@ -10,7 +10,7 @@ import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import {
   DOWNLOAD_MIRRORS, normalizeDownloadMirror, RELEASES_URL, WINDOWS_SETUP_NAME,
-  type DownloadMirror, type GdpRelease, type OkResult, type UpdateState,
+  type DownloadMirror, type GdpRelease, type InstallerName, type OkResult, type UpdateState,
 } from '@github-desktop-plus/shared'
 
 const API_URL = 'https://api.github.com/repos/sj817/github-desktop-plus/releases/latest'
@@ -83,16 +83,16 @@ interface VerifiedRelease {
   sha256: string
 }
 
-export function parseRelease(value: unknown): VerifiedRelease {
+export function parseRelease(value: unknown, installerName: InstallerName = WINDOWS_SETUP_NAME): VerifiedRelease {
   if (!value || typeof value !== 'object') throw new Error('发布信息格式错误')
   const data = value as Record<string, unknown>
   if (typeof data.tag_name !== 'string' || !STABLE_VERSION.test(data.tag_name) || data.draft === true || data.prerelease === true) {
     throw new Error('未找到可用的稳定版本')
   }
   const tag = data.tag_name
-  const downloadUrl = `${RELEASES_URL}/download/${tag}/${WINDOWS_SETUP_NAME}`
+  const downloadUrl = `${RELEASES_URL}/download/${tag}/${installerName}`
   const asset = (Array.isArray(data.assets) ? data.assets : []).find((item: unknown) =>
-    item && typeof item === 'object' && (item as Record<string, unknown>).name === WINDOWS_SETUP_NAME,
+    item && typeof item === 'object' && (item as Record<string, unknown>).name === installerName,
   ) as Record<string, unknown> | undefined
   const digest = typeof asset?.digest === 'string' ? DIGEST.exec(asset.digest) : null
   if (!asset || asset.browser_download_url !== downloadUrl || !digest ||
@@ -150,6 +150,7 @@ export interface UpdaterOptions {
   openInstaller(file: string): Promise<void>
   transport?: UpdateTransport
   supported?: boolean
+  installerName?: InstallerName
 }
 
 export class GdpUpdater {
@@ -162,6 +163,7 @@ export class GdpUpdater {
 
   constructor(private readonly options: UpdaterOptions) {
     this.state = { phase: 'idle', currentVersion: options.version, revision: 0 }
+    if (options.installerName?.endsWith('.dmg')) this.state.installerType = 'disk-image'
     this.transport = options.transport ?? httpsUpdateTransport
   }
 
@@ -185,7 +187,7 @@ export class GdpUpdater {
         if (controller.signal.aborted) break
         try {
           const response = await this.transport.open(route.prefix + API_URL, controller.signal, 8000)
-          const release = parseRelease(await readMetadata(response))
+          const release = parseRelease(await readMetadata(response), this.options.installerName)
           if (controller.signal.aborted) break
           const same = this.release?.sha256 === release.sha256
           this.release = release
@@ -207,11 +209,12 @@ export class GdpUpdater {
     if (this.active || this.installing || this.state.phase === 'ready') return this.snapshot()
     const release = this.release
     if (!release || !isNewerVersion(release.info.version, this.options.version)) return this.snapshot()
-    if (this.options.supported === false) return this.set({ phase: 'error', error: '内置安装更新目前支持 Windows x64，请在发布页选择安装包。' })
+    if (this.options.supported === false) return this.set({ phase: 'error', error: '当前平台暂不支持内置安装更新，请在发布页选择安装包。' })
     const controller = new AbortController()
     this.active = controller
     this.readyFile = undefined
-    const finalFile = path.join(this.options.directory, `${release.info.version}-Setup.exe`)
+    const suffix = this.state.installerType === 'disk-image' ? this.options.installerName! : 'Setup.exe'
+    const finalFile = path.join(this.options.directory, `${release.info.version}-${suffix}`)
     const partialFile = finalFile + '.part'
     const failures: string[] = []
     this.set({ phase: 'downloading', error: undefined, received: 0, total: release.info.size })
@@ -219,7 +222,7 @@ export class GdpUpdater {
       await mkdir(this.options.directory, { recursive: true })
       // A single installer cache, including across application restarts.
       for (const entry of await readdir(this.options.directory)) {
-        if (/^\d+\.\d+\.\d+-Setup\.exe(?:\.part)?$/.test(entry)) {
+        if (/^\d+\.\d+\.\d+-(?:Setup\.exe|GitHubDesktopPlus-mac-(?:arm64|x64)\.dmg)(?:\.part)?$/.test(entry)) {
           await rm(path.join(this.options.directory, entry), { force: true })
         }
       }
