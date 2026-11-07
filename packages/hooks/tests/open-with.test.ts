@@ -39,9 +39,9 @@ function settings(overrides: Partial<OpenWithSettings> = {}): OpenWithSettings {
   return {
     submenu: false,
     items: [
-      { id: 'vscode', label: 'VS Code', group: 'editor', enabled: true },
-      { id: 'zed', label: 'Zed', group: 'editor', enabled: true },
-      { id: 'wsl', label: 'WSL (Ubuntu)', group: 'shell', enabled: true },
+      { id: 'vscode', label: 'VS Code', group: 'editor', enabled: true, topLevel: false },
+      { id: 'zed', label: 'Zed', group: 'editor', enabled: true, topLevel: false },
+      { id: 'wsl', label: 'WSL (Ubuntu)', group: 'shell', enabled: true, topLevel: false },
     ],
     ...overrides,
   }
@@ -83,7 +83,7 @@ test("appends our entries and never touches GD's own", () => {
 
 test('adds nothing next to a group with no configured entries', () => {
   const onlyShell = settings({
-    items: [{ id: 'wsl', label: 'WSL (Ubuntu)', group: 'shell', enabled: true }],
+    items: [{ id: 'wsl', label: 'WSL (Ubuntu)', group: 'shell', enabled: true, topLevel: false }],
   })
   const plan = planInjection(repoMenu(), onlyShell)
   assert.ok(plan)
@@ -151,6 +151,45 @@ test('collapses into a single submenu when asked', () => {
     'Open in Command Prompt',
     'Open in Visual Studio Code',
   ])
+})
+
+const claude = { id: 'claude', label: 'Claude Code CLI', group: 'agent', enabled: true, topLevel: false } as const
+const codex = { id: 'codex', label: 'Codex Desktop', group: 'agent', enabled: true, topLevel: false } as const
+
+test('pinned entries stay in the menu, next to the submenu that holds the rest', () => {
+  const [vscode, , wsl] = settings().items
+  const plan = planInjection(repoMenu(), settings({ submenu: true, items: [vscode!, { ...claude, topLevel: true }, codex, wsl!] }))
+  assert.ok(plan)
+  assert.deepEqual(labels(plan.items).slice(7), [
+    'Open in Visual Studio Code', 'Open in Claude Code CLI', 'Open with', '—', 'Remove',
+  ])
+  assert.deepEqual(labels(plan.items[plan.submenuSlot]?.submenu ?? []), [
+    'Open in VS Code', 'Open in Codex Desktop', 'Open in WSL (Ubuntu)',
+  ])
+  assert.deepEqual(resolveReply(plan, [8]), { kind: 'gdp', id: 'claude' })
+  assert.deepEqual(resolveReply(plan, [plan.submenuSlot, 1]), { kind: 'gdp', id: 'codex' })
+  assert.deepEqual(resolveReply(plan, [11]), { kind: 'native', indices: [REMOVE_INDEX] })
+})
+
+test('pinning every entry leaves no empty submenu behind', () => {
+  const plan = planInjection(repoMenu(), settings({ submenu: true, items: settings().items.map(item => ({ ...item, topLevel: true })) }))
+  assert.ok(plan)
+  assert.equal(plan.submenuSlot, -1)
+  assert.ok(!labels(plan.items).includes('Open with'))
+  assert.deepEqual(resolveReply(plan, [plan.items.findIndex(item => item.label === 'Open in Zed')]), { kind: 'gdp', id: 'zed' })
+})
+
+test('agents follow the editors and stay usable when the file itself is gone', () => {
+  const plan = planInjection(repoMenu(), settings({ items: [claude, ...settings().items] }))
+  assert.ok(plan)
+  assert.deepEqual(labels(plan.items).slice(8, 12), [
+    'Open in Visual Studio Code', 'Open in VS Code', 'Open in Zed', 'Open in Claude Code CLI',
+  ])
+  const deleted = fileMenu().map(item => item.label === 'Open in Zed' ? { ...item, enabled: false } : item)
+  const filePlan = planInjection(deleted, settings({ items: [claude, ...settings().items] }))
+  assert.ok(filePlan)
+  assert.equal(filePlan.items.find(item => item.label === 'Open in VS Code')?.enabled, false)
+  assert.equal(filePlan.items.find(item => item.label === 'Open in Claude Code CLI')?.enabled, true)
 })
 
 function fileMenu(): SerializedMenuItem[] {

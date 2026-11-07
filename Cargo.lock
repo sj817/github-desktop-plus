@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "gdp"
-version = "0.2.14"
+version = "0.2.15"
 dependencies = [
  "clap",
  "gdp-core",
@@ -320,15 +320,16 @@ dependencies = [
 
 [[package]]
 name = "gdp-core"
-version = "0.2.14"
+version = "0.2.15"
 dependencies = [
  "serde",
  "serde_json",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
 name = "gdp-wsl-agent"
-version = "0.2.14"
+version = "0.2.15"
 dependencies = [
  "clap",
  "libc",

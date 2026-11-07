@@ -1,4 +1,4 @@
-import type { OpenWithGroup, StoredConfig, StoredOpenWithItem } from '@github-desktop-plus/shared'
+import { parseOpenWithGroup, type OpenWithGroup, type StoredConfig, type StoredOpenWithItem } from '@github-desktop-plus/shared'
 import { normalizeDownloadMirror, type DownloadMirror } from '@github-desktop-plus/shared'
 
 /**
@@ -43,6 +43,8 @@ export interface OpenWithEntry {
   group: OpenWithGroup
   console: boolean
   enabled: boolean
+  /** Stays in the context menu while the rest collapse into the submenu. */
+  topLevel: boolean
 }
 
 export const DEFAULT_BASE_URL = 'https://api.openai.com/v1'
@@ -66,9 +68,10 @@ function normalizeItem(raw: StoredOpenWithItem | undefined, index: number): Open
     label: typeof raw.label === 'string' ? raw.label : '',
     path: filePath,
     args: typeof raw.args === 'string' ? raw.args : '',
-    group: raw.group === 'shell' ? 'shell' : 'editor',
+    group: parseOpenWithGroup(raw.group),
     console: raw.console === true,
     enabled: raw.enabled !== false,
+    topLevel: raw.top_level === true,
   }
 }
 
@@ -80,6 +83,7 @@ export function createEntry(partial: Partial<OpenWithEntry> & { id: string; path
     group: 'editor',
     console: false,
     enabled: true,
+    topLevel: false,
     ...partial,
   }
 }
@@ -161,6 +165,7 @@ export function applyDraft(current: StoredConfig, draft: SettingsDraft): StoredC
         group: item.group,
         console: item.console,
         enabled: item.enabled,
+        top_level: item.topLevel,
       })),
   }
   // Written by older builds; the native entry is now always left in place.

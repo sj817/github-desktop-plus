@@ -1,16 +1,19 @@
 //! GDP — single binary: CLI launcher + V8 Inspector hook injection.
 
 mod cli;
+mod data_guard;
 mod hook_assets;
 mod injector;
 mod launch;
 mod proc;
 
 use clap::Parser;
-use gdp_core::{config::Config, detector::find_github_desktop, platform::config_dir};
+use gdp_core::{
+    config::Config, desktop_data::LaunchRecord, detector::find_github_desktop, platform::config_dir,
+};
 
 use crate::cli::{Cli, Command, ConfigAction};
-use crate::launch::load_config;
+use crate::launch::{installed_desktop_version, load_config};
 use crate::proc::{CLOSE_GRACE, kill_process, stop_process};
 
 fn main() {
@@ -24,25 +27,31 @@ fn main() {
     let cmd = cli.command.unwrap_or(Command::Launch {
         force: false,
         desktop_path: None,
+        allow_downgrade: false,
     });
 
     match cmd {
         Command::Launch {
             force,
             desktop_path,
+            allow_downgrade,
         } => {
-            launch::run(force, desktop_path, false);
+            launch::run(force, desktop_path, false, allow_downgrade);
         }
         Command::Stop => stop(),
         Command::Status { json } => status(json),
         Command::Detect => detect(),
         Command::Config { action } => config(action),
-        Command::Dev { desktop_path } => {
+        Command::Dev {
+            desktop_path,
+            allow_downgrade,
+        } => {
             unsafe {
                 std::env::set_var("GDP_VERBOSE", "1");
             }
-            launch::run(false, desktop_path, true);
+            launch::run(false, desktop_path, true, allow_downgrade);
         }
+        Command::Backup { action } => data_guard::run_backup(action, installed_desktop_version()),
     }
 }
 
@@ -107,6 +116,17 @@ fn detect() {
             std::process::exit(1);
         }
     }
+    // Every source the downgrade guard weighs, for diagnosing a refused launch.
+    let show = |v: Option<gdp_core::detector::Version>| v.map_or("-".into(), |v| v.to_string());
+    let record = config_dir()
+        .as_deref()
+        .map(LaunchRecord::load)
+        .unwrap_or_default();
+    let evidence = data_guard::gather_evidence(true, &record);
+    println!("launch target  : {}", show(installed_desktop_version()));
+    println!("registry       : {}", show(evidence.registry));
+    println!("desktop logs   : {}", show(evidence.logged));
+    println!("gdp record     : {}", show(evidence.recorded));
 }
 
 fn config(action: ConfigAction) {

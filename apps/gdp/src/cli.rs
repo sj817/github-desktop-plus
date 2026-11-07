@@ -25,6 +25,10 @@ pub enum Command {
         /// Override the GitHub Desktop executable path
         #[arg(long)]
         desktop_path: Option<PathBuf>,
+        /// Start GitHub Desktop even if a newer version already ran. The
+        /// database is backed up first, but the older version opens it empty.
+        #[arg(long)]
+        allow_downgrade: bool,
     },
     /// Stop a running GDP-launched GitHub Desktop instance
     Stop,
@@ -45,6 +49,31 @@ pub enum Command {
         /// Override the GitHub Desktop executable path
         #[arg(long)]
         desktop_path: Option<PathBuf>,
+        /// See `gdp launch --allow-downgrade`
+        #[arg(long)]
+        allow_downgrade: bool,
+    },
+    /// Back up or restore GitHub Desktop's repository database
+    Backup {
+        #[command(subcommand)]
+        action: BackupAction,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+pub enum BackupAction {
+    /// List backups, newest first
+    List,
+    /// Back up now (GitHub Desktop must be closed)
+    Create,
+    /// Restore a backup (GitHub Desktop must be closed); defaults to the newest
+    Restore {
+        /// Backup name as shown by `gdp backup list`
+        name: Option<String>,
+        /// Restore even if the backup was written by a newer GitHub Desktop
+        /// than the one installed
+        #[arg(long)]
+        force: bool,
     },
 }
 
@@ -79,9 +108,11 @@ mod tests {
             Some(Command::Launch {
                 force,
                 desktop_path,
+                allow_downgrade,
             }) => {
                 assert!(force);
                 assert!(desktop_path.is_none());
+                assert!(!allow_downgrade);
             }
             _ => panic!("expected Launch"),
         }
@@ -124,6 +155,31 @@ mod tests {
         }
         let dev = Cli::parse_from(["gdp", "dev"]);
         assert!(matches!(dev.command, Some(Command::Dev { .. })));
+    }
+
+    #[test]
+    fn downgrade_and_backup_subcommands_parse() {
+        let cli = Cli::parse_from(["gdp", "launch", "--allow-downgrade"]);
+        assert!(matches!(
+            cli.command,
+            Some(Command::Launch {
+                allow_downgrade: true,
+                ..
+            })
+        ));
+        let restore = Cli::parse_from(["gdp", "backup", "restore", "20261107-153012-3.6.10"]);
+        match restore.command {
+            Some(Command::Backup {
+                action: BackupAction::Restore { name, force },
+            }) => {
+                assert_eq!(name.as_deref(), Some("20261107-153012-3.6.10"));
+                assert!(!force);
+            }
+            _ => panic!("expected backup restore"),
+        }
+        for sub in ["list", "create"] {
+            assert!(Cli::try_parse_from(["gdp", "backup", sub]).is_ok());
+        }
     }
 
     #[test]

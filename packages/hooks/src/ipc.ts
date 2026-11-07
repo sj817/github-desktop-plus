@@ -21,7 +21,7 @@ import {
   normalizeItem,
   labelForExecutable,
   defaultBrowseDir,
-  resolveOpenWithTarget,
+  resolveItemTarget,
   type OpenWithItem,
 } from './open-with'
 import { MACOS_ARM64_DMG_NAME, MACOS_X64_DMG_NAME, type OpenWithLaunchRequest } from '@github-desktop-plus/shared'
@@ -338,8 +338,6 @@ export function setupGdpIpc(
 
   ipcMain.handle('gdp:open-with-launch', async (_event, payload?: OpenWithLaunchRequest) => {
     if (!payload || typeof payload.id !== 'string' || !payload.id) return { ok: false, reason: 'bad_request' }
-    const target = resolveOpenWithTarget(payload)
-    if (!target) return { ok: false, reason: 'bad_target' }
 
     const stored = readConfigFromDisk(configPath)
     const rawItems = (stored.open_with as { items?: unknown[] } | undefined)?.items ?? []
@@ -349,6 +347,8 @@ export function setupGdpIpc(
 
     const item = items.find(i => i.id === payload.id)
     if (!item || !item.enabled) return { ok: false, reason: 'unknown_or_disabled_item' }
+    const target = resolveItemTarget(item, payload)
+    if (!target) return { ok: false, reason: 'bad_target' }
     const result = await launchOpenWith(item, target.path, target.kind)
     // The menu entry gives no other feedback, so a failed launch would
     // otherwise look like a click that did nothing.

@@ -10,10 +10,14 @@ use std::time::Duration;
 
 use gdp_core::{
     config::Config,
-    detector::find_github_desktop,
+    desktop_data::LaunchRecord,
+    detector::{
+        Version, find_github_desktop, newest_launchable, squirrel_root_for, version_of_main_js,
+    },
     platform::{config_dir, github_desktop_candidates},
 };
 
+use crate::data_guard;
 use crate::hook_assets::{HOOK_JS, extract_hook_to_disk};
 use crate::injector;
 use crate::proc::{
@@ -23,6 +27,10 @@ use crate::proc::{
 
 struct DesktopTarget {
     real_exe: PathBuf,
+    version: Option<Version>,
+    /// The folder holding Update.exe and the app-X.Y.Z versions, when this is
+    /// a Squirrel install (the official Windows installer).
+    squirrel_root: Option<PathBuf>,
 }
 
 pub fn load_config() -> (Config, Option<PathBuf>) {
@@ -85,7 +93,7 @@ pub fn interactive_select_desktop() -> PathBuf {
 }
 
 #[cfg(windows)]
-fn running_as_gui() -> bool {
+pub(crate) fn running_as_gui() -> bool {
     use windows_sys::Win32::System::Console::GetConsoleWindow;
     use windows_sys::Win32::UI::WindowsAndMessaging::IsWindowVisible;
     unsafe {
@@ -98,7 +106,7 @@ fn running_as_gui() -> bool {
 }
 
 #[cfg(target_os = "macos")]
-fn running_as_gui() -> bool {
+pub(crate) fn running_as_gui() -> bool {
     !io::stdin().is_terminal()
 }
 
@@ -191,19 +199,37 @@ fn maybe_prompt_desktop(config: &mut Config, cfg_dir: Option<&PathBuf>, force: b
     println!();
 }
 
-fn resolve_desktop_target(config: &Config) -> DesktopTarget {
-    let exe = config
+fn configured_desktop_exe(config: &Config) -> Option<PathBuf> {
+    config
         .desktop
         .path
         .as_ref()
         .filter(|p| p.exists())
         .cloned()
         .or_else(find_github_desktop)
-        .unwrap_or_else(|| {
-            eprintln!("error: GitHub Desktop executable not found");
-            eprintln!("       Run `gdp launch -f` to select manually.");
+}
+
+fn resolve_desktop_target(config: &Config) -> DesktopTarget {
+    let exe = configured_desktop_exe(config).unwrap_or_else(|| {
+        eprintln!("error: GitHub Desktop executable not found");
+        eprintln!("       Run `gdp launch -f` to select manually.");
+        std::process::exit(1);
+    });
+
+    // A Squirrel install always starts its newest complete version, even when
+    // the configured path points into one specific (soon outdated) app-X.Y.Z.
+    if let Some(root) = squirrel_root_for(&exe) {
+        let app = newest_launchable(&root).unwrap_or_else(|| {
+            eprintln!("error: no complete GitHub Desktop version found");
+            eprintln!("       Searched app-* folders in: {}", root.display());
             std::process::exit(1);
         });
+        return DesktopTarget {
+            real_exe: app.exe(),
+            version: Some(app.version),
+            squirrel_root: Some(root),
+        };
+    }
 
     let main_js = find_main_js(&exe).unwrap_or_else(|| {
         eprintln!("error: main.js not found in GitHub Desktop installation");
@@ -212,13 +238,74 @@ fn resolve_desktop_target(config: &Config) -> DesktopTarget {
     });
     let real_exe = find_real_electron_exe(&main_js).unwrap_or_else(|| exe.clone());
 
-    DesktopTarget { real_exe }
+    DesktopTarget {
+        real_exe,
+        version: version_of_main_js(&main_js),
+        squirrel_root: None,
+    }
+}
+
+/// The version `gdp launch` would start right now.
+pub fn installed_desktop_version() -> Option<Version> {
+    let (config, _) = load_config();
+    let exe = configured_desktop_exe(&config)?;
+    match squirrel_root_for(&exe) {
+        Some(root) => newest_launchable(&root).map(|app| app.version),
+        None => find_main_js(&exe).as_deref().and_then(version_of_main_js),
+    }
+}
+
+/// Pick the version to start, and refuse one older than any that already ran:
+/// it would wipe the database the newer one migrated.
+fn settle_desktop_target(
+    config: &Config,
+    target: DesktopTarget,
+    record: &LaunchRecord,
+    cfg_dir: Option<&Path>,
+    allow_downgrade: bool,
+) -> (DesktopTarget, Option<Version>) {
+    let target = match &target.squirrel_root {
+        Some(root) => {
+            data_guard::wait_for_squirrel(root);
+            // The update that just finished may have added a newer version.
+            resolve_desktop_target(config)
+        }
+        None => target,
+    };
+
+    let evidence = data_guard::gather_evidence(target.squirrel_root.is_some(), record);
+    let downgrade = target
+        .version
+        .as_ref()
+        .and_then(|v| evidence.downgrade_from(v));
+    match (&target.version, downgrade) {
+        (Some(version), Some((floor, source))) => {
+            if !allow_downgrade {
+                data_guard::refuse_downgrade(version, &target.real_exe, floor, source, cfg_dir);
+            }
+            eprintln!(
+                "warning: starting GitHub Desktop {version}, older than {floor} ({source}), because of --allow-downgrade"
+            );
+        }
+        (None, _) => eprintln!(
+            "warning: cannot tell which GitHub Desktop version {} is; skipping the downgrade check",
+            target.real_exe.display()
+        ),
+        _ => {}
+    }
+    let data_version = data_guard::data_version(&evidence, None);
+    (target, data_version)
 }
 
 fn announce_and_maybe_daemonize(target: &DesktopTarget, foreground: bool) {
     println!(
-        "GitHub Desktop Plus  |  desktop: {}",
+        "GitHub Desktop Plus  |  desktop: {}{}",
         target.real_exe.display(),
+        target
+            .version
+            .as_ref()
+            .map(|v| format!("  ({v})"))
+            .unwrap_or_default(),
     );
 
     if !foreground {
@@ -458,7 +545,7 @@ fn inject_hooks(child: &mut Child) {
 }
 
 /// Implementation of `gdp launch`.
-pub fn run(force: bool, desktop_path: Option<PathBuf>, foreground: bool) {
+pub fn run(force: bool, desktop_path: Option<PathBuf>, foreground: bool, allow_downgrade: bool) {
     let already_daemon = std::env::var("GDP_DAEMON").is_ok();
     let (mut config, cfg_dir) = load_config();
 
@@ -476,17 +563,57 @@ pub fn run(force: bool, desktop_path: Option<PathBuf>, foreground: bool) {
         announce_and_maybe_daemonize(&target, foreground);
     }
 
+    // Decide before closing anything: a refused launch must not also take
+    // down the GitHub Desktop the user already had open.
+    let mut record = cfg_dir
+        .as_deref()
+        .map(LaunchRecord::load)
+        .unwrap_or_default();
+    let (target, data_version) = settle_desktop_target(
+        &config,
+        target,
+        &record,
+        cfg_dir.as_deref(),
+        allow_downgrade,
+    );
+
     kill_github_desktop_if_running();
+
+    // Nothing has the database open now, so this copy is consistent.
+    if let Some(dir) = cfg_dir.as_deref() {
+        data_guard::snapshot_before_launch(
+            dir,
+            &record,
+            target.version.as_ref(),
+            data_version.as_ref(),
+        );
+    }
 
     let config_json = build_hook_config(&config, &hooks_dir);
     let mut child = spawn_desktop(&target, &hooks_dir, &config_json);
     let pid = child.id();
     write_pid_files(cfg_dir.as_ref(), pid);
+    if let Some(dir) = cfg_dir.as_deref() {
+        record.note_launch(target.version.as_ref(), &target.real_exe, allow_downgrade);
+        if let Err(e) = record.save(dir) {
+            eprintln!("warning: could not record the launched version: {e}");
+        }
+    }
     inject_hooks(&mut child);
 
     // Reap the child on Unix. Polling kill(pid, 0) leaves a zombie visible as
     // alive forever after Desktop quits, so its GDP daemon never shuts down.
     let _ = child.wait();
+    if let Some(dir) = cfg_dir.as_deref() {
+        let launched = target.version.as_ref();
+        let evidence = data_guard::gather_evidence(target.squirrel_root.is_some(), &record);
+        data_guard::snapshot_after_session(
+            dir,
+            launched,
+            target.squirrel_root.as_deref(),
+            data_guard::data_version(&evidence, launched).as_ref(),
+        );
+    }
     if let Some(dir) = cfg_dir {
         for (file, owner) in [("gdp.pid", pid), ("gdp-daemon.pid", std::process::id())] {
             let path = dir.join(file);

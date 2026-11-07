@@ -1,4 +1,5 @@
 pub mod config;
+pub mod desktop_data;
 pub mod detector;
 pub mod platform;
 

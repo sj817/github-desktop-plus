@@ -15,7 +15,7 @@ import * as os from 'os'
 import * as path from 'path'
 import * as cp from 'child_process'
 import { gdpLog } from './logger'
-import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
+import { parseOpenWithGroup, type OpenWithGroup, type OpenWithLaunchRequest } from '@github-desktop-plus/shared'
 import { parseWslRepositoryPath } from './preload/wsl/path'
 
 /** Placeholder replaced with the editor's file/folder or shell's directory. */
@@ -25,10 +25,11 @@ export interface OpenWithItem {
   id: string
   label: string
   path: string
-  /** `%TARGET_PATH%` is the selected file for editors, its directory for shells. */
+  /** `%TARGET_PATH%` is the selected file for editors, its directory for
+   * shells, and the repository for agents. */
   args: string
-  /** 'editor' | 'shell' — decides which native entry the item sits next to. */
-  group: string
+  /** Decides which native entry the item sits next to and what it opens. */
+  group: OpenWithGroup
   /** Give console programs their own visible window on Windows. */
   console: boolean
   enabled: boolean
@@ -40,7 +41,7 @@ export interface DetectedItem {
   label: string
   path: string
   args: string
-  group: 'editor' | 'shell'
+  group: OpenWithGroup
   console: boolean
 }
 
@@ -95,7 +96,7 @@ interface CandidateSpec {
   id: string
   label: string
   paths: readonly string[]
-  group: 'editor' | 'shell'
+  group: OpenWithGroup
   /** Defaults to `"%TARGET_PATH%"` for editors and '' for shells. */
   args?: string
   console?: boolean
@@ -197,7 +198,7 @@ const WIN32_CANDIDATES: readonly CandidateSpec[] = [
     paths: ['%LOCALAPPDATA%/Programs/Fleet/Fleet.exe'],
   },
 
-  // Shells — console programs are launched through `start` (see launch()).
+  // Shells — console programs are launched through `start` (see buildOpenWithCommand).
   {
     id: 'cmd',
     label: '命令提示符',
@@ -312,7 +313,7 @@ function candidateTable(): readonly CandidateSpec[] {
   return LINUX_CANDIDATES
 }
 
-function defaultArgsFor(group: 'editor' | 'shell', spec?: CandidateSpec): string {
+function defaultArgsFor(group: OpenWithGroup, spec?: CandidateSpec): string {
   if (spec?.args !== undefined) return spec.args
   return group === 'editor' ? `"${TARGET_PATH_TOKEN}"` : ''
 }
@@ -453,6 +454,64 @@ function detectWslDistros(): DetectedItem[] {
     group: 'shell' as const,
     console: true,
   }))
+}
+
+// ── AI coding agents ────────────────────────────────────────────────────────
+
+/** First hit on PATH; within a directory, names are tried in the given order. */
+function findOnPath(names: readonly string[]): string | null {
+  for (const dir of (process.env.PATH ?? '').split(path.delimiter)) {
+    if (!dir) continue
+    for (const name of names) {
+      const candidate = path.join(dir, name)
+      if (pathExists(candidate)) return candidate
+    }
+  }
+  return null
+}
+
+/** Codex ships as ChatGPT.app or Codex.app; only the one that registers
+ * `codex://` can open a project. */
+function macCodexApp(): string | null {
+  for (const name of ['Codex.app', 'ChatGPT.app']) {
+    for (const dir of ['/Applications', path.join(os.homedir(), 'Applications')]) {
+      try {
+        if (fs.readFileSync(path.join(dir, name, 'Contents', 'Info.plist'), 'utf8').includes('<string>codex</string>')) return path.join(dir, name)
+      } catch { /* not installed here */ }
+    }
+  }
+  return null
+}
+
+/**
+ * Claude Code and Codex, each as a CLI (run in a terminal at the repository
+ * root) and as a desktop app (opened on the repository as a project).
+ */
+function detectAgents(): DetectedItem[] {
+  const win = process.platform === 'win32'
+  if (!win && process.platform !== 'darwin') return []
+  const home = os.homedir()
+  const results: DetectedItem[] = []
+  const add = (id: string, label: string, found: string | null, args: string, console: boolean) => {
+    if (found !== null) results.push({ id, label, path: found, args, group: 'agent', console })
+  }
+
+  // Native installers put the CLI in ~/.local/bin; npm puts a shim on PATH.
+  add('claude-code-cli', 'Claude Code CLI', findOnPath(win ? ['claude.exe', 'claude.cmd'] : ['claude'])
+    ?? firstExisting(win ? ['%USERPROFILE%/.local/bin/claude.exe'] : [`${home}/.local/bin/claude`, '/opt/homebrew/bin/claude', '/usr/local/bin/claude', `${home}/.claude/local/claude`]), '', true)
+  add('codex-cli', 'Codex CLI', findOnPath(win ? ['codex.exe', 'codex.cmd'] : ['codex'])
+    ?? firstExisting(win ? [] : ['/opt/homebrew/bin/codex', '/usr/local/bin/codex', `${home}/.local/bin/codex`]), '', true)
+
+  // Claude Desktop opens a folder in its Code tab only through this link.
+  const claudeDesktop = win
+    ? firstExisting(['%LOCALAPPDATA%/Packages/Claude_pzs8sxrjxfjjc', '%LOCALAPPDATA%/AnthropicClaude'])
+    : firstExisting(['/Applications/Claude.app', `${home}/Applications/Claude.app`])
+  add('claude-desktop', 'Claude Desktop', claudeDesktop && `claude://code/new?folder=${TARGET_PATH_TOKEN}`, '', false)
+  // On Windows the Store alias takes --open-project, which unlike the link
+  // also accepts WSL and other UNC repositories.
+  if (win) add('codex-desktop', 'Codex Desktop', firstExisting(['%LOCALAPPDATA%/Microsoft/WindowsApps/chatgpt-desktop.exe']), `--open-project "${TARGET_PATH_TOKEN}"`, false)
+  else add('codex-desktop', 'Codex Desktop', macCodexApp() && `codex://threads/new?path=${TARGET_PATH_TOKEN}`, '', false)
+  return results
 }
 
 // ── Installed applications (Windows) ────────────────────────────────────────
@@ -658,7 +717,7 @@ export async function detectOpenWith(): Promise<DetectedItem[]> {
     })
   }
 
-  results.push(...detectJetBrains(), ...detectVisualStudio(), ...detectWslDistros())
+  results.push(...detectJetBrains(), ...detectVisualStudio(), ...detectAgents(), ...detectWslDistros())
 
   if (process.platform === 'win32') {
     // WSL distros share wsl.exe, so only installed apps are deduplicated by path.
@@ -675,7 +734,7 @@ export async function detectOpenWith(): Promise<DetectedItem[]> {
     }
   }
 
-  const order = { editor: 0, shell: 1 }
+  const order = { editor: 0, agent: 1, shell: 2 }
   return results.sort((a, b) => order[a.group] - order[b.group] || a.label.localeCompare(b.label))
 }
 
@@ -734,6 +793,15 @@ export function resolveOpenWithTarget(request: OpenWithLaunchRequest): { path: s
   return { path: fullPath, kind: 'file' }
 }
 
+/** What a configured item opens. An agent session belongs to the project,
+ * so from a file's menu it opens that file's repository. */
+export function resolveItemTarget(item: OpenWithItem, request: OpenWithLaunchRequest): ReturnType<typeof resolveOpenWithTarget> {
+  if (item.group === 'agent' && request.kind === 'file') {
+    return resolveOpenWithTarget({ id: request.id, kind: 'repository', path: request.repositoryPath ?? '' })
+  }
+  return resolveOpenWithTarget(request)
+}
+
 export interface OpenWithCommand {
   command: string
   args: string[]
@@ -772,9 +840,11 @@ export function buildOpenWithCommand(
 ): OpenWithCommand {
   const api = targetPathApi(targetPath)
   const directory = kind === 'file' ? api.dirname(targetPath) : targetPath
-  let expandedTarget = item.group === 'shell' ? directory : targetPath
-  const argsTemplate = item.args && item.args.trim() !== ''
-    ? item.args : item.group === 'shell' ? '' : `"${TARGET_PATH_TOKEN}"`
+  // Only editors open the file itself; terminals and agents work in a folder.
+  const inDirectory = item.group !== 'editor'
+  let expandedTarget = inDirectory ? directory : targetPath
+  if (isAppLink(item.path)) return linkCommand(item.path.split(TARGET_PATH_TOKEN).join(encodeURIComponent(expandedTarget)), platform)
+  const argsTemplate = item.args && item.args.trim() !== '' ? item.args : defaultArgsFor(item.group)
   let tokens = tokenizeArgs(argsTemplate)
   const wsl = platform === 'win32' && path.win32.basename(item.path).toLowerCase() === 'wsl.exe'
   const wslPath = wsl ? parseWslRepositoryPath(expandedTarget) : null
@@ -792,17 +862,29 @@ export function buildOpenWithCommand(
   // to their first window: VS Code then opens with its window hidden. Only
   // console programs the user did not ask to see get hidden.
   if (platform === 'win32') options.windowsHide = !item.console && peSubsystem(item.path) === IMAGE_SUBSYSTEM_WINDOWS_CUI
+  // Console programs cannot start in a UNC folder; WSL reaches it through --cd.
+  const workingDirectory = wslPath ? os.homedir() : directory
 
-  if (platform === 'win32' && /\.(cmd|bat)$/i.test(item.path)) {
-    // Batch shims require cmd.exe; reject path characters which cmd expands
-    // even inside quotes, rather than letting a file name become shell syntax.
-    if (/["%\r\n]/.test(targetPath)) throw new Error('此文件路径不能通过批处理启动器打开，请选择程序的 .exe')
-    const quoted = args.map(arg => `"${arg.replaceAll('"', '\\"')}"`).join(' ')
+  if (platform === 'win32' && (/\.(cmd|bat)$/i.test(item.path) || item.console)) {
+    // `start` gives the program a console of its own. Spawned directly with
+    // `detached` it gets none and stdin is NUL, so an interactive shell or a
+    // CLI such as Claude Code exits at once. Batch shims need cmd.exe anyway.
+    // cmd expands % even inside quotes: refuse such paths rather than let a
+    // file name become shell syntax.
+    if ([workingDirectory, item.path, ...args].some(part => /["%\r\n]/.test(part))) {
+      throw new Error('路径中含有 % 或引号，无法在命令行窗口中打开')
+    }
+    const title = item.label.replace(/["%^\r\n]/g, '')
+    const quoted = args.map(arg => `"${arg}"`).join(' ')
     return {
       command: process.env.ComSpec || 'cmd.exe',
-      args: ['/d', '/v:off', '/s', '/c', `start "" /D "${directory}" "${item.path}" ${quoted}`.trim()],
-      options: { ...options, windowsVerbatimArguments: true, windowsHide: true },
+      args: ['/d', '/v:off', '/s', '/c', `start "${title}" /D "${workingDirectory}" "${item.path}" ${quoted}`.trim()],
+      options: { ...options, windowsVerbatimArguments: true, windowsHide: true, cwd: os.homedir() },
     }
+  }
+  if (platform === 'darwin' && item.console && !item.path.endsWith('.app')) {
+    // A command-line program needs a terminal window to run in.
+    return { command: '/usr/bin/osascript', args: terminalScript(workingDirectory, [item.path, ...args]), options }
   }
   if (platform === 'darwin' && item.path.endsWith('.app')) {
     // Native terminals open directories through Apple events; a child's cwd
@@ -814,10 +896,36 @@ export function buildOpenWithCommand(
       options,
     }
   }
-  // On Windows detached console programs receive their own window. WSL's
-  // --cd handles Windows drive paths; UNC paths use the Linux path above.
-  if (item.group === 'shell') options.cwd = wslPath ? os.homedir() : directory
+  if (inDirectory) options.cwd = workingDirectory
   return { command: item.path, args, options }
+}
+
+/** `claude://…`, `codex://…`: apps that open a folder through their own link
+ * rather than a command line. Drive letters (`C:`) are not schemes. */
+export function isAppLink(value: string): boolean {
+  return /^[a-z][a-z0-9+.-]+:\/\//i.test(value)
+}
+
+/** Hand a link to the system. Not `cmd /c start`: cmd splits it at `&`. */
+function linkCommand(url: string, platform: NodeJS.Platform): OpenWithCommand {
+  const options: cp.SpawnOptions = { detached: true, stdio: 'ignore' }
+  if (platform === 'win32') {
+    const rundll32 = path.win32.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'rundll32.exe')
+    return { command: rundll32, args: ['url.dll,FileProtocolHandler', url], options }
+  }
+  return { command: platform === 'darwin' ? '/usr/bin/open' : 'xdg-open', args: [url], options }
+}
+
+/** POSIX single quotes, for a command line handed to a shell. */
+function shellQuote(value: string): string {
+  return `'${value.replaceAll("'", `'\\''`)}'`
+}
+
+/** osascript arguments that run `argv` in a new Terminal window inside `directory`. */
+export function terminalScript(directory: string, argv: readonly string[]): string[] {
+  const command = `cd ${shellQuote(directory)} && exec ${argv.map(shellQuote).join(' ')}`
+  const literal = `"${command.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`
+  return ['-e', `tell application "Terminal" to do script ${literal}`, '-e', 'tell application "Terminal" to activate']
 }
 
 function waitForSpawn(child: cp.ChildProcess): Promise<void> {
@@ -837,7 +945,7 @@ export async function launchOpenWith(
 ): Promise<{ ok: boolean; reason?: string }> {
   if (!item.path) return { ok: false, reason: 'no_path' }
   if (!targetPath) return { ok: false, reason: 'no_target' }
-  if (!await fs.promises.access(item.path).then(() => true, () => false)) {
+  if (!isAppLink(item.path) && !await fs.promises.access(item.path).then(() => true, () => false)) {
     gdpLog(`open-with: "${item.label}" not found at ${item.path}`, 'warn', 'system')
     return { ok: false, reason: 'executable_missing' }
   }
@@ -861,7 +969,7 @@ export function normalizeItem(raw: unknown, index: number): OpenWithItem | null 
   const exePath = typeof r.path === 'string' ? r.path : ''
   if (exePath === '') return null
 
-  const group = r.group === 'shell' ? 'shell' : 'editor'
+  const group = parseOpenWithGroup(r.group)
   return {
     id: typeof r.id === 'string' && r.id !== '' ? r.id : `item-${index}`,
     label: typeof r.label === 'string' && r.label !== ''

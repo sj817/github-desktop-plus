@@ -6,6 +6,8 @@
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 
+use gdp_core::detector::newest_launchable;
+
 /// Extract the full WebSocket debugger URL from a `Debugger listening on ws://...` line.
 pub fn parse_debugger_ws_url(line: &str) -> Option<String> {
     let start = line.find("ws://")?;
@@ -74,28 +76,10 @@ pub fn find_main_js(exe: &Path) -> Option<PathBuf> {
         return Some(direct);
     }
 
-    if let Ok(entries) = std::fs::read_dir(parent) {
-        let mut app_dirs: Vec<PathBuf> = entries
-            .filter_map(|e| e.ok())
-            .filter(|e| {
-                e.file_type().map(|t| t.is_dir()).unwrap_or(false)
-                    && e.file_name()
-                        .to_str()
-                        .is_some_and(|n| n.starts_with("app-"))
-            })
-            .map(|e| e.path())
-            .collect();
-        app_dirs.sort_by(|a, b| b.cmp(a));
-
-        for dir in app_dirs {
-            let candidate = dir.join("resources").join("app").join("main.js");
-            if candidate.exists() {
-                return Some(candidate);
-            }
-        }
-    }
-
-    None
+    // Squirrel installs side by side as app-X.Y.Z. Compare versions as
+    // numbers: as strings "app-3.6.7" sorts above "app-3.6.10", and starting
+    // the older build wipes the database the newer one already migrated.
+    newest_launchable(parent).map(|app| app.main_js())
 }
 
 /// Given main.js path, find the real Electron binary inside the same `app-X.Y.Z` directory.
@@ -337,7 +321,7 @@ pub fn daemonize_and_exit() {}
 
 /// Whether any `GitHubDesktop.exe` process (main, renderer, GPU, …) is running.
 #[cfg(windows)]
-fn github_desktop_running() -> bool {
+pub fn github_desktop_running() -> bool {
     std::process::Command::new("tasklist")
         .args(["/FI", "IMAGENAME eq GitHubDesktop.exe", "/NH", "/FO", "CSV"])
         .stdout(std::process::Stdio::piped())
@@ -354,7 +338,7 @@ const DESKTOP_PROCESS_PATTERN: &str = r"\.app/Contents/MacOS/GitHub Desktop($| -
 const DESKTOP_PROCESS_PATTERN: &str = "GitHubDesktop";
 
 #[cfg(unix)]
-fn github_desktop_running() -> bool {
+pub fn github_desktop_running() -> bool {
     std::process::Command::new("pgrep")
         .args(["-f", DESKTOP_PROCESS_PATTERN])
         .stdout(std::process::Stdio::null())
@@ -365,7 +349,7 @@ fn github_desktop_running() -> bool {
 }
 
 #[cfg(not(any(windows, unix)))]
-fn github_desktop_running() -> bool {
+pub fn github_desktop_running() -> bool {
     false
 }
 
@@ -430,4 +414,69 @@ pub fn kill_github_desktop_if_running() {
             .status();
     }
     std::thread::sleep(Duration::from_millis(800));
+}
+
+/// Whether this install's own Squirrel `Update.exe` is running — downloading
+/// or unpacking an update into a new `app-X.Y.Z` folder. Other Squirrel apps
+/// (Discord, Slack, …) ship an `Update.exe` too, so match the full path.
+#[cfg(windows)]
+pub fn squirrel_update_running(root: &Path) -> bool {
+    use windows_sys::Win32::Foundation::{CloseHandle, INVALID_HANDLE_VALUE};
+    use windows_sys::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW,
+        TH32CS_SNAPPROCESS,
+    };
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+        QueryFullProcessImageNameW,
+    };
+
+    let wanted = root.join("Update.exe").to_string_lossy().to_lowercase();
+    let image_path = |pid: u32| -> Option<String> {
+        unsafe {
+            let process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+            if process.is_null() {
+                return None;
+            }
+            let mut buffer = [0u16; 1024];
+            let mut len = buffer.len() as u32;
+            let ok = QueryFullProcessImageNameW(
+                process,
+                PROCESS_NAME_WIN32,
+                buffer.as_mut_ptr(),
+                &mut len,
+            );
+            CloseHandle(process);
+            (ok != 0).then(|| String::from_utf16_lossy(&buffer[..len as usize]))
+        }
+    };
+
+    unsafe {
+        let snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if snapshot == INVALID_HANDLE_VALUE {
+            return false;
+        }
+        let mut entry: PROCESSENTRY32W = std::mem::zeroed();
+        entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
+        let mut found = false;
+        let mut more = Process32FirstW(snapshot, &mut entry) != 0;
+        while more && !found {
+            let len = entry
+                .szExeFile
+                .iter()
+                .position(|&c| c == 0)
+                .unwrap_or(entry.szExeFile.len());
+            let name = String::from_utf16_lossy(&entry.szExeFile[..len]);
+            found = name.eq_ignore_ascii_case("Update.exe")
+                && image_path(entry.th32ProcessID).is_some_and(|p| p.to_lowercase() == wanted);
+            more = Process32NextW(snapshot, &mut entry) != 0;
+        }
+        CloseHandle(snapshot);
+        found
+    }
+}
+
+#[cfg(not(windows))]
+pub fn squirrel_update_running(_root: &Path) -> bool {
+    false
 }

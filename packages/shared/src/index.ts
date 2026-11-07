@@ -3,7 +3,8 @@
  * shell that lives in GitHub Desktop's renderer (`packages/hooks/src/preload/gdp-dialog`)
  * and the settings UI (`apps/settings-ui`).
  *
- * Everything here is types plus two runtime allowlists. It is imported by both
+ * Everything here is types plus a few small runtime helpers (the channel
+ * allowlists, the open-with group parser). It is imported by both
  * sides, so a channel can never drift between caller and handler, and the dev
  * postMessage bridge can reject anything not listed.
  */
@@ -51,12 +52,26 @@ export interface StoredOpenWithItem {
   group?: string
   console?: boolean
   enabled?: boolean
+  /** Shown in the menu itself even while the rest collapse into a submenu. */
+  top_level?: boolean
 }
 
-/** Editors receive the selected file (or repository); shells receive its directory. */
+/**
+ * Editors receive the selected file (or repository); shells receive its
+ * directory; agents always receive the repository root.
+ */
 export const TARGET_PATH_TOKEN = '%TARGET_PATH%'
 
-export type OpenWithGroup = 'editor' | 'shell'
+/**
+ * Which native entry a launcher sits next to, and what it is opened on.
+ * `agent` is an AI coding agent (Claude Code, Codex …): a project-level
+ * tool, so it opens the repository even from a file's menu.
+ */
+export type OpenWithGroup = 'editor' | 'agent' | 'shell'
+
+export function parseOpenWithGroup(value: unknown): OpenWithGroup {
+  return value === 'shell' || value === 'agent' ? value : 'editor'
+}
 
 /** Internal context-menu launch request; file paths are relative to repositoryPath. */
 export interface OpenWithLaunchRequest {

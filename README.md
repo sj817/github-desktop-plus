@@ -11,10 +11,11 @@ A zero-patch runtime enhancement suite for GitHub Desktop. It injects custom AI 
 ## Features
 
 - **Custom AI Commits**: Call custom AI endpoints directly from the native commit UI. Compatible with any OpenAI-compatible API (DeepSeek, Ollama, OpenAI, SiliconFlow, etc.), with custom prompt templates, token control, and latency testing.
-- **Open With+ (Multi-Editor & Terminal)**: Launch editors and terminals from repository and file context menus (VS Code, Cursor, Zed, JetBrains IDEs, Windows Terminal, WSL distros, etc.) with drag-and-drop reordering.
+- **Open With+ (Multi-Editor, AI Agent & Terminal)**: Launch editors, AI coding agents and terminals from repository and file context menus (VS Code, Cursor, Zed, JetBrains IDEs, Claude Code / Codex as CLI or desktop app, Windows Terminal, WSL distros, etc.) with drag-and-drop reordering. When entries are collapsed into a submenu, individual ones can stay pinned in the menu itself.
 - **Zero-Patch Chinese Localization (i18n)**: Full runtime UI translation for menus, dialogs, and views. Ships with built-in Simplified Chinese (`zh-CN`). Because translations are injected at runtime, official GitHub Desktop updates will not overwrite or break your localization.
 - **WSL 2 Integration**: Manage repositories hosted inside WSL 2 from Windows with automatic `/mnt/c/` ↔ `\\wsl$\` path translation.
 - **Privacy & Update Control**: Block background telemetry tracking and disable silent automatic updates with a single toggle.
+- **Repository List Protection**: Always starts the newest installed GitHub Desktop, refuses to start an older build that would wipe the repository database, and backs that database up before every version change (`gdp backup list | create | restore`).
 - **Embedded Settings Panel**: Press `Ctrl+Alt+G` (`⌘⌥G` on macOS) or click `GDP` in the menu bar to open settings. All modifications take effect immediately without restarting.
 - **Zero Binary Modification**: Injected at launch via the official V8 Inspector protocol (CDP). No files in your GitHub Desktop installation are altered.
 

@@ -84,6 +84,9 @@
 #gdp-settings-root .launcher-path { margin-top: 12px; color: var(--gdp-subtle); font: 12px/1.7 var(--gdp-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #gdp-settings-root .launcher-card-foot, #gdp-settings-root .locale-card-foot { display: flex; align-items: center; gap: 5px; padding-top: 14px; margin-top: auto; }
 #gdp-settings-root .launcher-card-foot > .gdp-badge, #gdp-settings-root .locale-card-foot > .gdp-badge { margin-right: auto; }
+#gdp-settings-root .launcher-card-foot > .gdp-badge:has(+ .launcher-pin) { margin-right: 0; }
+#gdp-settings-root .launcher-pin { min-height: 24px; margin-right: auto; padding: 1px 9px; }
+#gdp-settings-root .launcher-pin svg { width: 13px; height: 13px; }
 #gdp-settings-root .launcher-drag { display: grid; place-items: center; width: 26px; height: 30px; color: var(--gdp-subtle); cursor: grab; }
 #gdp-settings-root .launcher-drag svg { width: 16px; height: 16px; }
 #gdp-settings-root .locale-tile { display: grid; place-items: center; flex-shrink: 0; width: 42px; height: 42px; border-radius: 14px; background: var(--gdp-accent-soft); color: var(--gdp-accent); font-size: 16px; font-weight: 600; }

@@ -1,10 +1,11 @@
-import { ArrowDown, ArrowUp, Code2, FolderOpen, GripVertical, Layers, Loader2, Pencil, Plus, ScanSearch, Terminal, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Bot, Code2, FolderOpen, GripVertical, Layers, Loader2, Pencil, Pin, Plus, ScanSearch, Terminal, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { TARGET_PATH_TOKEN, type DetectedOpenWithItem, type OpenWithGroup } from '@github-desktop-plus/shared'
 import { useBridge } from '@/bridge/context'
 import { EmptyState, Note, PageHeader, SettingField, SettingItem, SettingSection } from '@/components/settings/section'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Chip } from '@/components/ui/chip'
 import { Dialog } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Segmented } from '@/components/ui/segmented'
@@ -12,6 +13,14 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/components/ui/toast'
 import { createEntry, uniqueId, type OpenWithEntry } from '@/lib/settings'
 import { useSettings } from '@/lib/settings-store'
+
+const GROUP_LABEL: Record<OpenWithGroup, string> = { editor: '编辑器', agent: 'AI 助手', shell: '终端' }
+const GROUP_ICON: Record<OpenWithGroup, typeof Code2> = { editor: Code2, agent: Bot, shell: Terminal }
+
+function GroupGlyph({ group }: { group: OpenWithGroup }) {
+  const Icon = GROUP_ICON[group]
+  return <span className="panel-glyph"><Icon /></span>
+}
 
 export function OpenWithPage() {
   const { draft, update } = useSettings()
@@ -53,20 +62,20 @@ export function OpenWithPage() {
 
   return (
     <>
-      <PageHeader title="打开方式" description="从仓库或文件右键菜单启动常用的编辑器和终端。" actions={<>
+      <PageHeader title="打开方式" description="从仓库或文件右键菜单启动常用的编辑器、AI 助手和终端。" actions={<>
         <Button onClick={detect} disabled={detecting}>{detecting ? <Loader2 className="gdp-spin" /> : <ScanSearch />}自动检测</Button>
         <Button variant="primary" onClick={addCustom}><Plus />添加程序</Button>
       </>} />
       <div className="setting-stack">
         <SettingSection title="菜单展示" icon={<Layers />}>
-          <SettingItem title="折叠为子菜单" description="将程序收进「打开方式」子菜单，保持右键菜单简洁。">
+          <SettingItem title="折叠为子菜单" description="将程序收进「打开方式」子菜单，保持右键菜单简洁。标记为「单独显示」的程序仍留在菜单外。">
             <Switch aria-label="折叠为子菜单" checked={draft.openWith.submenu} onCheckedChange={submenu => update(prev => ({ ...prev, openWith: { ...prev.openWith, submenu } }))} />
           </SettingItem>
         </SettingSection>
         <section aria-label="已配置程序">
           <div className="list-heading"><h2>已配置程序</h2><Badge>{items.length} 个</Badge></div>
           {items.length === 0 ? (
-            <div className="setting-panel"><EmptyState icon={<Code2 />} title="添加第一个打开方式" action={<Button variant="primary" onClick={detect} disabled={detecting}><ScanSearch />检测已安装的程序</Button>}>添加编辑器或终端后，即可从仓库或文件的右键菜单打开。</EmptyState></div>
+            <div className="setting-panel"><EmptyState icon={<Code2 />} title="添加第一个打开方式" action={<Button variant="primary" onClick={detect} disabled={detecting}><ScanSearch />检测已安装的程序</Button>}>添加编辑器、AI 助手或终端后，即可从仓库或文件的右键菜单打开。</EmptyState></div>
           ) : (
             <div className="launcher-grid">
               {items.map((item, index) => (
@@ -74,13 +83,14 @@ export function OpenWithPage() {
                   onDragOver={event => { if (!dragging || dragging === item.key) return; event.preventDefault(); event.stopPropagation(); setDropTarget(item.key) }}
                   onDrop={event => { event.preventDefault(); event.stopPropagation(); if (dragging) moveItem(dragging, item.key); setDragging(null); setDropTarget(null) }}>
                   <div className="launcher-card-head">
-                    <span className="panel-glyph">{item.group === 'shell' ? <Terminal /> : <Code2 />}</span>
-                    <div><h3 className="launcher-name">{item.label || '未命名程序'}</h3><span className="setting-hint">{item.group === 'shell' ? '终端' : '编辑器'}</span></div>
+                    <GroupGlyph group={item.group} />
+                    <div><h3 className="launcher-name">{item.label || '未命名程序'}</h3><span className="setting-hint">{GROUP_LABEL[item.group]}{item.group === 'agent' ? (item.console ? ' · 命令行' : ' · 桌面版') : ''}</span></div>
                     <Switch aria-label={'启用 ' + (item.label || '未命名程序')} checked={item.enabled} onCheckedChange={enabled => patchItem(item.key, { enabled })} />
                   </div>
                   <p className="launcher-path" title={item.path}>{item.path}</p>
                   <div className="launcher-card-foot">
                     <Badge tone={item.enabled ? 'accent' : 'neutral'}>{item.enabled ? '已启用' : '已停用'}</Badge>
+                    {draft.openWith.submenu ? <Chip className="launcher-pin" active={item.topLevel} title="折叠为子菜单时，仍直接显示在右键菜单中" onClick={() => patchItem(item.key, { topLevel: !item.topLevel })}><Pin />单独显示</Chip> : null}
                     <button type="button" draggable className="launcher-drag" aria-label={'拖动排序 ' + item.label} title="拖动排序"
                       onDragStart={event => { event.stopPropagation(); event.dataTransfer.setData('application/x-gdp-launcher', item.key); event.dataTransfer.effectAllowed = 'move'; setDragging(item.key) }}
                       onDragEnd={() => { setDragging(null); setDropTarget(null) }}><GripVertical /></button>
@@ -94,13 +104,13 @@ export function OpenWithPage() {
             </div>
           )}
         </section>
-        <Note>拖动手柄或使用上下箭头调整顺序。编辑器打开右键选中的文件，终端进入文件所在目录；仓库菜单仍使用仓库目录。</Note>
+        <Note>拖动手柄或使用上下箭头调整顺序。编辑器打开右键选中的文件，终端进入文件所在目录，AI 助手始终打开整个仓库；仓库菜单使用仓库目录。</Note>
       </div>
       <Dialog open={detected !== null} onClose={() => setDetected(null)} title="检测到的程序" description="选择要加入仓库和文件右键菜单的程序。" footer={<Button variant="primary" onClick={() => setDetected(null)}>完成</Button>}>
         {detected?.length === 0 ? <EmptyState icon={<ScanSearch />} title="没有发现新程序">可以关闭此窗口，选择「添加程序」手动配置。</EmptyState> : detected?.map(candidate => {
           const added = items.some(item => item.path.toLowerCase() === candidate.path.toLowerCase())
           return <div key={candidate.path} className="candidate-row">
-            <span className="panel-glyph">{candidate.group === 'shell' ? <Terminal /> : <Code2 />}</span>
+            <GroupGlyph group={candidate.group} />
             <div className="candidate-copy"><strong>{candidate.label}</strong><p>{candidate.path}</p></div>
             <Button size="sm" variant={added ? 'ghost' : 'primary'} disabled={added} onClick={() => addCandidate(candidate)} aria-label={'添加 ' + candidate.label}>{added ? '已添加' : '添加'}</Button>
           </div>
@@ -137,15 +147,15 @@ function EntryDialog({ item, isNew, onClose, onSave }: { item: OpenWithEntry; is
       footer={<><Button variant="ghost" onClick={onClose}>取消</Button><Button type="submit" variant="primary" disabled={!value.path.trim()}>{isNew ? '添加到列表' : '完成编辑'}</Button></>}>
       <SettingField label="显示名称" htmlFor="gdp-entry-name"><Input id="gdp-entry-name" placeholder="例如 Visual Studio Code" value={value.label} onChange={event => patch({ label: event.target.value })} /></SettingField>
       <SettingField label="程序类型">
-        <Segmented aria-label="程序类型" value={value.group} options={[{ value: 'editor' as OpenWithGroup, label: '编辑器' }, { value: 'shell' as OpenWithGroup, label: '终端' }]} onValueChange={group => patch({ group, console: group === 'shell' })} />
+        <Segmented aria-label="程序类型" value={value.group} options={(['editor', 'agent', 'shell'] as const).map(group => ({ value: group, label: GROUP_LABEL[group] }))} onValueChange={group => patch({ group, ...(group === 'agent' ? {} : { console: group === 'shell' }) })} />
       </SettingField>
-      <SettingField label="可执行文件路径" htmlFor="gdp-entry-path" trailing={<Button size="xs" onClick={browse} disabled={browsing}>{browsing ? <Loader2 className="gdp-spin" /> : <FolderOpen />}选择程序</Button>}>
-        <Input id="gdp-entry-path" className="gdp-mono" required spellCheck={false} placeholder="选择或粘贴程序的完整路径" value={value.path} onChange={event => patch({ path: event.target.value })} />
+      <SettingField label="程序路径或应用链接" htmlFor="gdp-entry-path" hint={'也可以填写 claude:// 这类应用链接，其中的 ' + TARGET_PATH_TOKEN + ' 会自动编码。'} trailing={<Button size="xs" onClick={browse} disabled={browsing}>{browsing ? <Loader2 className="gdp-spin" /> : <FolderOpen />}选择程序</Button>}>
+        <Input id="gdp-entry-path" className="gdp-mono" required spellCheck={false} placeholder="选择程序，或粘贴完整路径 / 应用链接" value={value.path} onChange={event => patch({ path: event.target.value })} />
       </SettingField>
-      <SettingField label="启动参数" htmlFor="gdp-entry-args" hint={'使用 ' + TARGET_PATH_TOKEN + ' 作为目标占位符：编辑器接收文件或仓库路径，终端接收所在目录。'}>
+      <SettingField label="启动参数" htmlFor="gdp-entry-args" hint={'使用 ' + TARGET_PATH_TOKEN + ' 作为目标占位符：编辑器接收文件或仓库路径，终端接收所在目录，AI 助手接收仓库路径。'}>
         <Input id="gdp-entry-args" className="gdp-mono" spellCheck={false} value={value.args} onChange={event => patch({ args: event.target.value })} />
       </SettingField>
-      <SettingItem title="在终端窗口中运行"><Switch aria-label="在终端窗口中运行" checked={value.console} onCheckedChange={console => patch({ console })} /></SettingItem>
+      <SettingItem title="在终端窗口中运行" description="命令行程序（如 Claude Code CLI）需要开启。"><Switch aria-label="在终端窗口中运行" checked={value.console} onCheckedChange={console => patch({ console })} /></SettingItem>
     </Dialog>
   )
 }

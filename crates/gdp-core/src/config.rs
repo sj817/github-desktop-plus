@@ -126,7 +126,8 @@ pub struct OpenWithItem {
     pub path: String,
     #[serde(default)]
     pub args: String,
-    /// "editor" or "shell" — decides which native entry it sits next to.
+    /// "editor", "agent" or "shell" — decides which native entry it sits next
+    /// to, and whether it opens the file, the repository or a folder.
     #[serde(default = "default_open_with_group")]
     pub group: String,
     /// Give console programs their own visible window on Windows.
@@ -134,6 +135,10 @@ pub struct OpenWithItem {
     pub console: bool,
     #[serde(default = "default_true")]
     pub enabled: bool,
+    /// Stay in the context menu itself while the rest collapse into the
+    /// "Open with" submenu.
+    #[serde(default)]
+    pub top_level: bool,
 }
 
 fn default_open_with_group() -> String {
@@ -387,6 +392,15 @@ mod tests {
         assert_eq!(c.open_with.items[0].group, "editor");
         assert!(c.open_with.items[0].enabled);
         assert!(!c.open_with.items[0].console);
+        assert!(!c.open_with.items[0].top_level);
+
+        // The launcher re-saves config.json; a pinned agent must survive that.
+        let json = r#"{"open_with":{"submenu":true,"items":[{"id":"claude-code","label":"Claude Code","path":"claude.exe","group":"agent","console":true,"top_level":true}]}}"#;
+        let c: Config = serde_json::from_str(json).expect("parse agent");
+        let saved = serde_json::to_value(&c).expect("serialize");
+        let item = &saved["open_with"]["items"][0];
+        assert_eq!(item["group"], "agent");
+        assert_eq!(item["top_level"], true);
     }
 
     #[test]

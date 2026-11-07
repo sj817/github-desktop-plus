@@ -16,7 +16,7 @@
  * pass through the translation layer untouched.
  */
 import { readGdRepositories } from './lib/gd-db'
-import type { OpenWithLaunchRequest } from '@github-desktop-plus/shared'
+import { parseOpenWithGroup, type OpenWithGroup, type OpenWithLaunchRequest } from '@github-desktop-plus/shared'
 
 export interface SerializedMenuItem {
   label?: string
@@ -29,8 +29,10 @@ export interface SerializedMenuItem {
 export interface ConfiguredItem {
   id: string
   label: string
-  group: 'editor' | 'shell'
+  group: OpenWithGroup
   enabled: boolean
+  /** Stay in the menu itself while the others collapse into the submenu. */
+  topLevel: boolean
 }
 
 export interface OpenWithSettings {
@@ -83,8 +85,9 @@ function parseSettings(raw: unknown): OpenWithSettings {
     items.push({
       id,
       label,
-      group: entry.group === 'shell' ? 'shell' : 'editor',
+      group: parseOpenWithGroup(entry.group),
       enabled: true,
+      topLevel: entry.top_level === true,
     })
   })
 
@@ -310,9 +313,12 @@ export function planInjection(
   const enabled = items[anchorIndex]?.enabled !== false
 
   const editors = config.items.filter(item => item.group === 'editor' && item.enabled)
+  const agents = config.items.filter(item => item.group === 'agent' && item.enabled)
   const shells = config.items.filter(item => item.group === 'shell' && item.enabled)
-  const itemEnabled = (item: ConfiguredItem) => fileMenu && item.group === 'shell' ? true : enabled
-  if (editors.length === 0 && shells.length === 0) return null
+  // In a file menu only editors open the file itself, which may be deleted;
+  // terminals use its folder and agents the repository, both still there.
+  const itemEnabled = (item: ConfiguredItem) => fileMenu && item.group !== 'editor' ? true : enabled
+  if (editors.length === 0 && agents.length === 0 && shells.length === 0) return null
 
   const plan: Plan = { items: [], slots: [], submenuSlot: -1, submenuIds: [] }
 
@@ -322,19 +328,23 @@ export function planInjection(
   }
 
   if (config.submenu) {
-    const ordered = [...editors, ...shells]
+    const ordered = [...editors, ...agents, ...shells]
+    const pinned = ordered.filter(entry => entry.topLevel)
+    const grouped = ordered.filter(entry => !entry.topLevel)
     items.forEach((item, index) => {
       push(item, { kind: 'native', index })
-      if (index === anchorIndex) {
-        plan.submenuSlot = plan.items.length
-        plan.submenuIds = ordered.map(entry => entry.id)
-        plan.items.push({
-          label: SUBMENU_LABEL,
-          enabled: ordered.some(itemEnabled),
-          submenu: ordered.map(entry => buildItem(entry, itemEnabled(entry))),
-        })
-        plan.slots.push({ kind: 'gdp', id: '' })
-      }
+      if (index !== anchorIndex) return
+      // Pinned entries sit right before the submenu, next to GD's own launcher.
+      for (const entry of pinned) push(buildItem(entry, itemEnabled(entry)), { kind: 'gdp', id: entry.id })
+      if (grouped.length === 0) return
+      plan.submenuSlot = plan.items.length
+      plan.submenuIds = grouped.map(entry => entry.id)
+      plan.items.push({
+        label: SUBMENU_LABEL,
+        enabled: grouped.some(itemEnabled),
+        submenu: grouped.map(entry => buildItem(entry, itemEnabled(entry))),
+      })
+      plan.slots.push({ kind: 'gdp', id: '' })
     })
     return plan
   }
@@ -346,9 +356,9 @@ export function planInjection(
     // GD's own entries are always left alone; ours are appended right after
     // the native entry of the same group.
     push(item, { kind: 'native', index })
-    const ours = index === (editorIndex >= 0 ? editorIndex : fileMenu ? anchorIndex : -1) ? editors : index === shellIndex ? shells : []
+    const ours = index === (editorIndex >= 0 ? editorIndex : fileMenu ? anchorIndex : -1) ? [...editors, ...agents] : index === shellIndex ? shells : []
     for (const entry of ours) {
-      push(buildItem(entry, enabled), { kind: 'gdp', id: entry.id })
+      push(buildItem(entry, itemEnabled(entry)), { kind: 'gdp', id: entry.id })
     }
   })
 

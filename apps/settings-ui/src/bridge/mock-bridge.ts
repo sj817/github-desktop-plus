@@ -46,7 +46,7 @@ export function createMockBridge(): MockBridge {
           logging: { level: '' },
           copilot: { unlock: true },
           open_with: {
-            submenu: false,
+            submenu: true,
             items: [
               {
                 id: 'vscode',
@@ -54,6 +54,25 @@ export function createMockBridge(): MockBridge {
                 path: 'C:\\Users\\me\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe',
                 args: '"%TARGET_PATH%"',
                 group: 'editor',
+                console: false,
+                enabled: true,
+              },
+              {
+                id: 'claude-code-cli',
+                label: 'Claude Code CLI',
+                path: 'C:\\Users\\me\\.local\\bin\\claude.exe',
+                args: '',
+                group: 'agent',
+                console: true,
+                enabled: true,
+                top_level: true,
+              },
+              {
+                id: 'codex-desktop',
+                label: 'Codex Desktop',
+                path: 'C:\\Users\\me\\AppData\\Local\\Microsoft\\WindowsApps\\chatgpt-desktop.exe',
+                args: '--open-project "%TARGET_PATH%"',
+                group: 'agent',
                 console: false,
                 enabled: true,
               },
@@ -141,6 +160,14 @@ export function createMockBridge(): MockBridge {
           path: 'C:\\Program Files\\Sublime Text\\sublime_text.exe',
           args: '"%TARGET_PATH%"',
           group: 'editor',
+          console: false,
+        },
+        {
+          id: 'claude-desktop',
+          label: 'Claude Desktop',
+          path: 'claude://code/new?folder=%TARGET_PATH%',
+          args: '',
+          group: 'agent',
           console: false,
         },
         {
